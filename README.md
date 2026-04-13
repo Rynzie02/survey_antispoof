@@ -1,1 +1,1 @@
-"# survey_antispoof" 
+# survey_antispoof
