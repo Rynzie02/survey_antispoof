@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"C:/Users/19891/.claude/plugins/cache/oh-my-paper/omp/1.0.0/scripts/on-session-start.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "topic": "语音对抗攻击：TTS防克隆 + 净化失效",
+  "goal": "在普通的TTS防克隆（让说话人识别失效）之外，加上使得语音净化（purification）失效的能力",
+  "currentStage": "ideation_completed",
+  "selectedIdea": {
+    "id": "idea-1",
+    "title": "双目标对抗优化框架",
+    "novelty": 5,
+    "feasibility": 4,
+    "impact": 5
+  },
+  "successThreshold": "成功生成对抗样本，同时满足：(1) 说话人识别攻击成功率 > 90%; (2) 净化后对抗扰动保持率 > 70%",
+  "nextSteps": [
+    "深入阅读核心论文（arXiv:2310.14270, arXiv:2311.16124, arXiv:2410.04017）",
+    "设计具体实验方案",
+    "准备数据集和基线模型",
+    "进入实验阶段"
+  ]
+}
