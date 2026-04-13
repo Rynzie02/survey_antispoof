@@ -14,4 +14,9 @@
 
 ## Experiment Runs
 
-(Results will be appended here after each run)
+### Config Update — 2026-04-13
+- **环境管理**: 迁移至 uv，新建 `pyproject.toml`，删除 `requirements.txt`
+- **净化器**: 替换为 AudioPure（score-based diffusion，arXiv:2310.14270）
+- **接口**: `load_purification_model(model_type='audiopure')` → `AudioPureWrapper`
+- **攻击参数**: ε=0.02, iterations=100, α=β=0.5（不变）
+- **状态**: 代码已更新，待安装 AudioPure 后运行

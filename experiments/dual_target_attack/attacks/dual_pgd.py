@@ -26,22 +26,18 @@ class DualTargetPGD:
         self.beta = config.beta
         self.device = config.device
 
-    def compute_speaker_loss(self, x_adv, target_label):
+    def compute_speaker_loss(self, x_adv, target_embed):
         """
-        Compute speaker recognition attack loss
+        Compute speaker cloning attack loss (embedding distance).
 
         Args:
             x_adv: Adversarial audio (batch, samples)
-            target_label: Target speaker label (batch,)
+            target_embed: Target speaker embedding (batch, dim) — precomputed
         Returns:
-            Loss value (higher = more successful attack)
+            Loss value (cosine similarity; maximizing pulls adv toward target)
         """
-        logits = self.speaker_model(x_adv)
-
-        # Cross-entropy loss (we want to maximize this, so return negative)
-        loss = F.cross_entropy(logits, target_label)
-
-        return -loss  # Negative because we want to maximize attack success
+        embed_adv = self.speaker_model.get_embedding(x_adv)
+        return F.cosine_similarity(embed_adv, target_embed, dim=1).mean()
 
     def compute_purification_loss(self, x_adv, x_clean):
         """
@@ -71,13 +67,13 @@ class DualTargetPGD:
 
         return loss
 
-    def attack(self, x_clean, target_label, return_trajectory=False):
+    def attack(self, x_clean, target_embed, return_trajectory=False):
         """
         Execute dual-target PGD attack
 
         Args:
             x_clean: Clean audio (batch, samples)
-            target_label: Target speaker label (batch,)
+            target_embed: Target speaker embedding (batch, dim)
             return_trajectory: If True, return loss trajectory
         Returns:
             x_adv: Adversarial audio
@@ -98,7 +94,7 @@ class DualTargetPGD:
                 x_adv.grad.zero_()
 
             # Compute dual-target loss
-            loss_speaker = self.compute_speaker_loss(x_adv, target_label)
+            loss_speaker = self.compute_speaker_loss(x_adv, target_embed)
             loss_purification = self.compute_purification_loss(x_adv, x_clean)
 
             # Combined loss
@@ -143,7 +139,7 @@ class SingleTargetPGD:
         self.step_size = config.step_size
         self.device = config.device
 
-    def attack(self, x_clean, target_label):
+    def attack(self, x_clean, target_embed):
         """Execute single-target PGD attack"""
         x_adv = x_clean.clone().detach()
         x_adv.requires_grad = True
@@ -152,9 +148,8 @@ class SingleTargetPGD:
             if x_adv.grad is not None:
                 x_adv.grad.zero_()
 
-            # Compute speaker loss only
-            logits = self.speaker_model(x_adv)
-            loss = -F.cross_entropy(logits, target_label)
+            embed_adv = self.speaker_model.get_embedding(x_adv)
+            loss = F.cosine_similarity(embed_adv, target_embed, dim=1).mean()
 
             loss.backward()
 
@@ -174,7 +169,7 @@ class SingleTargetPGD:
 class AdaptiveWeightPGD(DualTargetPGD):
     """Dual-target PGD with adaptive weight adjustment"""
 
-    def attack(self, x_clean, target_label, return_trajectory=False):
+    def attack(self, x_clean, target_embed, return_trajectory=False):
         """Execute attack with adaptive weights"""
         x_adv = x_clean.clone().detach()
         x_adv.requires_grad = True
@@ -192,7 +187,7 @@ class AdaptiveWeightPGD(DualTargetPGD):
                 x_adv.grad.zero_()
 
             # Compute losses
-            loss_speaker = self.compute_speaker_loss(x_adv, target_label)
+            loss_speaker = self.compute_speaker_loss(x_adv, target_embed)
             loss_purification = self.compute_purification_loss(x_adv, x_clean)
 
             # Adaptive weight adjustment based on loss magnitudes

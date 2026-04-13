@@ -13,17 +13,15 @@ class Config:
     sample_rate = 16000
     audio_length = 3.0  # seconds
 
-    # Speaker Recognition Model
-    speaker_model_type = 'resnet34'  # or 'ecapa_tdnn', 'xvector'
-    speaker_model_path = './models/pretrained/speaker_resnet34.pth'
-    num_speakers = 1251  # VoxCeleb1
+    # Speaker Model (Coqui YourTTS speaker encoder)
+    speaker_model_type = 'coqui'
+    speaker_model_path = None  # Coqui downloads weights automatically
     embedding_dim = 512
 
-    # Purification Model
-    purification_type = 'diffusion'  # or 'denoising_ae'
-    diffusion_steps = 50  # T in paper
-    noise_schedule = 'linear'  # or 'cosine'
-    purification_model_path = './models/pretrained/diffusion_purifier.pth'
+    # Purification Model (De-AntiFake DiffWave, first-stage)
+    purification_type = 'deantifake'
+    purification_model_path = '../De-AntiFake/checkpoints/purification.pkl'
+    purification_reverse_timestep = 25
 
     # Attack Parameters
     attack_type = 'dual_pgd'

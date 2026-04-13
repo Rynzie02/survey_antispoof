@@ -53,7 +53,7 @@ def run_experiment(config, attack_type='dual'):
     purification_model = load_purification_model(
         model_type=config.purification_type,
         model_path=config.purification_model_path,
-        device=config.device
+        device=config.device,
     )
 
     # Load data
@@ -82,19 +82,20 @@ def run_experiment(config, attack_type='dual'):
         x_clean = x_clean.to(config.device)
         labels = labels.to(config.device)
 
-        # Generate random target labels (different from true labels)
-        target_labels = torch.randint(0, config.num_speakers, (len(labels),), device=config.device)
-        target_labels = torch.where(target_labels == labels, (target_labels + 1) % config.num_speakers, target_labels)
+        # Use a different sample in the batch as the target speaker
+        target_audio = torch.roll(x_clean, 1, dims=0)  # shift by 1 to get different speaker
+        with torch.no_grad():
+            target_embed = speaker_model.get_embedding(target_audio)
 
         # Execute attack
         if attack_type == 'single':
-            x_adv = attacker.attack(x_clean, target_labels)
+            x_adv = attacker.attack(x_clean, target_embed)
         else:
-            x_adv, trajectory = attacker.attack(x_clean, target_labels, return_trajectory=True)
+            x_adv, trajectory = attacker.attack(x_clean, target_embed, return_trajectory=True)
 
         # Compute metrics
         batch_metrics = metrics_evaluator.compute_all_metrics(
-            x_clean, x_adv, target_labels, config.sample_rate
+            x_clean, x_adv, target_embed, config.sample_rate
         )
         all_metrics.append(batch_metrics)
 
