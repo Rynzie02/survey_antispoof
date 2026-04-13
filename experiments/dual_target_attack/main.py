@@ -46,7 +46,6 @@ def run_experiment(config, attack_type='dual'):
     print("Loading models...")
     speaker_model = load_speaker_model(
         model_path=config.speaker_model_path,
-        num_speakers=config.num_speakers,
         device=config.device
     )
 

@@ -34,8 +34,12 @@ dual_target_attack/
 ## Installation
 
 ```bash
-pip install -r requirements.txt
+uv python pin 3.11
+uv sync
 ```
+
+The speaker encoder path now expects the PyPI `coqui-tts` package under Python 3.11.
+The bundled `experiments/De-AntiFake/PhonePuRe/encoder_models/TTS` copy is only used as a fallback.
 
 ## Usage
 
@@ -44,7 +48,7 @@ pip install -r requirements.txt
 Run the main experiment with default configuration:
 
 ```bash
-python main.py
+uv run python main.py
 ```
 
 ### Custom Configuration

@@ -8,11 +8,14 @@ import torch
 import torch.nn as nn
 
 _PHONEPURE = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../../../../De-AntiFake/PhonePuRe')
+    os.path.join(os.path.dirname(__file__), '../../De-AntiFake/PhonePuRe')
 )
 if _PHONEPURE not in sys.path:
     sys.path.insert(0, _PHONEPURE)
 
+_RTVC = os.path.join(_PHONEPURE, 'encoder_models', 'rtvc')
+if _RTVC not in sys.path:
+    sys.path.insert(0, _RTVC)
 
 class CoquiSpeakerEncoder(nn.Module):
     """Wraps Coqui YourTTS speaker_manager as a speaker encoder."""
@@ -30,11 +33,26 @@ class CoquiSpeakerEncoder(nn.Module):
         Returns:
             (batch, embedding_dim) L2-normalized speaker embedding
         """
-        embeddings = []
-        for i in range(x.shape[0]):
-            emb = self.speaker_manager.encoder.compute_embedding(x[i].unsqueeze(0))
-            embeddings.append(emb)
-        return torch.cat(embeddings, dim=0)
+        encoder = self.speaker_manager.encoder
+
+        if x.ndim != 2:
+            raise ValueError(f"Expected audio batch with shape (batch, samples), got {tuple(x.shape)}")
+
+        # Coqui's public compute_embedding() runs under inference_mode(), which severs
+        # the autograd graph and breaks PGD. Rebuild the encoder forward path here
+        # so gradients can flow back to the waveform.
+        if getattr(encoder, "use_torch_spec", False):
+            with torch.autocast("cuda", enabled=False):
+                features = encoder.torch_spec(x)
+                features = encoder.instancenorm(features).transpose(1, 2)
+        else:
+            features = encoder.instancenorm(x).transpose(1, 2)
+
+        embeddings = encoder.layers(features)
+        if getattr(encoder, "use_lstm_with_projection", False):
+            embeddings = embeddings[:, -1]
+
+        return torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Returns embeddings (used as logits proxy for loss computation)."""

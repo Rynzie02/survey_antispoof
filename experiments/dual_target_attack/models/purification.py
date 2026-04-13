@@ -10,7 +10,7 @@ import torch.nn as nn
 
 # Make De-AntiFake importable
 _DEANTIFAKE = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../../../../De-AntiFake/PhonePuRe')
+    os.path.join(os.path.dirname(__file__), '../../De-AntiFake/PhonePuRe')
 )
 if _DEANTIFAKE not in sys.path:
     sys.path.insert(0, _DEANTIFAKE)
@@ -54,7 +54,7 @@ class DeAntiFakePurifier(nn.Module):
 def load_purification_model(model_type='deantifake', model_path=None, device='cuda'):
     config_path = os.path.join(
         os.path.dirname(__file__),
-        '../../../../De-AntiFake/PhonePuRe/configs/config.json'
+        '../../De-AntiFake/PhonePuRe/configs/config.json'
     )
     if model_path is None:
         raise ValueError("model_path must point to purification.pkl")
