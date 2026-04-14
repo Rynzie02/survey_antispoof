@@ -30,8 +30,8 @@ class Config:
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.5  # Weight for speaker recognition loss
-    beta = 0.5   # Weight for purification robustness loss
+    alpha = 0.6  # Weight for speaker recognition loss
+    beta = 0.4   # Weight for purification robustness loss
     weight_strategy = 'fixed'  # 'fixed', 'adaptive', or 'staged'
 
     # Evaluation

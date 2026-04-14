@@ -20,3 +20,9 @@
 - **接口**: `load_purification_model(model_type='audiopure')` → `AudioPureWrapper`
 - **攻击参数**: ε=0.02, iterations=100, α=β=0.5（不变）
 - **状态**: 代码已更新，待安装 AudioPure 后运行
+
+### Config Update — 2026-04-14
+- **损失权重调整**: α=0.6（说话人识别攻击），β=0.4（净化失效）
+- **调整原因**: 优先确保声纹攻击成功率（ASR > 90%），再兼顾净化鲁棒性
+- **其他参数**: ε=0.02, iterations=100 不变
+- **状态**: 待运行
