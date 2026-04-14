@@ -1,16 +1,25 @@
 """
 Dataset loader for VoxCeleb
 """
+
 import torch
 from torch.utils.data import Dataset, DataLoader
-import torchaudio
+import soundfile as sf
 import os
 import random
+
 
 class VoxCelebDataset(Dataset):
     """VoxCeleb dataset for speaker recognition"""
 
-    def __init__(self, data_root, num_samples=100, audio_length=3.0, sample_rate=16000, split='test'):
+    def __init__(
+        self,
+        data_root,
+        num_samples=100,
+        audio_length=3.0,
+        sample_rate=16000,
+        split="test",
+    ):
         self.data_root = data_root
         self.num_samples = num_samples
         self.audio_length = audio_length
@@ -22,17 +31,27 @@ class VoxCelebDataset(Dataset):
 
     def _load_dataset(self):
         """Load dataset file paths and labels"""
-        # This is a placeholder - in practice, you would load from VoxCeleb
-        # For now, we'll create dummy data for demonstration
-
         print(f"Loading {self.split} dataset from {self.data_root}")
-        print(f"Note: Using dummy data for demonstration. Replace with actual VoxCeleb loading.")
 
-        # Dummy data
-        audio_files = [f"dummy_audio_{i}.wav" for i in range(self.num_samples)]
-        labels = [random.randint(0, 1250) for _ in range(self.num_samples)]
+        wav_files = sorted(
+            [
+                os.path.join(self.data_root, f)
+                for f in os.listdir(self.data_root)
+                if f.endswith(".wav")
+            ]
+        )[: self.num_samples]
 
-        return audio_files, labels
+        # Extract speaker id from filename, e.g. wav_id10270_... -> id10270
+        def parse_speaker(path):
+            name = os.path.basename(path)
+            parts = name.split("_")
+            return parts[1] if len(parts) > 1 else name
+
+        speakers = sorted(set(parse_speaker(f) for f in wav_files))
+        spk2idx = {s: i for i, s in enumerate(speakers)}
+        labels = [spk2idx[parse_speaker(f)] for f in wav_files]
+
+        return wav_files, labels
 
     def __len__(self):
         return len(self.audio_files)
@@ -49,10 +68,12 @@ class VoxCelebDataset(Dataset):
 
         # Load audio (or generate dummy audio for demonstration)
         if os.path.exists(file_path):
-            waveform, sr = torchaudio.load(file_path)
+            data, sr = sf.read(file_path, dtype="float32")
+            waveform = torch.from_numpy(data).unsqueeze(0)  # (1, samples)
             if sr != self.sample_rate:
-                resampler = torchaudio.transforms.Resample(sr, self.sample_rate)
-                waveform = resampler(waveform)
+                waveform = torchaudio.functional.resample(
+                    waveform, sr, self.sample_rate
+                )
         else:
             # Generate dummy audio
             num_samples = int(self.audio_length * self.sample_rate)
@@ -75,7 +96,7 @@ class VoxCelebDataset(Dataset):
         return audio, label, file_path
 
 
-def get_dataloader(config, split='test'):
+def get_dataloader(config, split="test"):
     """Create dataloader for experiments"""
 
     dataset = VoxCelebDataset(
@@ -83,15 +104,15 @@ def get_dataloader(config, split='test'):
         num_samples=config.num_samples,
         audio_length=config.audio_length,
         sample_rate=config.sample_rate,
-        split=split
+        split=split,
     )
 
     dataloader = DataLoader(
         dataset,
         batch_size=config.batch_size,
-        shuffle=(split == 'train'),
+        shuffle=(split == "train"),
         num_workers=config.num_workers,
-        pin_memory=True
+        pin_memory=True,
     )
 
     return dataloader

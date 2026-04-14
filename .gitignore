@@ -1,2 +1,6 @@
 .claude/
 experiments/De-Antifake/checkpoints/
+__pycache__/
+*.pyc
+*.pyo
+.venv/

@@ -2,27 +2,30 @@
 Coqui YourTTS speaker encoder wrapper
 Uses De-AntiFake's ModelManager(coqui) interface
 """
+
 import sys
 import os
 import torch
 import torch.nn as nn
 
 _PHONEPURE = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), '../../De-AntiFake/PhonePuRe')
+    os.path.join(os.path.dirname(__file__), "../../De-AntiFake/PhonePuRe")
 )
 if _PHONEPURE not in sys.path:
     sys.path.insert(0, _PHONEPURE)
 
-_RTVC = os.path.join(_PHONEPURE, 'encoder_models', 'rtvc')
+_RTVC = os.path.join(_PHONEPURE, "encoder_models", "rtvc")
 if _RTVC not in sys.path:
     sys.path.insert(0, _RTVC)
+
 
 class CoquiSpeakerEncoder(nn.Module):
     """Wraps Coqui YourTTS speaker_manager as a speaker encoder."""
 
-    def __init__(self, device='cuda'):
+    def __init__(self, device="cuda"):
         super().__init__()
         from attack_vc_data_utils import load_coqui_model
+
         self.speaker_manager, _, _, self.device = load_coqui_model()
         self.embedding_dim = 512
 
@@ -36,22 +39,42 @@ class CoquiSpeakerEncoder(nn.Module):
         encoder = self.speaker_manager.encoder
 
         if x.ndim != 2:
-            raise ValueError(f"Expected audio batch with shape (batch, samples), got {tuple(x.shape)}")
+            raise ValueError(
+                f"Expected audio batch with shape (batch, samples), got {tuple(x.shape)}"
+            )
 
         # Coqui's public compute_embedding() runs under inference_mode(), which severs
         # the autograd graph and breaks PGD. Rebuild the encoder forward path here
         # so gradients can flow back to the waveform.
+        # Compute spectrogram if needed
         if getattr(encoder, "use_torch_spec", False):
             with torch.autocast("cuda", enabled=False):
-                features = encoder.torch_spec(x)
-                features = encoder.instancenorm(features).transpose(1, 2)
-        else:
-            features = encoder.instancenorm(x).transpose(1, 2)
+                x = encoder.torch_spec(x)
 
-        embeddings = encoder.layers(features)
-        if getattr(encoder, "use_lstm_with_projection", False):
-            embeddings = embeddings[:, -1]
+        if getattr(encoder, "log_input", False):
+            x = (x + 1e-6).log()
 
+        x = encoder.instancenorm(x).unsqueeze(1)
+
+        x = encoder.conv1(x)
+        x = encoder.relu(x)
+        x = encoder.bn1(x)
+        x = encoder.layer1(x)
+        x = encoder.layer2(x)
+        x = encoder.layer3(x)
+        x = encoder.layer4(x)
+
+        x = x.reshape(x.size(0), -1, x.size(-1))
+        w = encoder.attention(x)
+
+        if encoder.encoder_type == "SAP":
+            x = torch.sum(x * w, dim=2)
+        else:  # ASP
+            mu = torch.sum(x * w, dim=2)
+            sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu**2).clamp(min=1e-5))
+            x = torch.cat((mu, sg), 1)
+
+        embeddings = encoder.fc(x.view(x.size(0), -1))
         return torch.nn.functional.normalize(embeddings, p=2, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -59,7 +82,7 @@ class CoquiSpeakerEncoder(nn.Module):
         return self.get_embedding(x)
 
 
-def load_speaker_model(model_path=None, num_speakers=None, device='cuda'):
+def load_speaker_model(model_path=None, num_speakers=None, device="cuda"):
     model = CoquiSpeakerEncoder(device=device)
     model.eval()
     return model
