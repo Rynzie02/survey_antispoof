@@ -1,9 +1,11 @@
 """
 Dual-target PGD attack implementation
 """
+
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+
 
 class DualTargetPGD:
     """
@@ -41,31 +43,14 @@ class DualTargetPGD:
 
     def compute_purification_loss(self, x_adv, x_clean):
         """
-        Compute purification robustness loss
-
-        Goal: Ensure adversarial perturbation survives purification
-
-        Args:
-            x_adv: Adversarial audio (batch, samples)
-            x_clean: Clean audio (batch, samples)
-        Returns:
-            Loss value (higher = perturbation survives better)
+        Purification robustness loss.
+        Runs DiffWave in the forward pass with gradient enabled,
+        so the perturbation is optimized to survive purification.
         """
-        # Get embeddings before purification
-        with torch.no_grad():
-            embed_adv_before = self.speaker_model.get_embedding(x_adv)
-
-        # Purify adversarial audio
+        embed_adv_before = self.speaker_model.get_embedding(x_adv)
         x_purified = self.purification_model(x_adv)
-
-        # Get embeddings after purification
         embed_adv_after = self.speaker_model.get_embedding(x_purified)
-
-        # We want embeddings to remain similar after purification
-        # (i.e., adversarial effect should persist)
-        loss = F.cosine_similarity(embed_adv_before, embed_adv_after, dim=1).mean()
-
-        return loss
+        return F.cosine_similarity(embed_adv_before, embed_adv_after, dim=1).mean()
 
     def attack(self, x_clean, target_embed, return_trajectory=False):
         """
@@ -82,11 +67,11 @@ class DualTargetPGD:
         x_adv = x_clean.clone().detach()
         x_adv.requires_grad = True
 
-        trajectory = {
-            'total_loss': [],
-            'speaker_loss': [],
-            'purification_loss': []
-        } if return_trajectory else None
+        trajectory = (
+            {"total_loss": [], "speaker_loss": [], "purification_loss": []}
+            if return_trajectory
+            else None
+        )
 
         for i in range(self.num_iterations):
             # Zero gradients
@@ -120,9 +105,9 @@ class DualTargetPGD:
 
             # Log trajectory
             if return_trajectory and i % 10 == 0:
-                trajectory['total_loss'].append(loss_total.item())
-                trajectory['speaker_loss'].append(loss_speaker.item())
-                trajectory['purification_loss'].append(loss_purification.item())
+                trajectory["total_loss"].append(loss_total.item())
+                trajectory["speaker_loss"].append(loss_speaker.item())
+                trajectory["purification_loss"].append(loss_purification.item())
 
         return x_adv.detach(), trajectory
 
@@ -174,13 +159,17 @@ class AdaptiveWeightPGD(DualTargetPGD):
         x_adv = x_clean.clone().detach()
         x_adv.requires_grad = True
 
-        trajectory = {
-            'total_loss': [],
-            'speaker_loss': [],
-            'purification_loss': [],
-            'alpha': [],
-            'beta': []
-        } if return_trajectory else None
+        trajectory = (
+            {
+                "total_loss": [],
+                "speaker_loss": [],
+                "purification_loss": [],
+                "alpha": [],
+                "beta": [],
+            }
+            if return_trajectory
+            else None
+        )
 
         for i in range(self.num_iterations):
             if x_adv.grad is not None:
@@ -202,7 +191,9 @@ class AdaptiveWeightPGD(DualTargetPGD):
                 beta_adaptive = loss_speaker_mag / total_mag
 
             # Combined loss with adaptive weights
-            loss_total = alpha_adaptive * loss_speaker + beta_adaptive * loss_purification
+            loss_total = (
+                alpha_adaptive * loss_speaker + beta_adaptive * loss_purification
+            )
 
             loss_total.backward()
 
@@ -217,10 +208,10 @@ class AdaptiveWeightPGD(DualTargetPGD):
             x_adv.requires_grad = True
 
             if return_trajectory and i % 10 == 0:
-                trajectory['total_loss'].append(loss_total.item())
-                trajectory['speaker_loss'].append(loss_speaker.item())
-                trajectory['purification_loss'].append(loss_purification.item())
-                trajectory['alpha'].append(alpha_adaptive)
-                trajectory['beta'].append(beta_adaptive)
+                trajectory["total_loss"].append(loss_total.item())
+                trajectory["speaker_loss"].append(loss_speaker.item())
+                trajectory["purification_loss"].append(loss_purification.item())
+                trajectory["alpha"].append(alpha_adaptive)
+                trajectory["beta"].append(beta_adaptive)
 
         return x_adv.detach(), trajectory

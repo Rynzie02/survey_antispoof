@@ -11,9 +11,9 @@ class Config:
 
     # Data
     data_root = "/mnt/data/wht/voxceleb1/samples_100"
-    num_samples = 100  # Number of test samples
+    num_samples = 10  # Number of test samples
     sample_rate = 16000
-    audio_length = 3.0  # seconds
+    audio_length = 5.0  # seconds
 
     # Speaker Model (Coqui YourTTS speaker encoder)
     speaker_model_type = "coqui"
@@ -28,7 +28,7 @@ class Config:
     # Attack Parameters
     attack_type = "dual_pgd"
     epsilon = 0.02  # Perturbation budget (relative to audio amplitude)
-    num_iterations = 100
+    num_iterations = 50
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
@@ -41,7 +41,7 @@ class Config:
     target_ppr = 0.70  # Target post-purification robustness
 
     # Training/Experiment
-    batch_size = 8
+    batch_size = 1
     num_workers = 4
     seed = 42
 
