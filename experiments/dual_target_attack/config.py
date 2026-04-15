@@ -24,6 +24,8 @@ class Config:
     purification_type = "deantifake"
     purification_model_path = "../De-AntiFake/checkpoints/purification.pkl"
     purification_reverse_timestep = 25
+    purification_step_stride = 1  # 1 = use every timestep; 5 = sample every 5 timesteps
+    purification_use_checkpoint = True
 
     # Attack Parameters
     attack_type = "dual_pgd"

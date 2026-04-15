@@ -17,22 +17,50 @@ class AttackMetrics:
         self.purification_model = purification_model
         self.device = device
 
-    def _embedding_similarity(self, x, target_embed, threshold=0.75):
-        """Cosine similarity-based attack success: sim > threshold counts as success"""
-        embed = self.speaker_model.get_embedding(x)
-        sim = F.cosine_similarity(embed, target_embed, dim=1)
-        return (sim > threshold).float().mean().item()
+    def compute_asr(self, x_clean, x_adv, target_embed):
+        """
+        Compute Attack Success Rate (ASR)
 
-    def compute_asr(self, x_adv, target_embed):
-        """Attack Success Rate via cosine similarity to target embedding"""
+        Args:
+            x_clean: Clean audio (batch, samples)
+            x_adv: Adversarial audio (batch, samples)
+            target_embed: Target speaker embeddings (batch, dim)
+        Returns:
+            ASR: Percentage of successful attacks
+        """
         with torch.no_grad():
-            return self._embedding_similarity(x_adv, target_embed)
+            clean_embed = self.speaker_model.get_embedding(x_clean)
+            adv_embed = self.speaker_model.get_embedding(x_adv)
+            target_similarity = F.cosine_similarity(adv_embed, target_embed, dim=1)
+            source_similarity = F.cosine_similarity(adv_embed, clean_embed, dim=1)
+            success = (target_similarity > source_similarity).float()
+            asr = success.mean().item()
 
-    def compute_ppr(self, x_adv, target_embed):
-        """Post-Purification Robustness: ASR after purification"""
+        return asr
+
+    def compute_ppr(self, x_clean, x_adv, target_embed):
+        """
+        Compute Post-Purification Robustness (PPR)
+
+        Measures how many adversarial examples remain effective after purification
+
+        Args:
+            x_clean: Clean audio (batch, samples)
+            x_adv: Adversarial audio (batch, samples)
+            target_embed: Target speaker embeddings (batch, dim)
+        Returns:
+            PPR: Percentage of attacks that survive purification
+        """
         with torch.no_grad():
+            clean_embed = self.speaker_model.get_embedding(x_clean)
             x_purified = self.purification_model(x_adv)
-            return self._embedding_similarity(x_purified, target_embed)
+            purified_embed = self.speaker_model.get_embedding(x_purified)
+            target_similarity = F.cosine_similarity(purified_embed, target_embed, dim=1)
+            source_similarity = F.cosine_similarity(purified_embed, clean_embed, dim=1)
+            success = (target_similarity > source_similarity).float()
+            ppr = success.mean().item()
+
+        return ppr
 
     def compute_snr(self, x_clean, x_adv):
         """
@@ -61,8 +89,8 @@ class AttackMetrics:
         Returns:
             Average PESQ score
         """
-        x_clean_np = x_clean.cpu().numpy()
-        x_adv_np = x_adv.cpu().numpy()
+        x_clean_np = x_clean.detach().cpu().numpy()
+        x_adv_np = x_adv.detach().cpu().numpy()
 
         pesq_scores = []
         for i in range(len(x_clean_np)):
@@ -85,8 +113,8 @@ class AttackMetrics:
         Returns:
             Average STOI score
         """
-        x_clean_np = x_clean.cpu().numpy()
-        x_adv_np = x_adv.cpu().numpy()
+        x_clean_np = x_clean.detach().cpu().numpy()
+        x_adv_np = x_adv.detach().cpu().numpy()
 
         stoi_scores = []
         for i in range(len(x_clean_np)):
@@ -98,7 +126,7 @@ class AttackMetrics:
 
         return np.mean(stoi_scores) if stoi_scores else 0.0
 
-    def compute_all_metrics(self, x_clean, x_adv, target_labels, sample_rate=16000):
+    def compute_all_metrics(self, x_clean, x_adv, target_embed, sample_rate=16000):
         """
         Compute all evaluation metrics
 
@@ -106,8 +134,8 @@ class AttackMetrics:
             Dictionary of metrics
         """
         metrics = {
-            "asr": self.compute_asr(x_adv, target_labels),
-            "ppr": self.compute_ppr(x_adv, target_labels),
+            "asr": self.compute_asr(x_clean, x_adv, target_embed),
+            "ppr": self.compute_ppr(x_clean, x_adv, target_embed),
             "snr": self.compute_snr(x_clean, x_adv),
             "pesq": self.compute_pesq(x_clean, x_adv, sample_rate),
             "stoi": self.compute_stoi(x_clean, x_adv, sample_rate),

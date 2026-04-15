@@ -1,6 +1,46 @@
 .claude/*
 experiments/De-Antifake/checkpoints/
 .mcp.json
+experiments/De-Antifake/logs/
+experiments/De-Antifake/results/
+experiments/De-Antifake/checkpoints/
+experiments/De-AntiFake/.git.backup/
+experiments/De-AntiFake/checkpoints/
+experiments/De-AntiFake/data/
+experiments/De-AntiFake/data_preprocess/
+experiments/De-AntiFake/icon.png
+
+# Keep only the De-AntiFake pieces used by dual_target_attack.
+experiments/De-AntiFake/*
+!experiments/De-AntiFake/PhonePuRe/
+
+# Within PhonePuRe, keep only the files currently imported by the attack stack.
+experiments/De-AntiFake/PhonePuRe/*
+!experiments/De-AntiFake/PhonePuRe/configs/
+!experiments/De-AntiFake/PhonePuRe/configs/**
+!experiments/De-AntiFake/PhonePuRe/purification_models/
+!experiments/De-AntiFake/PhonePuRe/encoder_models/
+
+# The current attack stack only uses DiffWave DDPM plus its unconditional model code.
+experiments/De-AntiFake/PhonePuRe/purification_models/*
+!experiments/De-AntiFake/PhonePuRe/purification_models/diffwave_ddpm.py
+!experiments/De-AntiFake/PhonePuRe/purification_models/DiffWave_Unconditional/
+experiments/De-AntiFake/PhonePuRe/purification_models/DiffWave_Unconditional/*
+!experiments/De-AntiFake/PhonePuRe/purification_models/DiffWave_Unconditional/__init__.py
+!experiments/De-AntiFake/PhonePuRe/purification_models/DiffWave_Unconditional/WaveNet.py
+!experiments/De-AntiFake/PhonePuRe/purification_models/DiffWave_Unconditional/util.py
+
+# speaker_model.py now loads Coqui TTS directly from the vendored package.
+experiments/De-AntiFake/PhonePuRe/encoder_models/*
+!experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/
+experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/*
+!experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/
+!experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/**
+experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/bin/
+experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/server/
+experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/**/README.md
+experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/**/requirements*.txt
+experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/vocoder/pqmf_output.wav
 
 # LaTeX 中间文件
 *.aux

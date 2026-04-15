@@ -1,22 +1,32 @@
 """
 Coqui YourTTS speaker encoder wrapper
-Uses De-AntiFake's ModelManager(coqui) interface
+Loads the vendored Coqui TTS package directly to keep gradients intact
 """
 
 import sys
 import os
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 _PHONEPURE = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../De-AntiFake/PhonePuRe")
 )
-if _PHONEPURE not in sys.path:
-    sys.path.insert(0, _PHONEPURE)
+_TTS_ROOT = os.path.join(_PHONEPURE, "encoder_models", "TTS")
+if _TTS_ROOT not in sys.path:
+    sys.path.insert(0, _TTS_ROOT)
 
-_RTVC = os.path.join(_PHONEPURE, "encoder_models", "rtvc")
-if _RTVC not in sys.path:
-    sys.path.insert(0, _RTVC)
+COQUI_YOURTTS_PATH = "tts_models/multilingual/multi-dataset/your_tts"
+
+
+def load_coqui_speaker_manager(device: str = "cuda"):
+    from TTS.api import TTS
+
+    use_gpu = str(device).startswith("cuda") and torch.cuda.is_available()
+    runtime_device = "cuda" if use_gpu else "cpu"
+    coqui_tts = TTS(model_name=COQUI_YOURTTS_PATH, progress_bar=True, gpu=use_gpu)
+    speaker_manager = coqui_tts.synthesizer.tts_model.speaker_manager
+    return speaker_manager, runtime_device
 
 
 class CoquiSpeakerEncoder(nn.Module):
@@ -24,10 +34,10 @@ class CoquiSpeakerEncoder(nn.Module):
 
     def __init__(self, device="cuda"):
         super().__init__()
-        from attack_vc_data_utils import load_coqui_model
-
-        self.speaker_manager, _, _, self.device = load_coqui_model()
+        self.speaker_manager, self.device = load_coqui_speaker_manager(device=device)
         self.embedding_dim = 512
+        self.speaker_manager.encoder.requires_grad_(False)
+        self.speaker_manager.encoder.eval()
 
     def get_embedding(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -46,9 +56,12 @@ class CoquiSpeakerEncoder(nn.Module):
         # Coqui's public compute_embedding() runs under inference_mode(), which severs
         # the autograd graph and breaks PGD. Rebuild the encoder forward path here
         # so gradients can flow back to the waveform.
-        # Compute spectrogram if needed
         if getattr(encoder, "use_torch_spec", False):
-            with torch.autocast("cuda", enabled=False):
+            if x.is_cuda:
+                autocast_context = torch.autocast("cuda", enabled=False)
+            else:
+                autocast_context = torch.autocast("cpu", enabled=False)
+            with autocast_context:
                 x = encoder.torch_spec(x)
 
         if getattr(encoder, "log_input", False):
@@ -75,7 +88,7 @@ class CoquiSpeakerEncoder(nn.Module):
             x = torch.cat((mu, sg), 1)
 
         embeddings = encoder.fc(x.view(x.size(0), -1))
-        return torch.nn.functional.normalize(embeddings, p=2, dim=1)
+        return F.normalize(embeddings, p=2, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Returns embeddings (used as logits proxy for loss computation)."""

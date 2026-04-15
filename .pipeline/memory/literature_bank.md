@@ -36,6 +36,25 @@
 | Reassessing Noise Augmentation Methods in the Context of Adversarial Speech | 2024 | arXiv:2409.01813 | 相关：噪声增强对抗鲁棒性 | accepted | 2026-04-12 |
 | Adaptive unified defense framework for tackling adversarial audio attacks | 2024 | ResearchGate | 相关：自适应统一防御框架 | accepted | 2026-04-12 |
 
+### 5. 扩散模型攻击方法（新增 2026-04-14）
+
+| 标题 | 年份 | 来源 | 相关性 | 状态 | 日期 |
+|------|------|------|--------|------|------|
+| DiffBreak: Is Diffusion-Based Purification Robust? | 2024 | arXiv:2411.16598 | **极高相关**：理论证明梯度攻击可使扩散净化输出对齐对抗分布，直接支撑本文核心论点 | accepted | 2026-04-14 |
+| DiffHammer: Rethinking the Robustness of Diffusion-Based Adversarial Purification | 2024 | OpenReview | 高度相关：N-time评估框架，重新审视扩散净化鲁棒性 | accepted | 2026-04-14 |
+| DiffAttack-X: Transferable Adversarial Attack based on Diffusion Model | 2025 | Springer | 相关：利用扩散模型潜变量生成可迁移对抗样本 | accepted | 2026-04-14 |
+| Adversarial Purification via Super-Resolution and Diffusion | 2025 | ICCV 2025 | 相关：净化后数据偏离原始数据导致误分类，揭示净化局限性 | accepted | 2026-04-14 |
+
+### 6. 新增文献（2026-04-14）
+
+| 标题 | 年份 | 来源 | 相关性 | 状态 | 日期 |
+|------|------|------|--------|------|------|
+| MDD: Mask Diffusion Detector to Protect Speaker Verification Systems | 2025 | APSIPA 2025 | 高度相关：文本条件掩码扩散模型检测+净化，针对说话人验证 | accepted | 2026-04-14 |
+| Textual-Driven Adversarial Purification for Speaker Verification | 2024 | Interspeech 2024 | 高度相关：文本驱动扩散净化ASV，可作为净化基线 | accepted | 2026-04-14 |
+| TDP: Two-Stage Diffusion Purification for Speaker Verification | 2024 | IEEE 2024 | 高度相关：波形+频谱两阶段扩散净化，更强防御基线 | accepted | 2026-04-14 |
+| DualPure: Efficient Adversarial Purification for Speech Command Recognition | 2024 | Interspeech 2024 | 相关：时频域双路净化，可参考其双路设计思路 | accepted | 2026-04-14 |
+| FraudWhistler: Resilient Adversarial Example Detection for Speaker Recognition | 2024 | USENIX Security 2024 | 相关：说话人识别对抗样本检测，了解检测侧防御 | accepted | 2026-04-14 |
+
 ### 4. 对抗鲁棒性与防御破坏
 
 | 标题 | 年份 | 来源 | 相关性 | 状态 | 日期 |

@@ -20,6 +20,8 @@ class DualTargetPGD:
         self.speaker_model = speaker_model
         self.purification_model = purification_model
         self.config = config
+        self.speaker_model.requires_grad_(False)
+        self.purification_model.requires_grad_(False)
 
         self.epsilon = config.epsilon
         self.num_iterations = config.num_iterations
@@ -47,7 +49,13 @@ class DualTargetPGD:
         Runs DiffWave in the forward pass with gradient enabled,
         so the perturbation is optimized to survive purification.
         """
-        embed_adv_before = self.speaker_model.get_embedding(x_adv)
+        # Keep the pre-purification embedding as a fixed anchor so the second
+        # loss only backpropagates through the purifier branch instead of
+        # materializing two full speaker-encoder graphs.
+        with torch.no_grad():
+            embed_adv_before = self.speaker_model.get_embedding(x_adv)
+
+        # Purify adversarial audio
         x_purified = self.purification_model(x_adv)
         embed_adv_after = self.speaker_model.get_embedding(x_purified)
         return F.cosine_similarity(embed_adv_before, embed_adv_after, dim=1).mean()
@@ -64,8 +72,7 @@ class DualTargetPGD:
             x_adv: Adversarial audio
             trajectory: (optional) Dictionary of loss values over iterations
         """
-        x_adv = x_clean.clone().detach()
-        x_adv.requires_grad = True
+        x_adv = x_clean.clone().detach().requires_grad_(True)
 
         trajectory = (
             {"total_loss": [], "speaker_loss": [], "purification_loss": []}
@@ -101,7 +108,7 @@ class DualTargetPGD:
                 # Clamp to valid audio range [-1, 1]
                 x_adv = torch.clamp(x_adv, -1.0, 1.0)
 
-            x_adv.requires_grad = True
+            x_adv = x_adv.detach().requires_grad_(True)
 
             # Log trajectory
             if return_trajectory and i % 10 == 0:
@@ -126,8 +133,7 @@ class SingleTargetPGD:
 
     def attack(self, x_clean, target_embed):
         """Execute single-target PGD attack"""
-        x_adv = x_clean.clone().detach()
-        x_adv.requires_grad = True
+        x_adv = x_clean.clone().detach().requires_grad_(True)
 
         for i in range(self.num_iterations):
             if x_adv.grad is not None:
@@ -146,7 +152,7 @@ class SingleTargetPGD:
                 x_adv = x_clean + perturbation
                 x_adv = torch.clamp(x_adv, -1.0, 1.0)
 
-            x_adv.requires_grad = True
+            x_adv = x_adv.detach().requires_grad_(True)
 
         return x_adv.detach()
 
@@ -156,8 +162,7 @@ class AdaptiveWeightPGD(DualTargetPGD):
 
     def attack(self, x_clean, target_embed, return_trajectory=False):
         """Execute attack with adaptive weights"""
-        x_adv = x_clean.clone().detach()
-        x_adv.requires_grad = True
+        x_adv = x_clean.clone().detach().requires_grad_(True)
 
         trajectory = (
             {
@@ -205,7 +210,7 @@ class AdaptiveWeightPGD(DualTargetPGD):
                 x_adv = x_clean + perturbation
                 x_adv = torch.clamp(x_adv, -1.0, 1.0)
 
-            x_adv.requires_grad = True
+            x_adv = x_adv.detach().requires_grad_(True)
 
             if return_trajectory and i % 10 == 0:
                 trajectory["total_loss"].append(loss_total.item())

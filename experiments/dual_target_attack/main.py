@@ -55,6 +55,9 @@ def run_experiment(config, attack_type="dual"):
         model_type=config.purification_type,
         model_path=config.purification_model_path,
         device=config.device,
+        reverse_timestep=config.purification_reverse_timestep,
+        step_stride=config.purification_step_stride,
+        use_checkpoint=config.purification_use_checkpoint,
     )
 
     # Load data

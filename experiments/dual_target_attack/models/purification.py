@@ -20,7 +20,8 @@ class DeAntiFakePurifier(nn.Module):
     """Wraps De-AntiFake's DiffWave DDPM as a drop-in purifier."""
 
     def __init__(self, model_path: str, config_path: str,
-                 reverse_timestep: int = 25, device: str = 'cuda'):
+                 reverse_timestep: int = 25, device: str = 'cuda',
+                 step_stride: int = 1, use_checkpoint: bool = True):
         super().__init__()
         from purification_models.diffwave_ddpm import create_diffwave_model
 
@@ -31,8 +32,16 @@ class DeAntiFakePurifier(nn.Module):
             t=reverse_timestep,
         )
         self.diffwave = create_diffwave_model(
-            args, model_path, config_path, reverse_timestep
+            args,
+            model_path,
+            config_path,
+            reverse_timestep,
+            device=device,
+            step_stride=step_stride,
+            use_checkpoint=use_checkpoint,
         )
+        # We only optimize the waveform input, not the purifier weights.
+        self.diffwave.requires_grad_(False)
         self.diffwave.eval().to(device)
 
     def purify(self, x: torch.Tensor) -> torch.Tensor:
@@ -51,13 +60,22 @@ class DeAntiFakePurifier(nn.Module):
         return self.purify(x)
 
 
-def load_purification_model(model_type='deantifake', model_path=None, device='cuda'):
+def load_purification_model(model_type='deantifake', model_path=None, device='cuda',
+                            reverse_timestep: int = 25, step_stride: int = 1,
+                            use_checkpoint: bool = True):
     config_path = os.path.join(
         os.path.dirname(__file__),
         '../../De-AntiFake/PhonePuRe/configs/config.json'
     )
     if model_path is None:
         raise ValueError("model_path must point to purification.pkl")
-    model = DeAntiFakePurifier(model_path, config_path, device=device)
+    model = DeAntiFakePurifier(
+        model_path,
+        config_path,
+        reverse_timestep=reverse_timestep,
+        device=device,
+        step_stride=step_stride,
+        use_checkpoint=use_checkpoint,
+    )
     model.eval().to(device)
     return model
