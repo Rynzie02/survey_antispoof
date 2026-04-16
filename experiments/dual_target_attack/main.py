@@ -9,6 +9,7 @@ import os
 import sys
 from tqdm import tqdm
 import json
+from datetime import datetime
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -81,6 +82,11 @@ def run_experiment(config, attack_type="dual"):
     # Run attack on all samples
     print("Running attacks...")
     all_metrics = []
+    os.makedirs(config.log_dir, exist_ok=True)
+    run_ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    result_file = os.path.join(
+        config.log_dir, f"{attack_type}_attack_results_{run_ts}.json"
+    )
 
     for batch_idx, (x_clean, labels, file_paths) in enumerate(tqdm(dataloader)):
         x_clean = x_clean.to(config.device)
@@ -107,11 +113,22 @@ def run_experiment(config, attack_type="dual"):
         )
         all_metrics.append(batch_metrics)
 
-        # Log progress
+        # Log progress and checkpoint
         if batch_idx % config.log_interval == 0:
+            ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             print(
-                f"\nBatch {batch_idx}: ASR={batch_metrics['asr']:.2%}, PPR={batch_metrics['ppr']:.2%}"
+                f"\n[{ts}] Batch {batch_idx}: ASR={batch_metrics['asr']:.2%}, "
+                f"PPR={batch_metrics['ppr']:.2%}, "
+                f"PurifiedSim(target)={batch_metrics['purified_target_sim']:.4f}, "
+                f"PurifiedSim(source)={batch_metrics['purified_source_sim']:.4f}"
             )
+            # Intermediate save
+            with open(result_file, "w") as f:
+                json.dump(
+                    {"attack_type": attack_type, "per_sample_metrics": all_metrics},
+                    f,
+                    indent=2,
+                )
 
     # Aggregate metrics
     print("\n" + "=" * 60)
@@ -133,15 +150,14 @@ def run_experiment(config, attack_type="dual"):
             "alpha": config.alpha,
             "beta": config.beta,
         },
-        "metrics": avg_metrics,
+        "avg_metrics": avg_metrics,
+        "per_sample_metrics": all_metrics,
         "success": bool(
             avg_metrics["asr"] > config.target_asr
             and avg_metrics["ppr"] > config.target_ppr
         ),
     }
 
-    os.makedirs(config.log_dir, exist_ok=True)
-    result_file = os.path.join(config.log_dir, f"{attack_type}_attack_results.json")
     with open(result_file, "w") as f:
         json.dump(results, f, indent=2)
 
@@ -210,10 +226,10 @@ def main():
     os.makedirs(config.figure_dir, exist_ok=True)
 
     # Phase 1: Baseline experiments
-    print("\n### Phase 1: Baseline Experiments ###\n")
+    # print("\n### Phase 1: Baseline Experiments ###\n")
 
-    print("Running single-target attack (baseline)...")
-    single_metrics, _ = run_experiment(config, attack_type="single")
+    # print("Running single-target attack (baseline)...")
+    # single_metrics, _ = run_experiment(config, attack_type="single")
 
     # Phase 2: Dual-target attack
     print("\n### Phase 2: Dual-Target Attack ###\n")
@@ -236,9 +252,9 @@ def main():
     print("\n" + "=" * 60)
     print("Experiment Summary")
     print("=" * 60)
-    print(f"\nSingle-Target Attack:")
-    print(f"  ASR: {single_metrics['asr']:.2%}")
-    print(f"  PPR: {single_metrics['ppr']:.2%}")
+    # print(f"\nSingle-Target Attack:")
+    # print(f"  ASR: {single_metrics['asr']:.2%}")
+    # print(f"  PPR: {single_metrics['ppr']:.2%}")
 
     print(f"\nDual-Target Attack:")
     print(f"  ASR: {dual_metrics['asr']:.2%}")

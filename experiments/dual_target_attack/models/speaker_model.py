@@ -12,9 +12,8 @@ import torch.nn.functional as F
 _PHONEPURE = os.path.abspath(
     os.path.join(os.path.dirname(__file__), "../../De-AntiFake/PhonePuRe")
 )
-_TTS_ROOT = os.path.join(_PHONEPURE, "encoder_models", "TTS")
-if _TTS_ROOT not in sys.path:
-    sys.path.insert(0, _TTS_ROOT)
+# Use the venv's TTS (not De-AntiFake's vendored old version)
+# _TTS_ROOT is only needed for purification models, not speaker encoder
 
 COQUI_YOURTTS_PATH = "tts_models/multilingual/multi-dataset/your_tts"
 

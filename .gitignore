@@ -42,6 +42,9 @@ experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/**/README.md
 experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/**/requirements*.txt
 experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/vocoder/pqmf_output.wav
 
+
+experiments/dual_target_attack/results/*
+
 # LaTeX 中间文件
 *.aux
 *.log

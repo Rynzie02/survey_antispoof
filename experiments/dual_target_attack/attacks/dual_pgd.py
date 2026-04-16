@@ -5,6 +5,7 @@ Dual-target PGD attack implementation
 import torch
 import torch.nn.functional as F
 from tqdm import tqdm
+import time
 
 
 class DualTargetPGD:
@@ -45,20 +46,33 @@ class DualTargetPGD:
 
     def compute_purification_loss(self, x_adv, x_clean):
         """
-        Purification robustness loss.
-        Runs DiffWave in the forward pass with gradient enabled,
-        so the perturbation is optimized to survive purification.
+        Purification disruption loss.
+        Maximizes embedding divergence across intermediate denoising steps,
+        causing the purification chain to 'go off track'.
         """
-        # Keep the pre-purification embedding as a fixed anchor so the second
-        # loss only backpropagates through the purifier branch instead of
-        # materializing two full speaker-encoder graphs.
         with torch.no_grad():
             embed_adv_before = self.speaker_model.get_embedding(x_adv)
 
-        # Purify adversarial audio
-        x_purified = self.purification_model(x_adv)
-        embed_adv_after = self.speaker_model.get_embedding(x_purified)
-        return F.cosine_similarity(embed_adv_before, embed_adv_after, dim=1).mean()
+        # Get intermediate nodes from denoising chain
+        if x_adv.ndim == 2:
+            x_adv_3d = x_adv.unsqueeze(1)
+        else:
+            x_adv_3d = x_adv
+
+        x_noised = self.purification_model.diffwave._diffusion(x_adv_3d)
+        _, intermediates = self.purification_model.diffwave._reverse_with_intermediates(
+            x_noised, capture_every=5
+        )
+
+        # Loss: maximize embedding divergence between consecutive intermediate nodes
+        loss = torch.tensor(0.0, device=x_adv.device)
+        prev_embed = embed_adv_before
+        for x_mid in intermediates:
+            embed_mid = self.speaker_model.get_embedding(x_mid.squeeze(1))
+            loss = loss + (1 - F.cosine_similarity(prev_embed, embed_mid, dim=1).mean())
+            prev_embed = embed_mid.detach()  # detach anchor to avoid exploding graph
+
+        return loss / max(len(intermediates), 1)
 
     def attack(self, x_clean, target_embed, return_trajectory=False):
         """
@@ -80,42 +94,47 @@ class DualTargetPGD:
             else None
         )
 
+        t_speaker = 0.0
+        t_purif = 0.0
+        t_pgd = 0.0
+
         for i in range(self.num_iterations):
-            # Zero gradients
             if x_adv.grad is not None:
                 x_adv.grad.zero_()
 
-            # Compute dual-target loss
+            t0 = time.time()
             loss_speaker = self.compute_speaker_loss(x_adv, target_embed)
-            loss_purification = self.compute_purification_loss(x_adv, x_clean)
+            torch.cuda.synchronize() if x_adv.is_cuda else None
+            t_speaker += time.time() - t0
 
-            # Combined loss
+            t0 = time.time()
+            loss_purification = self.compute_purification_loss(x_adv, x_clean)
+            torch.cuda.synchronize() if x_adv.is_cuda else None
+            t_purif += time.time() - t0
+
             loss_total = self.alpha * loss_speaker + self.beta * loss_purification
 
-            # Backward
+            t0 = time.time()
             loss_total.backward()
-
-            # Update adversarial example
             with torch.no_grad():
-                # Gradient ascent (we're maximizing the loss)
                 grad_sign = x_adv.grad.sign()
                 x_adv = x_adv + self.step_size * grad_sign
-
-                # Project back to epsilon ball
                 perturbation = torch.clamp(x_adv - x_clean, -self.epsilon, self.epsilon)
                 x_adv = x_clean + perturbation
-
-                # Clamp to valid audio range [-1, 1]
                 x_adv = torch.clamp(x_adv, -1.0, 1.0)
+            torch.cuda.synchronize() if x_adv.is_cuda else None
+            t_pgd += time.time() - t0
 
             x_adv = x_adv.detach().requires_grad_(True)
 
-            # Log trajectory
             if return_trajectory and i % 10 == 0:
                 trajectory["total_loss"].append(loss_total.item())
                 trajectory["speaker_loss"].append(loss_speaker.item())
                 trajectory["purification_loss"].append(loss_purification.item())
 
+        print(
+            f"[Timing] speaker_loss: {t_speaker:.2f}s | purification: {t_purif:.2f}s | pgd_step: {t_pgd:.2f}s"
+        )
         return x_adv.detach(), trajectory
 
 

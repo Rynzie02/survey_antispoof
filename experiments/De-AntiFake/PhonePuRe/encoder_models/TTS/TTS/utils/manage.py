@@ -38,7 +38,13 @@ class ModelManager(object):
         verbose (bool): print info. Defaults to True.
     """
 
-    def __init__(self, models_file=None, output_prefix="/data/fanwei/.local/share", progress_bar=False, verbose=True):
+    def __init__(
+        self,
+        models_file=None,
+        output_prefix=os.path.join(os.path.expanduser("~"), ".local", "share"),
+        progress_bar=False,
+        verbose=True,
+    ):
         super().__init__()
         self.progress_bar = progress_bar
         self.verbose = verbose
@@ -74,9 +80,13 @@ class ModelManager(object):
                     output_path = os.path.join(self.output_prefix, model_full_name)
                     if self.verbose:
                         if os.path.exists(output_path):
-                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model} [already downloaded]")
+                            print(
+                                f" {model_count}: {model_type}/{lang}/{dataset}/{model} [already downloaded]"
+                            )
                         else:
-                            print(f" {model_count}: {model_type}/{lang}/{dataset}/{model}")
+                            print(
+                                f" {model_count}: {model_type}/{lang}/{dataset}/{model}"
+                            )
                     model_list.append(f"{model_type}/{lang}/{dataset}/{model}")
                     model_count += 1
         return model_list
@@ -123,19 +133,27 @@ class ModelManager(object):
             print(f"> model_type {model_type} does not exist in the list.")
             return
         if model_query_idx > model_count:
-            print(f"model query idx exceeds the number of available models [{model_count}] ")
+            print(
+                f"model query idx exceeds the number of available models [{model_count}] "
+            )
         else:
-            model_type, lang, dataset, model = model_name_list[model_query_idx - 1].split("/")
+            model_type, lang, dataset, model = model_name_list[
+                model_query_idx - 1
+            ].split("/")
             print(f"> model type : {model_type}")
             print(f"> language supported : {lang}")
             print(f"> dataset used : {dataset}")
             print(f"> model name : {model}")
             if "description" in self.models_dict[model_type][lang][dataset][model]:
-                print(f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}")
+                print(
+                    f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}"
+                )
             else:
                 print("> description : coming soon")
             if "default_vocoder" in self.models_dict[model_type][lang][dataset][model]:
-                print(f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}")
+                print(
+                    f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}"
+                )
 
     def model_info_by_full_name(self, model_query_name):
         """Print the description of the model from .models.json file using model_full_name
@@ -152,20 +170,30 @@ class ModelManager(object):
                         print(f"> language supported : {lang}")
                         print(f"> dataset used : {dataset}")
                         print(f"> model name : {model}")
-                        if "description" in self.models_dict[model_type][lang][dataset][model]:
+                        if (
+                            "description"
+                            in self.models_dict[model_type][lang][dataset][model]
+                        ):
                             print(
                                 f"> description : {self.models_dict[model_type][lang][dataset][model]['description']}"
                             )
                         else:
                             print("> description : coming soon")
-                        if "default_vocoder" in self.models_dict[model_type][lang][dataset][model]:
+                        if (
+                            "default_vocoder"
+                            in self.models_dict[model_type][lang][dataset][model]
+                        ):
                             print(
                                 f"> default_vocoder : {self.models_dict[model_type][lang][dataset][model]['default_vocoder']}"
                             )
                     else:
-                        print(f"> model {model} does not exist for {model_type}/{lang}/{dataset}.")
+                        print(
+                            f"> model {model} does not exist for {model_type}/{lang}/{dataset}."
+                        )
                 else:
-                    print(f"> dataset {dataset} does not exist for {model_type}/{lang}.")
+                    print(
+                        f"> dataset {dataset} does not exist for {model_type}/{lang}."
+                    )
             else:
                 print(f"> lang {lang} does not exist for {model_type}.")
         else:
@@ -217,7 +245,9 @@ class ModelManager(object):
         if "license" in model_item and model_item["license"].strip() != "":
             print(f" > Model's license - {model_item['license']}")
             if model_item["license"].lower() in LICENSE_URLS:
-                print(f" > Check {LICENSE_URLS[model_item['license'].lower()]} for more info.")
+                print(
+                    f" > Check {LICENSE_URLS[model_item['license'].lower()]} for more info."
+                )
             else:
                 print(" > Check https://opensource.org/licenses for more info.")
         else:
@@ -250,7 +280,9 @@ class ModelManager(object):
             os.makedirs(output_path, exist_ok=True)
             print(f" > Downloading model to {output_path}")
             # download from github release
-            self._download_zip_file(model_item["github_rls_url"], output_path, self.progress_bar)
+            self._download_zip_file(
+                model_item["github_rls_url"], output_path, self.progress_bar
+            )
             self.print_model_license(model_item=model_item)
         # find downloaded files
         output_model_path, output_config_path = self._find_files(output_path)
@@ -319,20 +351,42 @@ class ModelManager(object):
         # update the speakers.json file path in the model config.json to the current path
         self._update_path("d_vector_file", output_d_vector_file_path, config_path)
         self._update_path("d_vector_file", output_d_vector_file_pth_path, config_path)
-        self._update_path("model_args.d_vector_file", output_d_vector_file_path, config_path)
-        self._update_path("model_args.d_vector_file", output_d_vector_file_pth_path, config_path)
+        self._update_path(
+            "model_args.d_vector_file", output_d_vector_file_path, config_path
+        )
+        self._update_path(
+            "model_args.d_vector_file", output_d_vector_file_pth_path, config_path
+        )
 
         # update the speaker_ids.json file path in the model config.json to the current path
         self._update_path("speakers_file", output_speaker_ids_file_path, config_path)
-        self._update_path("speakers_file", output_speaker_ids_file_pth_path, config_path)
-        self._update_path("model_args.speakers_file", output_speaker_ids_file_path, config_path)
-        self._update_path("model_args.speakers_file", output_speaker_ids_file_pth_path, config_path)
+        self._update_path(
+            "speakers_file", output_speaker_ids_file_pth_path, config_path
+        )
+        self._update_path(
+            "model_args.speakers_file", output_speaker_ids_file_path, config_path
+        )
+        self._update_path(
+            "model_args.speakers_file", output_speaker_ids_file_pth_path, config_path
+        )
 
         # update the speaker_encoder file path in the model config.json to the current path
-        self._update_path("speaker_encoder_model_path", speaker_encoder_model_path, config_path)
-        self._update_path("model_args.speaker_encoder_model_path", speaker_encoder_model_path, config_path)
-        self._update_path("speaker_encoder_config_path", speaker_encoder_config_path, config_path)
-        self._update_path("model_args.speaker_encoder_config_path", speaker_encoder_config_path, config_path)
+        self._update_path(
+            "speaker_encoder_model_path", speaker_encoder_model_path, config_path
+        )
+        self._update_path(
+            "model_args.speaker_encoder_model_path",
+            speaker_encoder_model_path,
+            config_path,
+        )
+        self._update_path(
+            "speaker_encoder_config_path", speaker_encoder_config_path, config_path
+        )
+        self._update_path(
+            "model_args.speaker_encoder_config_path",
+            speaker_encoder_config_path,
+            config_path,
+        )
 
     @staticmethod
     def _update_path(field_name, new_path, config_path):
@@ -372,7 +426,9 @@ class ModelManager(object):
             total_size_in_bytes = int(r.headers.get("content-length", 0))
             block_size = 1024  # 1 Kibibyte
             if progress_bar:
-                progress_bar = tqdm(total=total_size_in_bytes, unit="iB", unit_scale=True)
+                progress_bar = tqdm(
+                    total=total_size_in_bytes, unit="iB", unit_scale=True
+                )
             temp_zip_name = os.path.join(output_folder, file_url.split("/")[-1])
             with open(temp_zip_name, "wb") as file:
                 for data in r.iter_content(block_size):

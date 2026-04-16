@@ -7,6 +7,7 @@ import torch.nn.functional as F
 import numpy as np
 from pesq import pesq
 from pystoi import stoi
+from datetime import datetime
 
 
 class AttackMetrics:
@@ -40,16 +41,12 @@ class AttackMetrics:
 
     def compute_ppr(self, x_clean, x_adv, target_embed):
         """
-        Compute Post-Purification Robustness (PPR)
+        Compute Post-Purification Robustness (PPR) and purified embedding similarity.
 
-        Measures how many adversarial examples remain effective after purification
-
-        Args:
-            x_clean: Clean audio (batch, samples)
-            x_adv: Adversarial audio (batch, samples)
-            target_embed: Target speaker embeddings (batch, dim)
         Returns:
-            PPR: Percentage of attacks that survive purification
+            ppr: Percentage of attacks that survive purification
+            purified_target_sim: Mean cosine similarity between purified embedding and target
+            purified_source_sim: Mean cosine similarity between purified embedding and source
         """
         with torch.no_grad():
             clean_embed = self.speaker_model.get_embedding(x_clean)
@@ -60,7 +57,7 @@ class AttackMetrics:
             success = (target_similarity > source_similarity).float()
             ppr = success.mean().item()
 
-        return ppr
+        return ppr, target_similarity.mean().item(), source_similarity.mean().item()
 
     def compute_snr(self, x_clean, x_adv):
         """
@@ -133,9 +130,14 @@ class AttackMetrics:
         Returns:
             Dictionary of metrics
         """
+        ppr, purified_target_sim, purified_source_sim = self.compute_ppr(
+            x_clean, x_adv, target_embed
+        )
         metrics = {
             "asr": self.compute_asr(x_clean, x_adv, target_embed),
-            "ppr": self.compute_ppr(x_clean, x_adv, target_embed),
+            "ppr": ppr,
+            "purified_target_sim": purified_target_sim,
+            "purified_source_sim": purified_source_sim,
             "snr": self.compute_snr(x_clean, x_adv),
             "pesq": self.compute_pesq(x_clean, x_adv, sample_rate),
             "stoi": self.compute_stoi(x_clean, x_adv, sample_rate),
@@ -145,11 +147,18 @@ class AttackMetrics:
 
     def print_metrics(self, metrics):
         """Print metrics in a formatted way"""
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         print("\n" + "=" * 50)
-        print("Evaluation Metrics")
+        print(f"Evaluation Metrics  [{ts}]")
         print("=" * 50)
         print(f"Attack Success Rate (ASR):           {metrics['asr']:.2%}")
         print(f"Post-Purification Robustness (PPR):  {metrics['ppr']:.2%}")
+        print(
+            f"Purified Embed Sim (→ target):       {metrics['purified_target_sim']:.4f}"
+        )
+        print(
+            f"Purified Embed Sim (→ source):       {metrics['purified_source_sim']:.4f}"
+        )
         print(f"Signal-to-Noise Ratio (SNR):         {metrics['snr']:.2f} dB")
         print(f"PESQ Score:                          {metrics['pesq']:.3f}")
         print(f"STOI Score:                          {metrics['stoi']:.3f}")

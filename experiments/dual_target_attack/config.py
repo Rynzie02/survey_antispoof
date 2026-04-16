@@ -11,9 +11,9 @@ class Config:
 
     # Data
     data_root = "/mnt/data/wht/voxceleb1/samples_100"
-    num_samples = 10  # Number of test samples
+    num_samples = 1  # Number of test samples
     sample_rate = 16000
-    audio_length = 5.0  # seconds
+    audio_length = 4.0  # seconds
 
     # Speaker Model (Coqui YourTTS speaker encoder)
     speaker_model_type = "coqui"
@@ -24,7 +24,7 @@ class Config:
     purification_type = "deantifake"
     purification_model_path = "../De-AntiFake/checkpoints/purification.pkl"
     purification_reverse_timestep = 25
-    purification_step_stride = 1  # 1 = use every timestep; 5 = sample every 5 timesteps
+    purification_step_stride = 5  # 1 = use every timestep; 5 = sample every 5 timesteps
     purification_use_checkpoint = True
 
     # Attack Parameters
@@ -34,13 +34,13 @@ class Config:
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.6  # Weight for speaker recognition loss
-    beta = 0.4  # Weight for purification robustness loss
+    alpha = 0.5  # Weight for speaker recognition loss
+    beta = 0.5  # Weight for purification robustness loss
     weight_strategy = "fixed"  # 'fixed', 'adaptive', or 'staged'
 
     # Evaluation
     target_asr = 0.90  # Target attack success rate
-    target_ppr = 0.70  # Target post-purification robustness
+    target_ppr = 0.50  # Target post-purification robustness
 
     # Training/Experiment
     batch_size = 1
@@ -51,7 +51,7 @@ class Config:
     log_dir = "./results/logs"
     checkpoint_dir = "./results/checkpoints"
     figure_dir = "./results/figures"
-    log_interval = 10
+    log_interval = 4
 
     def __init__(self):
         if self.step_size is None:
