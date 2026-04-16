@@ -39,14 +39,9 @@ class AttackMetrics:
 
         return asr
 
-    def compute_ppr(self, x_clean, x_adv, target_embed):
+    def compute_ppr(self, x_clean, x_adv, target_embed, ppr_threshold=0.5):
         """
-        Compute Post-Purification Robustness (PPR) and purified embedding similarity.
-
-        Returns:
-            ppr: Percentage of attacks that survive purification
-            purified_target_sim: Mean cosine similarity between purified embedding and target
-            purified_source_sim: Mean cosine similarity between purified embedding and source
+        Untargeted PPR: attack survives purification if purified_source_sim < ppr_threshold
         """
         with torch.no_grad():
             clean_embed = self.speaker_model.get_embedding(x_clean)
@@ -54,10 +49,18 @@ class AttackMetrics:
             purified_embed = self.speaker_model.get_embedding(x_purified)
             target_similarity = F.cosine_similarity(purified_embed, target_embed, dim=1)
             source_similarity = F.cosine_similarity(purified_embed, clean_embed, dim=1)
-            success = (target_similarity > source_similarity).float()
+            success = (source_similarity < ppr_threshold).float()
             ppr = success.mean().item()
 
         return ppr, target_similarity.mean().item(), source_similarity.mean().item()
+
+    def compute_clean_purified_sim(self, x_clean):
+        """Baseline: cos_sim between clean and purified-clean embeddings."""
+        with torch.no_grad():
+            clean_embed = self.speaker_model.get_embedding(x_clean)
+            x_purified = self.purification_model(x_clean)
+            purified_embed = self.speaker_model.get_embedding(x_purified)
+            return F.cosine_similarity(clean_embed, purified_embed, dim=1).mean().item()
 
     def compute_snr(self, x_clean, x_adv):
         """
@@ -123,7 +126,9 @@ class AttackMetrics:
 
         return np.mean(stoi_scores) if stoi_scores else 0.0
 
-    def compute_all_metrics(self, x_clean, x_adv, target_embed, sample_rate=16000):
+    def compute_all_metrics(
+        self, x_clean, x_adv, target_embed, sample_rate=16000, ppr_threshold=0.5
+    ):
         """
         Compute all evaluation metrics
 
@@ -131,13 +136,25 @@ class AttackMetrics:
             Dictionary of metrics
         """
         ppr, purified_target_sim, purified_source_sim = self.compute_ppr(
-            x_clean, x_adv, target_embed
+            x_clean, x_adv, target_embed, ppr_threshold
         )
+        with torch.no_grad():
+            adv_source_sim = (
+                F.cosine_similarity(
+                    self.speaker_model.get_embedding(x_adv),
+                    self.speaker_model.get_embedding(x_clean),
+                    dim=1,
+                )
+                .mean()
+                .item()
+            )
         metrics = {
             "asr": self.compute_asr(x_clean, x_adv, target_embed),
+            "adv_source_sim": adv_source_sim,
             "ppr": ppr,
             "purified_target_sim": purified_target_sim,
             "purified_source_sim": purified_source_sim,
+            "clean_purified_sim": self.compute_clean_purified_sim(x_clean),
             "snr": self.compute_snr(x_clean, x_adv),
             "pesq": self.compute_pesq(x_clean, x_adv, sample_rate),
             "stoi": self.compute_stoi(x_clean, x_adv, sample_rate),

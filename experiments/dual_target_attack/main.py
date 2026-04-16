@@ -10,6 +10,7 @@ import sys
 from tqdm import tqdm
 import json
 from datetime import datetime
+from scipy.io import wavfile
 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -92,10 +93,16 @@ def run_experiment(config, attack_type="dual"):
         x_clean = x_clean.to(config.device)
         labels = labels.to(config.device)
 
-        # Use a different sample in the batch as the target speaker
-        target_audio = torch.roll(
-            x_clean, 1, dims=0
-        )  # shift by 1 to get different speaker
+        # Find a target sample with a different label for each source
+        target_indices = []
+        for i in range(len(labels)):
+            diff = (labels != labels[i]).nonzero(as_tuple=True)[0]
+            if len(diff) > 0:
+                target_indices.append(diff[0].item())
+            else:
+                # fallback: use roll if all labels are the same
+                target_indices.append((i + 1) % len(labels))
+        target_audio = x_clean[target_indices]
         with torch.no_grad():
             target_embed = speaker_model.get_embedding(target_audio)
 
@@ -109,9 +116,31 @@ def run_experiment(config, attack_type="dual"):
 
         # Compute metrics
         batch_metrics = metrics_evaluator.compute_all_metrics(
-            x_clean, x_adv, target_embed, config.sample_rate
+            x_clean,
+            x_adv,
+            target_embed,
+            config.sample_rate,
+            ppr_threshold=getattr(config, "ppr_threshold", 0.5),
         )
         all_metrics.append(batch_metrics)
+
+        # Save audio samples for listening
+        audio_dir = os.path.join(config.log_dir, f"audio_{attack_type}_{run_ts}")
+        os.makedirs(audio_dir, exist_ok=True)
+        with torch.no_grad():
+            x_purified = metrics_evaluator.purification_model(x_adv)
+
+        def save_wav(path, tensor):
+            arr = (tensor.squeeze().cpu().numpy() * 32767).astype(np.int16)
+            wavfile.write(path, config.sample_rate, arr)
+
+        for i in range(x_clean.shape[0]):
+            idx = batch_idx * config.batch_size + i
+            if idx % 4 != 0:
+                continue
+            save_wav(f"{audio_dir}/{idx:03d}_clean.wav", x_clean[i])
+            save_wav(f"{audio_dir}/{idx:03d}_adv.wav", x_adv[i])
+            save_wav(f"{audio_dir}/{idx:03d}_purified.wav", x_purified[i].squeeze(0))
 
         # Log progress and checkpoint
         if batch_idx % config.log_interval == 0:
@@ -225,48 +254,23 @@ def main():
     os.makedirs(config.checkpoint_dir, exist_ok=True)
     os.makedirs(config.figure_dir, exist_ok=True)
 
-    # Phase 1: Baseline experiments
-    # print("\n### Phase 1: Baseline Experiments ###\n")
-
-    # print("Running single-target attack (baseline)...")
-    # single_metrics, _ = run_experiment(config, attack_type="single")
+    # Phase 1: Single attack (baseline, no purification loss)
+    print("\n### Phase 1: Single Attack (Baseline) ###\n")
+    single_metrics, single_success = run_experiment(config, attack_type="single")
 
     # Phase 2: Dual-target attack
     print("\n### Phase 2: Dual-Target Attack ###\n")
-
-    print("Running dual-target attack...")
     dual_metrics, dual_success = run_experiment(config, attack_type="dual")
 
-    # Phase 3: Adaptive weight attack
-    print("\n### Phase 3: Adaptive Weight Attack ###\n")
-
-    print("Running adaptive weight attack...")
-    adaptive_metrics, adaptive_success = run_experiment(config, attack_type="adaptive")
-
-    # Phase 4: Ablation study (optional)
-    # Uncomment to run full ablation study
-    # print("\n### Phase 4: Ablation Study ###\n")
-    # ablation_results = run_ablation_study(config)
-
-    # Summary
+    # Summary comparison
     print("\n" + "=" * 60)
-    print("Experiment Summary")
+    print("Comparison Summary")
     print("=" * 60)
-    # print(f"\nSingle-Target Attack:")
-    # print(f"  ASR: {single_metrics['asr']:.2%}")
-    # print(f"  PPR: {single_metrics['ppr']:.2%}")
-
-    print(f"\nDual-Target Attack:")
-    print(f"  ASR: {dual_metrics['asr']:.2%}")
-    print(f"  PPR: {dual_metrics['ppr']:.2%}")
-    print(f"  Success: {'✓ PASS' if dual_success else '✗ FAIL'}")
-
-    print(f"\nAdaptive Weight Attack:")
-    print(f"  ASR: {adaptive_metrics['asr']:.2%}")
-    print(f"  PPR: {adaptive_metrics['ppr']:.2%}")
-    print(f"  Success: {'✓ PASS' if adaptive_success else '✗ FAIL'}")
-
-    print("\n" + "=" * 60 + "\n")
+    print(f"{'Metric':<30} {'Single':>10} {'Dual':>10}")
+    print("-" * 60)
+    for key in ["asr", "ppr", "purified_source_sim", "snr", "pesq", "stoi"]:
+        print(f"{key:<30} {single_metrics[key]:>10.4f} {dual_metrics[key]:>10.4f}")
+    print("=" * 60 + "\n")
 
 
 if __name__ == "__main__":

@@ -31,61 +31,53 @@ class DualTargetPGD:
         self.beta = config.beta
         self.device = config.device
 
-    def compute_speaker_loss(self, x_adv, target_embed):
+    def compute_speaker_loss(self, x_adv, target_embed, source_embed=None):
         """
-        Compute speaker cloning attack loss (embedding distance).
-
-        Args:
-            x_adv: Adversarial audio (batch, samples)
-            target_embed: Target speaker embedding (batch, dim) — precomputed
-        Returns:
-            Loss value (cosine similarity; maximizing pulls adv toward target)
+        Targeted: maximize cos(adv, target)
+        Untargeted: minimize cos(adv, source)  i.e. -cos(adv, source)
         """
         embed_adv = self.speaker_model.get_embedding(x_adv)
+        if source_embed is not None:
+            # untargeted: push away from source
+            return -F.cosine_similarity(embed_adv, source_embed, dim=1).mean()
         return F.cosine_similarity(embed_adv, target_embed, dim=1).mean()
 
     def compute_purification_loss(self, x_adv, x_clean):
         """
-        Purification disruption loss.
-        Maximizes embedding divergence across intermediate denoising steps,
-        causing the purification chain to 'go off track'.
+        Maximize embedding divergence between forward x_t and reverse x_t
+        at the same timesteps, causing the denoising path to deviate.
         """
-        with torch.no_grad():
-            embed_adv_before = self.speaker_model.get_embedding(x_adv)
-
-        # Get intermediate nodes from denoising chain
         if x_adv.ndim == 2:
             x_adv_3d = x_adv.unsqueeze(1)
         else:
             x_adv_3d = x_adv
 
-        x_noised = self.purification_model.diffwave._diffusion(x_adv_3d)
-        _, intermediates = self.purification_model.diffwave._reverse_with_intermediates(
-            x_noised, capture_every=5
+        # Capture forward intermediates at evenly spaced timesteps
+        T = self.purification_model.diffwave.reverse_timestep
+        capture_stride = getattr(self.config, "purification_capture_stride", 5)
+        capture_steps = list(range(capture_stride, T, capture_stride))
+        forward_intermediates, _ = (
+            self.purification_model.diffwave._diffusion_intermediates(
+                x_adv_3d, capture_steps
+            )
         )
 
-        # Loss: maximize embedding divergence between consecutive intermediate nodes
-        loss = torch.tensor(0.0, device=x_adv.device)
-        prev_embed = embed_adv_before
-        for x_mid in intermediates:
-            embed_mid = self.speaker_model.get_embedding(x_mid.squeeze(1))
-            loss = loss + (1 - F.cosine_similarity(prev_embed, embed_mid, dim=1).mean())
-            prev_embed = embed_mid.detach()  # detach anchor to avoid exploding graph
+        # Run full reverse, get paired (forward_x_t, reverse_x_t)
+        x_noised = forward_intermediates[T - 1]
+        _, pairs = self.purification_model.diffwave._reverse_with_intermediates(
+            x_noised, forward_intermediates
+        )
 
-        return loss / max(len(intermediates), 1)
+        # Loss: maximize embedding divergence at each paired timestep
+        loss = torch.tensor(0.0, device=x_adv.device)
+        for x_fwd, x_rev in pairs:
+            embed_fwd = self.speaker_model.get_embedding(x_fwd.squeeze(1))
+            embed_rev = self.speaker_model.get_embedding(x_rev.squeeze(1))
+            loss = loss + (1 - F.cosine_similarity(embed_fwd, embed_rev, dim=1).mean())
+
+        return loss / max(len(pairs), 1)
 
     def attack(self, x_clean, target_embed, return_trajectory=False):
-        """
-        Execute dual-target PGD attack
-
-        Args:
-            x_clean: Clean audio (batch, samples)
-            target_embed: Target speaker embedding (batch, dim)
-            return_trajectory: If True, return loss trajectory
-        Returns:
-            x_adv: Adversarial audio
-            trajectory: (optional) Dictionary of loss values over iterations
-        """
         x_adv = x_clean.clone().detach().requires_grad_(True)
 
         trajectory = (
@@ -98,12 +90,19 @@ class DualTargetPGD:
         t_purif = 0.0
         t_pgd = 0.0
 
+        # precompute source embed for untargeted mode
+        use_targeted = getattr(self.config, "use_targeted", True)
+        with torch.no_grad():
+            source_embed = (
+                self.speaker_model.get_embedding(x_clean) if not use_targeted else None
+            )
+
         for i in range(self.num_iterations):
             if x_adv.grad is not None:
                 x_adv.grad.zero_()
 
             t0 = time.time()
-            loss_speaker = self.compute_speaker_loss(x_adv, target_embed)
+            loss_speaker = self.compute_speaker_loss(x_adv, target_embed, source_embed)
             torch.cuda.synchronize() if x_adv.is_cuda else None
             t_speaker += time.time() - t0
 
@@ -148,18 +147,25 @@ class SingleTargetPGD:
         self.epsilon = config.epsilon
         self.num_iterations = config.num_iterations
         self.step_size = config.step_size
+        self.alpha = config.alpha
+        self.beta = config.beta
         self.device = config.device
 
     def attack(self, x_clean, target_embed):
         """Execute single-target PGD attack"""
         x_adv = x_clean.clone().detach().requires_grad_(True)
 
+        with torch.no_grad():
+            source_embed = self.speaker_model.get_embedding(x_clean)
+
         for i in range(self.num_iterations):
             if x_adv.grad is not None:
                 x_adv.grad.zero_()
 
             embed_adv = self.speaker_model.get_embedding(x_adv)
-            loss = F.cosine_similarity(embed_adv, target_embed, dim=1).mean()
+            loss_target = F.cosine_similarity(embed_adv, target_embed, dim=1).mean()
+            loss_source = -F.cosine_similarity(embed_adv, source_embed, dim=1).mean()
+            loss = self.alpha * loss_target + self.beta * loss_source
 
             loss.backward()
 

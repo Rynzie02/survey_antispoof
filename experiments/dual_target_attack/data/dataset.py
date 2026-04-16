@@ -33,19 +33,30 @@ class VoxCelebDataset(Dataset):
         """Load dataset file paths and labels"""
         print(f"Loading {self.split} dataset from {self.data_root}")
 
+        # Support both flat dir and audio/ subdir
+        audio_dir = self.data_root
+        if not any(f.endswith(".wav") for f in os.listdir(audio_dir)):
+            sub = os.path.join(audio_dir, "audio")
+            if os.path.isdir(sub):
+                audio_dir = sub
+
         wav_files = sorted(
             [
-                os.path.join(self.data_root, f)
-                for f in os.listdir(self.data_root)
+                os.path.join(audio_dir, f)
+                for f in os.listdir(audio_dir)
                 if f.endswith(".wav")
             ]
         )[: self.num_samples]
 
-        # Extract speaker id from filename, e.g. wav_id10270_... -> id10270
         def parse_speaker(path):
             name = os.path.basename(path)
             parts = name.split("_")
-            return parts[1] if len(parts) > 1 else name
+            if len(parts) < 2:
+                return name
+            spk = parts[1]
+            # librispeech: p3570-5694-0012 → p3570
+            # voxceleb:    id10270-xxx     → id10270 (no change needed)
+            return spk.split("-")[0]
 
         speakers = sorted(set(parse_speaker(f) for f in wav_files))
         spk2idx = {s: i for i, s in enumerate(speakers)}

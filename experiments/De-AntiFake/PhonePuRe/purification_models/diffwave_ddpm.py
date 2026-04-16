@@ -93,6 +93,28 @@ class DiffWave(torch.nn.Module):
         )
         return x_t
 
+    def _diffusion_intermediates(self, x_0: torch.Tensor, capture_steps: list) -> dict:
+        """
+        Forward diffusion, capturing x_t at specified timesteps.
+        capture_steps: list of t values to capture (e.g. [5, 10, 15, 20])
+        Returns: dict {t: x_t}
+        """
+        x_0 = x_0.to(self.device)
+        Alpha_bar = self.diffusion_hyperparams["Alpha_bar"]
+        z = torch.randn_like(x_0)
+        intermediates = {}
+        for t in capture_steps:
+            x_t = torch.sqrt(Alpha_bar[t]) * x_0 + torch.sqrt(1 - Alpha_bar[t]) * z
+            intermediates[t] = x_t
+        # also return the final noised x_T
+        t_final = self.reverse_timestep - 1
+        if t_final not in intermediates:
+            intermediates[t_final] = (
+                torch.sqrt(Alpha_bar[t_final]) * x_0
+                + torch.sqrt(1 - Alpha_bar[t_final]) * z
+            )
+        return intermediates, z
+
     def _build_reverse_schedule(self):
         schedule = list(range(self.reverse_timestep - 1, -1, -self.step_stride))
         if not schedule or schedule[-1] != 0:
@@ -170,11 +192,13 @@ class DiffWave(torch.nn.Module):
                 x_t_rev = self._reverse_step(x_t_rev, current_t, prev_t, noise)
         return x_t_rev
 
-    def _reverse_with_intermediates(self, x_t: torch.Tensor, capture_every: int = 5):
+    def _reverse_with_intermediates(
+        self, x_t: torch.Tensor, forward_intermediates: dict
+    ):
         """
-        Same as _reverse but also returns intermediate x_t tensors at every
-        `capture_every` steps (for intermediate-node disruption loss).
-        Returns: (x_0, list of intermediate tensors)
+        Full reverse denoising (step_stride=1), capturing reverse x_t at the same
+        timesteps as forward_intermediates for paired comparison.
+        Returns: (x_0, list of (x_t_forward, x_t_reverse) pairs)
         """
         if isinstance(x_t, np.ndarray):
             x_t = torch.from_numpy(x_t)
@@ -182,12 +206,14 @@ class DiffWave(torch.nn.Module):
         assert x_t.ndim == 3
 
         x_t_rev = x_t.clone()
-        schedule = self._build_reverse_schedule()
+        # Always use full step-by-step reverse (stride=1) for quality
+        schedule = list(range(self.reverse_timestep - 1, -1, -1))
         noises = {t: torch.randn_like(x_t_rev) for t in schedule}
-        if schedule:
-            noises[schedule[-1]] = torch.zeros_like(x_t_rev)
+        noises[0] = torch.zeros_like(x_t_rev)
 
-        intermediates = []
+        capture_ts = set(forward_intermediates.keys())
+        pairs = []  # (x_t_forward, x_t_reverse)
+
         for idx, current_t in enumerate(schedule):
             prev_t = schedule[idx + 1] if idx + 1 < len(schedule) else -1
             noise = noises[current_t]
@@ -202,10 +228,10 @@ class DiffWave(torch.nn.Module):
             else:
                 x_t_rev = self._reverse_step(x_t_rev, current_t, prev_t, noise)
 
-            if idx % capture_every == 0:
-                intermediates.append(x_t_rev)
+            if prev_t in capture_ts:
+                pairs.append((forward_intermediates[prev_t], x_t_rev))
 
-        return x_t_rev, intermediates
+        return x_t_rev, pairs
 
     def fast_reverse(self, x_t: Union[torch.Tensor, np.ndarray]) -> torch.Tensor:
         """convert np.array to torch.tensor"""
