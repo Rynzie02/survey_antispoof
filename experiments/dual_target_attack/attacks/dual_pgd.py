@@ -107,7 +107,14 @@ class DualTargetPGD:
             t_speaker += time.time() - t0
 
             t0 = time.time()
-            loss_purification = self.compute_purification_loss(x_adv, x_clean)
+            eot_samples = getattr(self.config, "eot_samples", 1)
+            loss_purification = (
+                sum(
+                    self.compute_purification_loss(x_adv, x_clean)
+                    for _ in range(eot_samples)
+                )
+                / eot_samples
+            )
             torch.cuda.synchronize() if x_adv.is_cuda else None
             t_purif += time.time() - t0
 
@@ -125,6 +132,10 @@ class DualTargetPGD:
             t_pgd += time.time() - t0
 
             x_adv = x_adv.detach().requires_grad_(True)
+
+            print(
+                f"  iter {i:02d}: total={loss_total.item():.4f} speaker={loss_speaker.item():.4f} purif={loss_purification.item():.4f}"
+            )
 
             if return_trajectory and i % 10 == 0:
                 trajectory["total_loss"].append(loss_total.item())
@@ -158,16 +169,34 @@ class SingleTargetPGD:
         with torch.no_grad():
             source_embed = self.speaker_model.get_embedding(x_clean)
 
+        # sanity check: verify gradients flow through speaker model
+        _test = x_clean.clone().detach().requires_grad_(True)
+        _emb = self.speaker_model.get_embedding(_test)
+        _loss = -F.cosine_similarity(_emb, source_embed, dim=1).mean()
+        _loss.backward()
+        print(f"  [grad check] grad_max={_test.grad.abs().max().item():.6f}")
+
+        # random init to escape zero-gradient at x_adv == x_clean
+        with torch.no_grad():
+            x_adv = x_clean + torch.empty_like(x_clean).uniform_(
+                -self.epsilon, self.epsilon
+            )
+            x_adv = torch.clamp(x_adv, -1.0, 1.0)
+        x_adv = x_adv.detach().requires_grad_(True)
+
         for i in range(self.num_iterations):
             if x_adv.grad is not None:
                 x_adv.grad.zero_()
 
             embed_adv = self.speaker_model.get_embedding(x_adv)
-            loss_target = F.cosine_similarity(embed_adv, target_embed, dim=1).mean()
-            loss_source = -F.cosine_similarity(embed_adv, source_embed, dim=1).mean()
-            loss = self.alpha * loss_target + self.beta * loss_source
+            loss = -F.cosine_similarity(embed_adv, source_embed, dim=1).mean()
 
             loss.backward()
+
+            grad_norm = x_adv.grad.abs().max().item()
+            print(
+                f"  single iter {i:02d}: loss={loss.item():.4f} grad_max={grad_norm:.6f}"
+            )
 
             with torch.no_grad():
                 grad_sign = x_adv.grad.sign()

@@ -18,41 +18,32 @@ class AttackMetrics:
         self.purification_model = purification_model
         self.device = device
 
-    def compute_asr(self, x_clean, x_adv, target_embed):
+    def compute_asr(self, x_clean, x_adv, threshold=0.75):
         """
-        Compute Attack Success Rate (ASR)
-
-        Args:
-            x_clean: Clean audio (batch, samples)
-            x_adv: Adversarial audio (batch, samples)
-            target_embed: Target speaker embeddings (batch, dim)
-        Returns:
-            ASR: Percentage of successful attacks
+        Compute Attack Success Rate (ASR): adv_source_sim < threshold (in [0,1])
         """
         with torch.no_grad():
             clean_embed = self.speaker_model.get_embedding(x_clean)
             adv_embed = self.speaker_model.get_embedding(x_adv)
-            target_similarity = F.cosine_similarity(adv_embed, target_embed, dim=1)
-            source_similarity = F.cosine_similarity(adv_embed, clean_embed, dim=1)
-            success = (target_similarity > source_similarity).float()
-            asr = success.mean().item()
-
+            source_similarity = (
+                F.cosine_similarity(adv_embed, clean_embed, dim=1) + 1
+            ) / 2
+            asr = (source_similarity < threshold).float().mean().item()
         return asr
 
-    def compute_ppr(self, x_clean, x_adv, target_embed, ppr_threshold=0.5):
+    def compute_ppr(self, x_clean, x_adv, ppr_threshold=0.5):
         """
-        Untargeted PPR: attack survives purification if purified_source_sim < ppr_threshold
+        Untargeted PPR: attack survives purification if purified_source_sim < ppr_threshold (in [0,1])
         """
         with torch.no_grad():
             clean_embed = self.speaker_model.get_embedding(x_clean)
             x_purified = self.purification_model(x_adv)
             purified_embed = self.speaker_model.get_embedding(x_purified)
-            target_similarity = F.cosine_similarity(purified_embed, target_embed, dim=1)
-            source_similarity = F.cosine_similarity(purified_embed, clean_embed, dim=1)
-            success = (source_similarity < ppr_threshold).float()
-            ppr = success.mean().item()
-
-        return ppr, target_similarity.mean().item(), source_similarity.mean().item()
+            source_similarity = (
+                F.cosine_similarity(purified_embed, clean_embed, dim=1) + 1
+            ) / 2
+            ppr = (source_similarity < ppr_threshold).float().mean().item()
+        return ppr, source_similarity.mean().item()
 
     def compute_clean_purified_sim(self, x_clean):
         """Baseline: cos_sim between clean and purified-clean embeddings."""
@@ -60,7 +51,11 @@ class AttackMetrics:
             clean_embed = self.speaker_model.get_embedding(x_clean)
             x_purified = self.purification_model(x_clean)
             purified_embed = self.speaker_model.get_embedding(x_purified)
-            return F.cosine_similarity(clean_embed, purified_embed, dim=1).mean().item()
+            return (
+                ((F.cosine_similarity(clean_embed, purified_embed, dim=1) + 1) / 2)
+                .mean()
+                .item()
+            )
 
     def compute_snr(self, x_clean, x_adv):
         """
@@ -135,24 +130,27 @@ class AttackMetrics:
         Returns:
             Dictionary of metrics
         """
-        ppr, purified_target_sim, purified_source_sim = self.compute_ppr(
-            x_clean, x_adv, target_embed, ppr_threshold
-        )
+        ppr, purified_source_sim = self.compute_ppr(x_clean, x_adv, ppr_threshold)
         with torch.no_grad():
             adv_source_sim = (
-                F.cosine_similarity(
-                    self.speaker_model.get_embedding(x_adv),
-                    self.speaker_model.get_embedding(x_clean),
-                    dim=1,
+                (
+                    (
+                        F.cosine_similarity(
+                            self.speaker_model.get_embedding(x_adv),
+                            self.speaker_model.get_embedding(x_clean),
+                            dim=1,
+                        )
+                        + 1
+                    )
+                    / 2
                 )
                 .mean()
                 .item()
             )
         metrics = {
-            "asr": self.compute_asr(x_clean, x_adv, target_embed),
+            "asr": self.compute_asr(x_clean, x_adv),
             "adv_source_sim": adv_source_sim,
             "ppr": ppr,
-            "purified_target_sim": purified_target_sim,
             "purified_source_sim": purified_source_sim,
             "clean_purified_sim": self.compute_clean_purified_sim(x_clean),
             "snr": self.compute_snr(x_clean, x_adv),
@@ -169,19 +167,19 @@ class AttackMetrics:
         print(f"Evaluation Metrics  [{ts}]")
         print("=" * 50)
         print(f"Attack Success Rate (ASR):           {metrics['asr']:.2%}")
+        print(f"Adv Source Similarity:               {metrics['adv_source_sim']:.4f}")
         print(f"Post-Purification Robustness (PPR):  {metrics['ppr']:.2%}")
         print(
-            f"Purified Embed Sim (→ target):       {metrics['purified_target_sim']:.4f}"
+            f"Purified Embed Sim (→ source):       {metrics['purified_source_sim']:.4f}"
         )
         print(
-            f"Purified Embed Sim (→ source):       {metrics['purified_source_sim']:.4f}"
+            f"Clean Purified Sim:                  {metrics['clean_purified_sim']:.4f}"
         )
         print(f"Signal-to-Noise Ratio (SNR):         {metrics['snr']:.2f} dB")
         print(f"PESQ Score:                          {metrics['pesq']:.3f}")
         print(f"STOI Score:                          {metrics['stoi']:.3f}")
         print("=" * 50)
 
-        # Check success criteria
         print("\nSuccess Criteria:")
         print(f"ASR > 90%:  {'✓ PASS' if metrics['asr'] > 0.90 else '✗ FAIL'}")
         print(f"PPR > 70%:  {'✓ PASS' if metrics['ppr'] > 0.70 else '✗ FAIL'}")

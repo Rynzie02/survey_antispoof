@@ -148,7 +148,6 @@ def run_experiment(config, attack_type="dual"):
             print(
                 f"\n[{ts}] Batch {batch_idx}: ASR={batch_metrics['asr']:.2%}, "
                 f"PPR={batch_metrics['ppr']:.2%}, "
-                f"PurifiedSim(target)={batch_metrics['purified_target_sim']:.4f}, "
                 f"PurifiedSim(source)={batch_metrics['purified_source_sim']:.4f}"
             )
             # Intermediate save

@@ -62,6 +62,9 @@ class CoquiSpeakerEncoder(nn.Module):
                 autocast_context = torch.autocast("cpu", enabled=False)
             with autocast_context:
                 x = encoder.torch_spec(x)
+            # ensure grad flows through spectrogram
+            if not x.requires_grad:
+                x = x.requires_grad_(True)
 
         if getattr(encoder, "log_input", False):
             x = (x + 1e-6).log()
