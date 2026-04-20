@@ -1,3 +1,4 @@
+﻿
 # DiffBreak: Is Diffusion-Based Purification Robust?
 
 Andre Kassis, Urs Hengartner, Yaoliang Yu
@@ -163,7 +164,7 @@ Evaluations Under Liu et al. [26]’s Protocol. Liu et al. [26], like DiffHammer
 Here, we continue to highlight the flaws of one-shot evaluation and the strength of DiffGrad, while exposing the invalidity of previous attack enhancements over the standard gradient-based methodologies. To do so, we adopt a Wor.Rob protocol, similar to DiffHammer—see §3.3 and also include our majority-vote variant (MV.Rob). We reimplement DiffHammer and DiffAttack using DiffGrad, and compare them to their original versions from [41] and our standard $A A \mathrm { - } \ell _ { \infty }$ . All evaluations use CIFAR-10 with WideResNet-70-16; We also report ImageNet results below. Full denotes the standard AA attack that uses the full exact gradi-
 
 Table 1: $A A \mathrm { - } \ell _ { \infty }$ performance comparison on CIFAR-10 $( \epsilon _ { \infty } { = } 8 / 2 5 5 )$ under realistic threat models. Metrics include Wor.Rob and MV.Rob under a 10-evaluation protocol. : indicates strategy is PGD.
-<table><tr><td>Pur.</td><td>Gradient Method</td><td colspan="2">Wor.Rob % Cl-AccRob-Acc</td><td colspan="2">MV.Rob % Cl-AccRob-Acc</td></tr><tr><td rowspan="4">DiffPure [30]</td><td>BPDA DiffAttack (DiffHammer [41])</td><td rowspan="4">89.06</td><td>32.81 33.79</td><td rowspan="4">91.02</td><td>72.27 NA 39.45</td></tr><tr><td>DiffAttack-DiffGrad</td><td>15.63</td><td></td></tr><tr><td>DiffHammer (DiffHammer [41]) DiffHammer-DiffGrad</td><td>22.66 10.16</td><td>NA</td></tr><tr><td>Full(DiffHammer [41])†</td><td>36.91</td><td>38.28 NA 39.45</td></tr><tr><td rowspan="6">GDMP [40]</td><td>BPDA</td><td rowspan="6">91.80</td><td>17.19 27.73</td><td rowspan="6">53.52 NA 14.45</td></tr><tr><td>DiffAttack (DiffHammer [41])</td><td>37.7</td></tr><tr><td>DiffAttack-DiffGrad</td><td>3.91</td></tr><tr><td></td><td>27.54</td></tr><tr><td>DiffHammer (DiffHammer [41])</td><td>7.81</td></tr><tr><td>DiffHammer-DiffGrad Full (DiffHammer [41]) Full-DiffGrad</td><td>31.05</td></tr></table>
+<table><tr><td>Pur.</td><td>Gradient Method</td><td colspan="2">Wor.Rob % Cl-Acc Rob-Acc</td><td colspan="2">MV.Rob % Cl-Acc Rob-Acc</td></tr><tr><td rowspan="4">DiffPure [30]</td><td>BPDA DiffAttack (DiffHammer [41])</td><td rowspan="4">89.06</td><td>32.81 33.79</td><td rowspan="4">91.02</td><td>72.27 NA 39.45</td></tr><tr><td>DiffAttack-DiffGrad</td><td>15.63</td><td></td></tr><tr><td>DiffHammer (DiffHammer [41]) DiffHammer-DiffGrad</td><td>22.66 10.16</td><td>NA</td></tr><tr><td>Full (DiffHammer [41]) †</td><td>36.91</td><td>38.28 NA 39.45</td></tr><tr><td rowspan="6">GDMP [40]</td><td>BPDA</td><td rowspan="6">91.80</td><td>17.19 27.73</td><td rowspan="6">53.52 NA 14.45</td></tr><tr><td>DiffAttack (DiffHammer [41])</td><td>37.7</td></tr><tr><td>DiffAttack-DiffGrad</td><td>3.91</td></tr><tr><td></td><td>27.54</td></tr><tr><td>DiffHammer (DiffHammer [41])</td><td>7.81</td></tr><tr><td>DiffHammer-DiffGrad Full (DiffHammer [41]) † Full-DiffGrad</td><td>31.05</td></tr></table>
 
 ents (i.e., via checkpointing). Ablation studies with larger evaluation sample counts for CIFAR-10 are in Appendix I.
 
@@ -180,7 +181,7 @@ On GDMP, DiffHammer performs significantly worse than both others. Hence, we con
 We evaluate $A A \mathrm { - } \ell _ { \infty }$ on ImageNet using WideResNet-50-2 and DeiT-S classifiers under $\epsilon _ { \infty } { = } 4 / 2 5 5$ , following standard practice. For DeiT-${ \mathrm { \bf S } } ,$ we also reimplement DiffAttack via DiffGrad
 
 Table 2: $A A { - } \ell _ { \infty }$ comparison on ImageNet $( \epsilon _ { \infty } = 4 / 2 5 5 )$
-<table><tr><td rowspan="2">Models</td><td rowspan="2">Pur.</td><td rowspan="2">Gradient Method</td><td colspan="2">Wor.Rob %</td><td rowspan="2">MV.Rob % Cl-Acc Rob-Acc</td></tr><tr><td>Cl-Acc</td><td>Rob-Acc</td></tr><tr><td>WideResNet-50-2</td><td>DiffPure [30]</td><td>Full-DiffGrad</td><td>74.22</td><td>12.11</td><td>77.02 29.69</td></tr><tr><td rowspan="3">DeiT-S</td><td>DiffPure [30]</td><td>DiffAttack-DiffGrad Full-DiffGrad</td><td>73.63</td><td>25 21.09</td><td>77.34 42.21</td></tr><tr><td>GDMP [40]</td><td>Full-DiffGrad</td><td></td><td></td><td>32.81 32.83</td></tr><tr><td></td><td></td><td>69.14</td><td>20.70</td><td>75.0</td></tr></table>
+<table><tr><td rowspan="2">Models</td><td rowspan="2">Pur.</td><td rowspan="2">Gradient Method</td><td colspan="2">Wor.Rob %</td><td rowspan="2">MV.Rob % Cl-Acc Rob-Acc</td></tr><tr><td>Cl-Acc</td><td>Rob-Acc</td></tr><tr><td>WideResNet-50-2</td><td>Diff Pure [30]</td><td>Full-DiffGrad</td><td>74.22</td><td>12.11</td><td>77.02 29.69</td></tr><tr><td rowspan="3">DeiT-S</td><td>DiffPure [30]</td><td>DiffAttack-DiffGrad FullifGrad</td><td>73.63</td><td>25 21.09</td><td>77.34 42.21</td></tr><tr><td>GDMP [40]</td><td>Full-DiffGrad</td><td></td><td></td><td>32.81 32.83</td></tr><tr><td></td><td></td><td>69.14</td><td>20.70</td><td>75.0</td></tr></table>
 
 for comparison. Each attack uses 16 EOT samples and 8 samples for prediction (Wor.Rob and MV.Rob). Attacks run for 100 iterations with early stopping. As with CIFAR-10, $D B P ` { \boldsymbol { \varsigma } }$ robustness drops sharply: Wor.Rob ranges from just 12.11% to 21.09%, while MV.Rob peaks at 32.83%. This confirms the vulnerability of single-purification and the strength of gradient-based attacks. DiffAttack underperforms our standard attack by 9.4% MV.Rob on DeiT-S, reinforcing its inferiority.
 
@@ -203,7 +204,7 @@ $\ell _ { G } ^ { \mathcal { M } }$ denotes any loss as defined in §2. δ is a 
 Our final question is: Can DBP be degraded further under MV? Based on §5, this is possible with LF, which we test in this section. For LF (see §5), we use VGG-LPIPS [56] as the distance metric with $\tau _ { p } ~ = ~ 0 . 0 5$ , ensuring imperceptibility [17, 21]. Remaining parameters are similar to UnMarker’s (see Appendix E.2). We use 128 EOT samples for CIFAR-10 (same for label predictions since increasing the sample set size leads to enhanced
 
 Table 3: Performance of LF attack under MV.
-<table><tr><td>Pur.</td><td>Dataset</td><td>Models</td><td>Cl-Acc %</td><td>Rob-Acc %</td></tr><tr><td rowspan="5">DiffPure [30]</td><td rowspan="2">ImageNet</td><td>ResNet-50</td><td>72.54</td><td>0.00</td></tr><tr><td>WideResNet-50-2</td><td>77.02</td><td>0.00</td></tr><tr><td></td><td>DeiT-S</td><td>77.34</td><td>0.00</td></tr><tr><td rowspan="2">CIFAR-10</td><td>WideResNet-28-10</td><td>92.19</td><td>2.73</td></tr><tr><td>WideResNet-70-16</td><td>92.19</td><td>3.13</td></tr><tr><td rowspan="5">GDMP [40]</td><td rowspan="3">ImageNet</td><td>ResNet-50</td><td>73.05</td><td>0.39</td></tr><tr><td>WideResNet-50-2</td><td>71.88</td><td>0.00</td></tr><tr><td>DeiT-S</td><td>75.00</td><td>0.39</td></tr><tr><td rowspan="2">CIFAR-10</td><td>WideResNet-28-10</td><td>93.36</td><td>0.00</td></tr><tr><td>WideResNet-70-16</td><td>92.19</td><td>0.39</td></tr></table>
+<table><tr><td>Pur.</td><td>Dataset</td><td>Models</td><td>Cl-Acc %</td><td>Rob-Acc %</td></tr><tr><td rowspan="5">DiffPure [30]</td><td rowspan="2">ImageNet</td><td>ResNet-50</td><td>72.54</td><td>0.00</td></tr><tr><td>WideResNet-50-2</td><td>77.02</td><td>0.00</td></tr><tr><td></td><td>DeiT-S</td><td>77.34</td><td>0.00</td></tr><tr><td rowspan="2">CIFAR-10</td><td>WideResNet-28-10</td><td>92.19</td><td>2.73</td></tr><tr><td>WideResNet-70-16</td><td>92.19</td><td>3.13</td></tr><tr><td rowspan="5">GDMP [40]</td><td rowspan="3">ImageNet</td><td>ResNet-50</td><td>73.05</td><td>0.39</td></tr><tr><td>WideResNet-50-2</td><td>71.88</td><td>0.00</td></tr><tr><td>De-s</td><td>75.00</td><td>0.39</td></tr><tr><td rowspan="2">CIFAR-10</td><td>WideResNet-28-10</td><td>93.36</td><td>0.00</td></tr><tr><td>WideResNet-70-16</td><td>92.19</td><td>0.39</td></tr></table>
 
 robustness of DBP—see Appendix I). For ImageNet, the numbers are identical to §4.2 (note that the dimensionality of ImageNet makes larger sample sets prohibitive and our selected set sizes reflect realistic deployments— the largest number of samples that can fit into a modern GPU simultaneously).
 
@@ -554,7 +555,11 @@ These findings directly explain the poor attack success rates previously observe
 
 To validate this, we conduct a final experiment: For three different values of $\begin{array} { r l } { d t } & { { } \in } \end{array}$ t0.001, 0.005, 0.01u and fixed $t ^ { * } = 0 . 1$ , we purify a fixed CIFAR-10 sample x. For each $d t ,$ we evaluate four surrogate variants using dt P tdt, 2dt, 5dt, 10dtu. For every configuration, we compute $\scriptstyle g _ { n f }$ using DiffHammer’s flawed surrogate implementation and $g _ { f }$ using the correct implementation. As before, we report both $g _ { d }$ and $g _ { e }$ to quantify the absolute and relative gradient error due to the mismatch between dt and dts . Each experiment is repeated 10 times, and we report the mean values.
 
-The results in Fig. 2d clearly validate our claim: the gradient errors induced by DiffHammer’s flawed surrogate implementation grow substantially with increasing $\bar { d t } / d t$ , saturating quickly even for modest mismatches. Both absolute error $g _ { d }$ and relative error $g _ { e }$ consistently worsen across all dt configurations, indicating that gradients are being applied to the wrong points in the computation graph.Crucially, DiffHammer uses $d t = 0 . 0 1$ and $d t = 2 d t = 0 . 0 2$ , a setup which already produces substantial degradation $( g _ { d } \approx 3 , g _ { e } \approx 1 )$ , confirming that their reported results rely on gradients that diverge significantly from the correct ones. These errors propagate into the attack, weakening its effectiveness and misleadingly suggesting that first-order attacks are inherently inferior. This experiment conclusively demonstrates that DiffHammer’s surrogate misuse is not a minor detail, but a critical bug that undermines their central claims.
+The results in Fig. 2d clearly validate our claim: the gradient errors induced by DiffHammer’s flawed surrogate implementation grow substantially with increasing $\bar { d t } / d t$ , saturating quickly even for modest mismatches. Both absolute error $g _ { d }$ and relative error $g _ { e }$ consistently worsen across all dt configurations, indicating that gradients are being applied to the wrong points in the computation graph.
+
+
+
+Crucially, DiffHammer uses $d t = 0 . 0 1$ and $d t = 2 d t = 0 . 0 2$ , a setup which already produces substantial degradation $( g _ { d } \approx 3 , g _ { e } \approx 1 )$ , confirming that their reported results rely on gradients that diverge significantly from the correct ones. These errors propagate into the attack, weakening its effectiveness and misleadingly suggesting that first-order attacks are inherently inferior. This experiment conclusively demonstrates that DiffHammer’s surrogate misuse is not a minor detail, but a critical bug that undermines their central claims.
 
 We note that DiffGrad also provides a correct implementation of the surrogate method (despite the full correct gradient being the main method considered in the paper).
 
@@ -568,7 +573,7 @@ Reverse diffusion function calc_dx, Noise sampler initializer init_noise_sampler
 condition ${ \mathrm { g r n } } ,$ Guidance scale s, Auxiliary guidance extractor g_aux   
 1: steps $\textstyle \gets { \bigg | } { \frac { t ^ { * } } { d t } } { \bigg | } ,$ , guide Ð g_auxpxq /\* Calc. #steps and init. guide \*/   
 2: disable_dependenciespq   
-$/ { * }$ Dependencies enabled during forward   
+$\cdot$ Dependencies enabled during forward   
 propagation. Disable them. \*/   
 3: $\mathbf { S } \gets \prod$ /\* Saved state (will eventually hold all   
 intermediate reverse steps’ outputs). \*/   
@@ -578,8 +583,8 @@ intermediate reverse steps’ outputs). \*/
 7: Draw $\epsilon \sim \mathcal { N } ( \mathbf { 0 } , \pmb { I } _ { d } )$   
 8: $\hat { x } \gets \sqrt { \alpha ( t ^ { * } ) } x + \sqrt { 1 - \alpha ( t ^ { * } ) } \epsilon$ /\* Diffuse according to eq. (2) \*/   
 9: for i Ð steps, steps ´ 1, ..., 1 do   
-10: S.appendpxˆq /\* Set $\mathbf { S } [ i ] = \hat { \pmb { x } } ( t )$ . \*/   
-11: step_noise Ð NS.samplepiq $\cdot$ Sample the random noise used to   
+10: S.appendpxˆq /\* Set $\cdot$ . \*/   
+11: step_noise Ð NS.samplepiq $/ { * }$ Sample the random noise used to   
 calculate dxˆ at step i. \*/   
 12: dxˆ Ð calc $\begin{array} { r } { \mathbf { d x } ( \hat { { \boldsymbol x } } , s _ { \theta } , i , d t , \beta , } \end{array}$ /\* Calc. dxˆ according to   
 13: step_noise, gfn, s, guideq eq. (4) \*/   
@@ -605,21 +610,21 @@ $$
 and take its gradient w.r.t. the two elements of interest above, which explains the steps in our pseudo-code in Algorithm 2.
 
 Algorithm 2 Differentiable Purification with DiffGrad — Backpropagation   
-Require: Loss gradient grad w.r.t xˆ0, Sample x, Score model $\cdot$ , Optimal diffusion time $t ^ { * }$ , step   
+Require: Loss gradient grad w.r.t xˆ0, Sample x, Score model $\cdot$ , Optimal diffusion time $\cdot$ , step   
 size dt, Noise scheduler β, Reverse diffusion function calc_dx, State $\_$   
 Noise sampler NS, Auxiliary guidance input guide, Guidance function ˇ ˇ $\mathbf { g _ { f n } }$ , Guidance scale s   
 1: $\textstyle s t e p s \gets \left| { \frac { t ^ { * } } { d t } } \right|$   
 2: g_grad Ð 0 $/ { } ^ { * }$ Init. gradient w.r.t guidance input \*/   
 3: for i Ð 1, 2, ..., steps do   
-4: xˆ Ð Sris $\_$ \*/   
+4: xˆ Ð Sris $J ^ { * } \operatorname { S e t } { \hat { x } } = { \hat { x } } ( t )$ \*/   
 5: step_noise Ð NS.samplepiq $/ *$ Retrieve noise for step i \*/   
 6: enable_dependenciespq   
 7: dxˆ Ð calc_dxpxˆ, sθ, i, dt, β,   
 8: step_noise, gfn, s, guide)   
-9: $\_$ $| ^ { * } \hat { { \pmb x } } _ { + d t } = \hat { { \pmb x } } ( t + d t )$ \*/   
+9: $\_$ $\_$ \*/   
 10: $O b j _ { t } \gets \sum ( \hat { \pmb { x } } _ { + d t } \odot$ gradq /\* Objective due to eq. (12) \*/   
 11: disable_dependenciespq   
-12: grad $\gets \nabla _ { \hat { \pmb { x } } } O b j _ { t }$ /\* Update gradient w.r.t xˆptq (eq. (6)) \*/   
+12: grad $\gets \nabla _ { \hat { \boldsymbol { x } } } O b j _ { t }$ /\* Update gradient w.r.t xˆptq (eq. (6)) \*/   
 13: g_grad Ð g_grad \` $\nabla _ { \mathbf { g u i d e } } O b j _ { t }$ /\* Update guide gradient (eq. (10)) \*/   
 14: end for   
 15: α Ð calc_alphapβqa   
@@ -714,7 +719,7 @@ Results. Table 4 shows our comparison. All methods achieve similar clean accurac
 Our approach significantly outperforms gradient approximations such as Adjoint, Blind, and BPDA, reaffirming their known weaknesses. More notably, despite using only 10 optimization steps, our method reduces Diff-Pure’s Rob-Acc by 14.06% compared to Liu et al. [26], who also use exact gradients, confirming their backpropagation flaws (see §3.2).
 
 Table 4: One-shot $A A \mathrm { - } \ell _ { \infty }$ comparison on CIFAR-10 $( \epsilon _ { \infty } { = } 8 / 2 5 5 )$ : indicates strategy is PGD.
-<table><tr><td>Models</td><td>Pur.</td><td>Gradient Method</td><td>Cl-Acc %</td><td>Rob-Acc %</td></tr><tr><td rowspan="5">WideResNet-28-10</td><td rowspan="5">DifPure [30]</td><td>Adjoint (Nie et al. [30])</td><td>89.02 89.02</td><td>70.64</td></tr><tr><td>DifAttack (Kang et al.[20])</td><td></td><td>46.88</td></tr><tr><td>Surrogate(Lee and Kim [24])t</td><td>90.07</td><td>48.28</td></tr><tr><td>Full (Liu et al. [26])</td><td>89.26</td><td>62.11</td></tr><tr><td>Full-DiffGrad (Ours)</td><td>89.46</td><td>48.05</td></tr><tr><td rowspan="5"></td><td>Blind (Wang et al. [40])</td><td></td><td>93.50</td><td>90.06</td></tr><tr><td>GDMP [40]</td><td>BPDA (Lee and Kim [24])</td><td>89.96</td><td>75.59</td></tr><tr><td></td><td>Surrogate (Lee and Kim [24])t</td><td>89.96</td><td>24.53</td></tr><tr><td></td><td>Full-DiffGrad (Ours)</td><td>93.36</td><td>19.53</td></tr><tr><td></td><td></td><td></td><td></td></tr></table>
+<table><tr><td>Models</td><td>Pur.</td><td>Gradient Method</td><td>Cl-Acc %</td><td>Rob-Acc %</td></tr><tr><td rowspan="5">WideResNet-28-10</td><td rowspan="5">DiffPure [30]</td><td>Adjoint (Nie et al. [30])</td><td>89.02 89.02</td><td>70.64</td></tr><tr><td>DiffAttack (Kang et al. [20])</td><td></td><td>46.88</td></tr><tr><td>Surrogate (Lee and Kim [24])†</td><td>90.07</td><td>48.28</td></tr><tr><td>Full (Liu et al. [26])</td><td>89.26</td><td>62.11</td></tr><tr><td>Full-DiffGrad (Ours)</td><td>89.46</td><td>48.05</td></tr><tr><td rowspan="5"></td><td>Blind (Wang et al. [40])</td><td></td><td>93.50</td><td>90.06</td></tr><tr><td>GDMP [40]</td><td>BPDA (Lee and Kim [24])</td><td>89.96</td><td>75.59</td></tr><tr><td></td><td>Surrogate (Lee and Kim [24])†</td><td>89.96</td><td>24.53</td></tr><tr><td></td><td>Full-DiffGrad (Ours)</td><td>93.36</td><td>19.53</td></tr><tr><td></td><td></td><td></td><td></td></tr></table>
 
 ## While DiffAttack remains
 
@@ -726,11 +731,11 @@ All in all, the results demonstrate the fragility of DBP in the face of accurate
 
 ## H Evaluations with Liu et al. [26]’s Fixed AutoAttack
 
-Liu et al. [26], like DiffHammer [41] and our own analysis, note that evaluating a single purification at attack termination inflates robustness scores. Liu et al. [26] address this by evaluating 20 replicas of the final AE, declaring success if any is misclassified. While similar in spirit to the Wor.Rob metric we consider (see §3.3)，this protocol (see §3.3), this protocol Table 5: is more limited: it evalu- is more limited: it evalu- $A A \mathrm { - } \ell _ { \infty }$ comparison on CIFAR-10 under Liu et al. [26]’s ates only at the final step, ates only at the fnal step, protocol $( \mathbf { i . e . } ,$ Fixed AutoAttack) $( \epsilon _ { \infty } { = } 8 / 2 5 5 )$ .
+Liu et al. [26], like DiffHammer [41] and our own analysis, note that evaluating a single purification at attack termination inflates robustness scores. Liu et al. [26] address this by evaluating 20 replicas of the final AE, declaring success if any is misclassified. While similar in spirit to the Wor.Rob metric we consider (see §3.3), this protocol (see §3.3), this protocol Table 5: is more limited: it evalu- is more limited: it evalu- $A A \mathrm { - } \ell _ { \infty }$ comparison on CIFAR-10 under Liu et al. [26]’s ates only at the final step, ates only at the final step, protocol $( \mathbf { i . e . } ,$ Fixed AutoAttack) $( \epsilon _ { \infty } { = } 8 / 2 5 5 )$ .
 
 whereas Wor.Rob evaluates N copies at each attack iteration. Accordingly, Liu et al. [26] group their method with one-shot evaluations, providing a slightly more realistic assessment that leads to results similar
 
-<table><tr><td>Models</td><td>Pur.</td><td>Gradient Method</td><td>Cl-Acc %</td><td>Rob-Acc %</td></tr><tr><td rowspan="3">WideResNet-28-10</td><td>DiffPure [30]</td><td>Full (Liu et al. [26])</td><td>89.26</td><td>56.25</td></tr><tr><td></td><td>Full-DiffGrad Full (Liu et al. [26])</td><td>89.46 91.80</td><td>30.86 40.97</td></tr><tr><td>GDMP [40]</td><td>Full-DiffGrad</td><td>93.36</td><td>10.55</td></tr><tr><td rowspan="2">WideResNet-70-16</td><td>DiffPure[30]</td><td>Full-DiffGrad</td><td>89.06</td><td>35.16</td></tr><tr><td>GDMP[40]</td><td>Full-DiffGrad</td><td>91.8</td><td>8.59</td></tr></table>
+<table><tr><td>Models</td><td>Pur.</td><td>Gradient Method</td><td>Cl-Acc %</td><td>Rob-Acc %</td></tr><tr><td rowspan="3">WideResNet-28-10</td><td>DiffPure [30]</td><td>Full (Liu et al. [26])</td><td>89.26</td><td>56.25</td></tr><tr><td></td><td>Full-DiffGrad Full (Liu et al. [26])</td><td>89.46 91.80</td><td>30.86 40.97</td></tr><tr><td>GDMP [40]</td><td>Full-DiffGrad</td><td>93.36</td><td>10.55</td></tr><tr><td rowspan="2">WideResNet-70-16</td><td>Diff Pure [30]</td><td>Full-DiffGrad</td><td>89.06</td><td>35.16</td></tr><tr><td>GDMP [40]</td><td>Full-DiffGrad</td><td>91.8</td><td>8.59</td></tr></table>
 
 to those attained via PGD [23].
 
@@ -745,7 +750,7 @@ We evaluate DiffPure and GDMP on CIFAR-10 using WideResNet-70-16 and (our) $A A 
 For Wor.Rob, clean accuracy (Cl-Acc) remains constant across all N values since we always compute it using a single purified copy $( N ~ = ~ 1 )$ independent of the number N of samples used in the attack. This reflects the actual standard single-purification deployment of DBP, where the defender classifies a single output, while the attacker may retry multiple times. Hence, for Rob-Acc we consider a batch of multiple samples (the corre-
 
 Table 6: $A A \mathrm { - } \ell _ { \infty }$ Performance under various evaluation sample counts
-<table><tr><td rowspan="2">Pur.</td><td rowspan="2">#Samples</td><td colspan="2">Wor.Rob %</td><td colspan="2">MV.Rob %</td></tr><tr><td>Cl-Acc</td><td>Rob-Acc</td><td>Cl-Acc</td><td>Rob-Acc</td></tr><tr><td rowspan="4">DifPure [30]</td><td>N=1</td><td rowspan="4">89.06</td><td>35.16</td><td>89.06</td><td>35.16</td></tr><tr><td>N=10</td><td>17.19</td><td>91.02</td><td>39.45</td></tr><tr><td>N=128</td><td>17.58</td><td>92.19</td><td>47.72</td></tr><tr><td>N=1</td><td>8.59</td><td>91.8</td><td>8.59</td></tr><tr><td rowspan="3">GDMP [40]</td><td>N=10</td><td rowspan="3">91.8</td><td>7.03</td><td>92.19</td><td>16.8</td></tr><tr><td></td><td></td><td>92.19</td><td></td></tr><tr><td>N=128</td><td>5.47</td><td></td><td>32.81</td></tr></table>
+<table><tr><td rowspan="2">Pur.</td><td rowspan="2">#Samples</td><td colspan="2">Wor.Rob %</td><td colspan="2">MV.Rob %</td></tr><tr><td>Cl-Acc</td><td>Rob-Acc</td><td>Cl-Acc</td><td>Rob-Acc</td></tr><tr><td rowspan="4">Diff Pure [30]</td><td>N=1</td><td rowspan="4">89.06</td><td>35.16</td><td>89.06</td><td>35.16</td></tr><tr><td>N=10</td><td>17.19</td><td>91.02</td><td>39.45</td></tr><tr><td>N=128</td><td>17.58</td><td>92.19</td><td>47.72</td></tr><tr><td>N=1</td><td>8.59</td><td>91.8</td><td>8.59</td></tr><tr><td rowspan="3">GDMP [40]</td><td>N=10</td><td rowspan="3">91.8</td><td>7.03</td><td>92.19</td><td>16.8</td></tr><tr><td></td><td></td><td>92.19</td><td></td></tr><tr><td>N=128</td><td>5.47</td><td></td><td>32.81</td></tr></table>
 
 sponding N in that row) and then declare attack success if a single misclassification occurs, revealing the gap between measured and effective robustness. In contrast, MV.Rob clean accuracy varies with N, as the prediction always aggregates over N purified samples, consistent with our proposed deployment.
 
@@ -874,3 +879,6 @@ Figure 19: StAdv attacks against CIFAR-10’s WideResNet-70-16 with GDMP purific
 
 <!-- image-->  
 Figure 20: StAdv attacks against ImageNet’s DeiT-S with DiffPure purification. Left - original image. Right - StAdv.
+
+
+
