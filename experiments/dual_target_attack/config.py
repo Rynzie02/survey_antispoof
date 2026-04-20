@@ -10,34 +10,34 @@ class Config:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Data
-    data_root = "/mnt/data/wht/test_set_example_clean/audio"
-    # data_root = "/mnt/data/wht/voxceleb1/samples_100"
-    num_samples = 8  # Number of test samples
+    # data_root = "/mnt/data/wht/test_set_example_clean/audio"
+    data_root = "/mnt/data/wht/voxceleb1/samples_100"
+    num_samples = 100  # Number of test samples
     sample_rate = 16000
-    audio_length = 4.0  # seconds
+    audio_length = 3.0  # seconds
 
-    # Speaker Model (Coqui YourTTS speaker encoder)
-    speaker_model_type = "coqui"
-    speaker_model_path = None  # Coqui downloads weights automatically
-    embedding_dim = 512
+    # Speaker Model (ECAPA-TDNN, local weights)
+    speaker_model_type = "ecapa"
+    speaker_model_path = "./models/ecapa_tdnn_pretrained"
+    embedding_dim = 192
 
     # Purification Model (De-AntiFake DiffWave, first-stage)
     purification_type = "deantifake"
     purification_model_path = "../De-AntiFake/checkpoints/purification.pkl"
-    purification_reverse_timestep = 10
+    purification_reverse_timestep = 5
     purification_step_stride = 1  # reverse denoising stride, keep =1 for full quality
-    purification_capture_stride = 2  # interval for capturing intermediate nodes in loss
+    purification_capture_stride = 1  # interval for capturing intermediate nodes in loss
     purification_use_checkpoint = True
 
     # Attack Parameters
     attack_type = "dual_pgd"
-    epsilon = 0.02  # Perturbation budget (relative to audio amplitude)
+    epsilon = 0.03  # Perturbation budget (relative to audio amplitude)
     num_iterations = 30
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.2  # Weight for speaker recognition loss
-    beta = 0.8  # Weight for purification robustness loss
+    alpha = 0.05  # Weight for speaker recognition loss
+    beta = 0.95  # Weight for purification robustness loss
     weight_strategy = "fixed"  # 'fixed', 'adaptive', or 'staged'
 
     # Evaluation
@@ -46,7 +46,7 @@ class Config:
     ppr_threshold = 0.5  # source_sim below this → attack survived purification
 
     # Training/Experiment
-    batch_size = 2
+    batch_size = 1
     use_targeted = (
         False  # True: pull toward target speaker; False: push away from source
     )

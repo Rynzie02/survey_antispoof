@@ -19,6 +19,7 @@ from config import config
 from models.speaker_model import load_speaker_model
 from models.purification import load_purification_model
 from attacks.dual_pgd import DualTargetPGD, SingleTargetPGD, AdaptiveWeightPGD
+from attacks.diffattack_pgd import DiffAttackPGD
 from data.dataset import get_dataloader
 from evaluation.metrics import AttackMetrics
 
@@ -74,6 +75,8 @@ def run_experiment(config, attack_type="dual"):
         attacker = SingleTargetPGD(speaker_model, config)
     elif attack_type == "adaptive":
         attacker = AdaptiveWeightPGD(speaker_model, purification_model, config)
+    elif attack_type == "diffattack":
+        attacker = DiffAttackPGD(speaker_model, purification_model, config)
     else:
         raise ValueError(f"Unknown attack type: {attack_type}")
 

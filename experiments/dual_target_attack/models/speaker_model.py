@@ -1,103 +1,58 @@
 """
-Coqui YourTTS speaker encoder wrapper
-Loads the vendored Coqui TTS package directly to keep gradients intact
+ECAPA-TDNN speaker encoder wrapper (SpeechBrain, local weights)
 """
 
-import sys
 import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-_PHONEPURE = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "../../De-AntiFake/PhonePuRe")
-)
-# Use the venv's TTS (not De-AntiFake's vendored old version)
-# _TTS_ROOT is only needed for purification models, not speaker encoder
-
-COQUI_YOURTTS_PATH = "tts_models/multilingual/multi-dataset/your_tts"
+ECAPA_SAVEDIR = os.path.join(os.path.dirname(__file__), "ecapa_tdnn_pretrained")
 
 
-def load_coqui_speaker_manager(device: str = "cuda"):
-    from TTS.api import TTS
-
-    use_gpu = str(device).startswith("cuda") and torch.cuda.is_available()
-    runtime_device = "cuda" if use_gpu else "cpu"
-    coqui_tts = TTS(model_name=COQUI_YOURTTS_PATH, progress_bar=True, gpu=use_gpu)
-    speaker_manager = coqui_tts.synthesizer.tts_model.speaker_manager
-    return speaker_manager, runtime_device
-
-
-class CoquiSpeakerEncoder(nn.Module):
-    """Wraps Coqui YourTTS speaker_manager as a speaker encoder."""
-
+class ECAPASpeakerEncoder(nn.Module):
     def __init__(self, device="cuda"):
         super().__init__()
-        self.speaker_manager, self.device = load_coqui_speaker_manager(device=device)
-        self.embedding_dim = 512
-        self.speaker_manager.encoder.requires_grad_(False)
-        self.speaker_manager.encoder.eval()
+        from speechbrain.inference.classifiers import EncoderClassifier
+
+        run_opts = {
+            "device": str(device).split(":")[0] if "cuda" in str(device) else "cpu"
+        }
+        self._classifier = EncoderClassifier.from_hparams(
+            source=ECAPA_SAVEDIR,
+            savedir=ECAPA_SAVEDIR,
+            run_opts=run_opts,
+        )
+        self._encoder = self._classifier.mods.embedding_model
+        self._encoder.requires_grad_(False)
+        self._encoder.eval()
+        self.embedding_dim = 192
 
     def get_embedding(self, x: torch.Tensor) -> torch.Tensor:
         """
         Args:
             x: (batch, samples) waveform, 16kHz
         Returns:
-            (batch, embedding_dim) L2-normalized speaker embedding
+            (batch, 192) L2-normalized speaker embedding
         """
-        encoder = self.speaker_manager.encoder
-
         if x.ndim != 2:
-            raise ValueError(
-                f"Expected audio batch with shape (batch, samples), got {tuple(x.shape)}"
-            )
+            raise ValueError(f"Expected (batch, samples), got {tuple(x.shape)}")
 
-        # Coqui's public compute_embedding() runs under inference_mode(), which severs
-        # the autograd graph and breaks PGD. Rebuild the encoder forward path here
-        # so gradients can flow back to the waveform.
-        if getattr(encoder, "use_torch_spec", False):
-            if x.is_cuda:
-                autocast_context = torch.autocast("cuda", enabled=False)
-            else:
-                autocast_context = torch.autocast("cpu", enabled=False)
-            with autocast_context:
-                x = encoder.torch_spec(x)
-            # ensure grad flows through spectrogram
-            if not x.requires_grad:
-                x = x.requires_grad_(True)
+        # compute fbank features via SpeechBrain's compute_features + mean_var_norm
+        feats = self._classifier.mods.compute_features(x)  # (B, T, 80)
+        feats = self._classifier.mods.mean_var_norm(
+            feats, torch.ones(x.shape[0], device=x.device)
+        )
 
-        if getattr(encoder, "log_input", False):
-            x = (x + 1e-6).log()
-
-        x = encoder.instancenorm(x).unsqueeze(1)
-
-        x = encoder.conv1(x)
-        x = encoder.relu(x)
-        x = encoder.bn1(x)
-        x = encoder.layer1(x)
-        x = encoder.layer2(x)
-        x = encoder.layer3(x)
-        x = encoder.layer4(x)
-
-        x = x.reshape(x.size(0), -1, x.size(-1))
-        w = encoder.attention(x)
-
-        if encoder.encoder_type == "SAP":
-            x = torch.sum(x * w, dim=2)
-        else:  # ASP
-            mu = torch.sum(x * w, dim=2)
-            sg = torch.sqrt((torch.sum((x**2) * w, dim=2) - mu**2).clamp(min=1e-5))
-            x = torch.cat((mu, sg), 1)
-
-        embeddings = encoder.fc(x.view(x.size(0), -1))
+        embeddings = self._encoder(feats)  # (B, 1, 192)
+        embeddings = embeddings.squeeze(1)  # (B, 192)
         return F.normalize(embeddings, p=2, dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """Returns embeddings (used as logits proxy for loss computation)."""
         return self.get_embedding(x)
 
 
 def load_speaker_model(model_path=None, num_speakers=None, device="cuda"):
-    model = CoquiSpeakerEncoder(device=device)
+    model = ECAPASpeakerEncoder(device=device)
     model.eval()
     return model
