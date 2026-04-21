@@ -11,8 +11,8 @@ class Config:
 
     # Data
     # data_root = "/mnt/data/wht/test_set_example_clean/audio"
-    data_root = "/mnt/data/wht/voxceleb1/samples_100"
-    num_samples = 100  # Number of test samples
+    data_root = "/mnt/data/wht/voxceleb1/samples_1000"
+    num_samples = 500  # Number of test samples
     sample_rate = 16000
     audio_length = 3.0  # seconds
 
@@ -32,12 +32,12 @@ class Config:
     # Attack Parameters
     attack_type = "dual_pgd"
     epsilon = 0.03  # Perturbation budget (relative to audio amplitude)
-    num_iterations = 30
+    num_iterations = 40
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.05  # Weight for speaker recognition loss
-    beta = 0.95  # Weight for purification robustness loss
+    alpha = 0.2  # Weight for speaker recognition loss
+    beta = 0.8  # Weight for purification robustness loss
     weight_strategy = "fixed"  # 'fixed', 'adaptive', or 'staged'
 
     # Evaluation

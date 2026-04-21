@@ -11,8 +11,10 @@ import torch.nn.functional as F
 
 class DiffAttackPGD:
     """
+    Untargeted DiffAttack-style PGD.
+
     Loss = alpha * (-cos_sim(emb_clean, emb_adv_purified))
-           + beta  * MSE(denoise_traj_adv[t], forward_traj_clean[t])
+           + beta  * MSE(denoise_traj_adv[t], forward_traj_adv[t])
 
     Gradient is computed manually through the reverse diffusion steps to avoid
     storing the full autograd graph (OOM-safe).
@@ -29,6 +31,10 @@ class DiffAttackPGD:
         self.alpha = getattr(config, "alpha", 0.5)
         self.beta = getattr(config, "beta", 0.5)
         self.t_interval = getattr(config, "diffattack_t_interval", 2)
+        self.use_targeted = getattr(config, "use_targeted", False)
+
+        if self.use_targeted:
+            raise ValueError("DiffAttackPGD currently supports untargeted attack only.")
 
     # ------------------------------------------------------------------
     # Manual gradient helpers (mirrors diff_exp logic, adapted for DiffWave)
@@ -80,19 +86,24 @@ class DiffAttackPGD:
         Backprop through x_T = sqrt(ab[T-1]) * x_adv + sqrt(1-ab[T-1]) * z
         Returns grad w.r.t. x_adv.
         """
+        return self._grad_through_forward_state(x_adv, grad_xT, Alpha_bar, T - 1, z)
+
+    def _grad_through_forward_state(self, x_adv, grad_xt, Alpha_bar, t, z):
+        """
+        Backprop through x_t = sqrt(ab[t]) * x_adv + sqrt(1-ab[t]) * z
+        Returns grad w.r.t. x_adv.
+        """
         with torch.enable_grad():
             x = x_adv.clone().detach().requires_grad_(True)
-            x_T = (
-                torch.sqrt(Alpha_bar[T - 1]) * x + torch.sqrt(1 - Alpha_bar[T - 1]) * z
-            )
-            loss = torch.sum(x_T * grad_xT)
+            x_t = torch.sqrt(Alpha_bar[t]) * x + torch.sqrt(1 - Alpha_bar[t]) * z
+            loss = torch.sum(x_t * grad_xt)
             return torch.autograd.grad(loss, x)[0].detach()
 
     # ------------------------------------------------------------------
     # Core attack
     # ------------------------------------------------------------------
 
-    def attack(self, x_clean, target_embed=None, return_trajectory=False):
+    def attack(self, x_clean, return_trajectory=False):
         diffwave = self.diffwave
         T = diffwave.reverse_timestep
         schedule = diffwave._build_reverse_schedule()
@@ -125,11 +136,13 @@ class DiffAttackPGD:
                     + torch.sqrt(1 - Alpha_bar[T - 1]) * z
                 )
 
-                # Clean forward trajectory for MSE reference
-                fwd_clean = {}
+                # Forward trajectory of the current adversarial sample.
+                # The deviation loss compares this branch against the reverse branch
+                # of the same x_adv, not against x_clean.
+                fwd_adv = {}
                 for t in mse_steps:
-                    fwd_clean[t] = (
-                        torch.sqrt(Alpha_bar[t]) * x_clean.unsqueeze(1)
+                    fwd_adv[t] = (
+                        torch.sqrt(Alpha_bar[t]) * x_adv_3d
                         + torch.sqrt(1 - Alpha_bar[t]) * z
                     )
 
@@ -161,17 +174,28 @@ class DiffAttackPGD:
             # ---- Manual backprop through reverse schedule ----
             mse_total = 0.0
             n_mse = 0
+            grad_x_adv_direct = torch.zeros_like(x_adv_3d)
             for idx in reversed(range(len(schedule))):
                 current_t = schedule[idx]
                 prev_t = schedule[idx + 1] if idx + 1 < len(schedule) else -1
 
                 # Inject MSE gradient at selected timesteps
-                if current_t in mse_steps and current_t in fwd_clean:
+                if current_t in mse_steps and current_t in fwd_adv:
                     with torch.enable_grad():
-                        xt = mid_x[current_t].clone().detach().requires_grad_(True)
-                        mse = F.mse_loss(xt, fwd_clean[current_t].detach())
-                        mse_grad = torch.autograd.grad(mse, xt)[0].detach()
-                    grad = grad + self.beta * mse_grad
+                        xt_rev = mid_x[current_t].clone().detach().requires_grad_(True)
+                        xt_fwd = fwd_adv[current_t].clone().detach().requires_grad_(True)
+                        mse = F.mse_loss(xt_rev, xt_fwd)
+                        mse_grad_rev, mse_grad_fwd = torch.autograd.grad(
+                            mse, (xt_rev, xt_fwd)
+                        )
+                    grad = grad + self.beta * mse_grad_rev.detach()
+                    grad_x_adv_direct = grad_x_adv_direct + self._grad_through_forward_state(
+                        x_adv_3d,
+                        self.beta * mse_grad_fwd.detach(),
+                        Alpha_bar,
+                        current_t,
+                        z,
+                    )
                     mse_total += mse.item()
                     n_mse += 1
 
@@ -183,6 +207,7 @@ class DiffAttackPGD:
             grad_x_adv = self._grad_through_forward_diffusion(
                 x_adv_3d, grad, Alpha_bar, T, z
             ).squeeze(1)  # (B,T)
+            grad_x_adv = grad_x_adv + grad_x_adv_direct.squeeze(1)
 
             # ---- PGD update ----
             x_adv = x_adv + self.step_size * grad_x_adv.sign()

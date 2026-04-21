@@ -96,22 +96,26 @@ def run_experiment(config, attack_type="dual"):
         x_clean = x_clean.to(config.device)
         labels = labels.to(config.device)
 
-        # Find a target sample with a different label for each source
-        target_indices = []
-        for i in range(len(labels)):
-            diff = (labels != labels[i]).nonzero(as_tuple=True)[0]
-            if len(diff) > 0:
-                target_indices.append(diff[0].item())
-            else:
-                # fallback: use roll if all labels are the same
-                target_indices.append((i + 1) % len(labels))
-        target_audio = x_clean[target_indices]
-        with torch.no_grad():
-            target_embed = speaker_model.get_embedding(target_audio)
+        target_embed = None
+        if attack_type != "diffattack":
+            # Find a target sample with a different label for each source
+            target_indices = []
+            for i in range(len(labels)):
+                diff = (labels != labels[i]).nonzero(as_tuple=True)[0]
+                if len(diff) > 0:
+                    target_indices.append(diff[0].item())
+                else:
+                    # fallback: use roll if all labels are the same
+                    target_indices.append((i + 1) % len(labels))
+            target_audio = x_clean[target_indices]
+            with torch.no_grad():
+                target_embed = speaker_model.get_embedding(target_audio)
 
         # Execute attack
         if attack_type == "single":
             x_adv = attacker.attack(x_clean, target_embed)
+        elif attack_type == "diffattack":
+            x_adv, trajectory = attacker.attack(x_clean, return_trajectory=True)
         else:
             x_adv, trajectory = attacker.attack(
                 x_clean, target_embed, return_trajectory=True
@@ -125,11 +129,15 @@ def run_experiment(config, attack_type="dual"):
             config.sample_rate,
             ppr_threshold=getattr(config, "ppr_threshold", 0.5),
         )
+        batch_metrics["file_paths"] = list(file_paths)
         all_metrics.append(batch_metrics)
 
-        # Save audio samples for listening
-        audio_dir = os.path.join(config.log_dir, f"audio_{attack_type}_{run_ts}")
-        os.makedirs(audio_dir, exist_ok=True)
+        # Save audio samples
+        audio_base = f"/mnt/data/wht/antispoof/audio_{attack_type}_{run_ts}"
+        adv_dir = os.path.join(audio_base, "adv")
+        purified_dir = os.path.join(audio_base, "purified")
+        os.makedirs(adv_dir, exist_ok=True)
+        os.makedirs(purified_dir, exist_ok=True)
         with torch.no_grad():
             x_purified = metrics_evaluator.purification_model(x_adv)
 
@@ -138,12 +146,12 @@ def run_experiment(config, attack_type="dual"):
             wavfile.write(path, config.sample_rate, arr)
 
         for i in range(x_clean.shape[0]):
-            idx = batch_idx * config.batch_size + i
-            if idx % 4 != 0:
-                continue
-            save_wav(f"{audio_dir}/{idx:03d}_clean.wav", x_clean[i])
-            save_wav(f"{audio_dir}/{idx:03d}_adv.wav", x_adv[i])
-            save_wav(f"{audio_dir}/{idx:03d}_purified.wav", x_purified[i].squeeze(0))
+            fname = os.path.basename(file_paths[i])
+            save_wav(os.path.join(adv_dir, f"adv_{fname}"), x_adv[i])
+            save_wav(
+                os.path.join(purified_dir, f"purified_{fname}"),
+                x_purified[i].squeeze(0),
+            )
 
         # Log progress and checkpoint
         if batch_idx % config.log_interval == 0:
@@ -167,7 +175,9 @@ def run_experiment(config, attack_type="dual"):
     print("=" * 60)
 
     avg_metrics = {
-        key: np.mean([m[key] for m in all_metrics]) for key in all_metrics[0].keys()
+        key: np.mean([m[key] for m in all_metrics])
+        for key in all_metrics[0].keys()
+        if key != "file_paths"
     }
 
     metrics_evaluator.print_metrics(avg_metrics)
