@@ -2,6 +2,7 @@
 Main experiment script for dual-target adversarial attack
 """
 
+import argparse
 import torch
 import numpy as np
 import random
@@ -133,7 +134,7 @@ def run_experiment(config, attack_type="dual"):
         all_metrics.append(batch_metrics)
 
         # Save audio samples
-        audio_base = f"/mnt/data/wht/antispoof/audio_{attack_type}_{run_ts}"
+        audio_base = os.path.join(config.audio_output_dir, f"{attack_type}_{run_ts}")
         adv_dir = os.path.join(audio_base, "adv")
         purified_dir = os.path.join(audio_base, "purified")
         os.makedirs(adv_dir, exist_ok=True)
@@ -257,6 +258,37 @@ def run_ablation_study(config):
 
 def main():
     """Main entry point"""
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--attack-type",
+        "--attack_type",
+        dest="attack_type",
+        choices=["all", "single", "dual", "adaptive", "diffattack"],
+        default="all",
+        help="Which experiment flow to run.",
+    )
+    parser.add_argument("--data-root", dest="data_root", help="Override dataset root.")
+    parser.add_argument(
+        "--num-samples", dest="num_samples", type=int, help="Override sample count."
+    )
+    parser.add_argument(
+        "--num-iterations",
+        dest="num_iterations",
+        type=int,
+        help="Override PGD iterations for quick smoke tests.",
+    )
+    args = parser.parse_args()
+
+    overrides = {}
+    if args.data_root:
+        overrides["data_root"] = args.data_root
+    if args.num_samples is not None:
+        overrides["num_samples"] = args.num_samples
+    if args.num_iterations is not None:
+        overrides["num_iterations"] = args.num_iterations
+    if overrides:
+        config.update(**overrides)
+
     print("\n" + "=" * 60)
     print("Dual-Target Adversarial Attack Experiment")
     print("=" * 60 + "\n")
@@ -266,13 +298,17 @@ def main():
     os.makedirs(config.checkpoint_dir, exist_ok=True)
     os.makedirs(config.figure_dir, exist_ok=True)
 
+    if args.attack_type != "all":
+        run_experiment(config, attack_type=args.attack_type)
+        return
+
     # Phase 1: Single attack (baseline, no purification loss)
     print("\n### Phase 1: Single Attack (Baseline) ###\n")
-    single_metrics, single_success = run_experiment(config, attack_type="single")
+    single_metrics, _ = run_experiment(config, attack_type="single")
 
     # Phase 2: Dual-target attack
     print("\n### Phase 2: Dual-Target Attack ###\n")
-    dual_metrics, dual_success = run_experiment(config, attack_type="dual")
+    dual_metrics, _ = run_experiment(config, attack_type="dual")
 
     # Summary comparison
     print("\n" + "=" * 60)

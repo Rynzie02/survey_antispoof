@@ -11,16 +11,28 @@ ECAPA_SAVEDIR = os.path.join(os.path.dirname(__file__), "ecapa_tdnn_pretrained")
 
 
 class ECAPASpeakerEncoder(nn.Module):
-    def __init__(self, device="cuda"):
+    def __init__(self, model_path=None, device="cuda"):
         super().__init__()
         from speechbrain.inference.classifiers import EncoderClassifier
+        from speechbrain.utils.fetching import LocalStrategy
 
-        run_opts = {
-            "device": str(device).split(":")[0] if "cuda" in str(device) else "cpu"
-        }
+        model_dir = model_path or ECAPA_SAVEDIR
+        hparams_path = os.path.join(model_dir, "hyperparams.yaml")
+        source = model_dir if os.path.exists(hparams_path) else "speechbrain/spkrec-ecapa-voxceleb"
+
+        run_opts = {"device": str(device)}
         self._classifier = EncoderClassifier.from_hparams(
-            source=ECAPA_SAVEDIR,
-            savedir=ECAPA_SAVEDIR,
+            source=source,
+            savedir=model_dir,
+            # The local checkpoint directory may already contain symlinks
+            # (for example to Hugging Face cache files). Re-linking inside the
+            # same directory can trip SpeechBrain's self-symlink guard, so for
+            # repo-local weights we read the files in place.
+            local_strategy=(
+                LocalStrategy.NO_LINK
+                if source == model_dir
+                else LocalStrategy.SYMLINK
+            ),
             run_opts=run_opts,
         )
         self._encoder = self._classifier.mods.embedding_model
@@ -53,6 +65,6 @@ class ECAPASpeakerEncoder(nn.Module):
 
 
 def load_speaker_model(model_path=None, num_speakers=None, device="cuda"):
-    model = ECAPASpeakerEncoder(device=device)
+    model = ECAPASpeakerEncoder(model_path=model_path, device=device)
     model.eval()
     return model

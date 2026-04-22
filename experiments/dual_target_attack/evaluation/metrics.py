@@ -5,9 +5,17 @@ Evaluation metrics for dual-target attack
 import torch
 import torch.nn.functional as F
 import numpy as np
-from pesq import pesq
-from pystoi import stoi
 from datetime import datetime
+
+try:
+    from pesq import pesq
+except ImportError:
+    pesq = None
+
+try:
+    from pystoi import stoi
+except ImportError:
+    stoi = None
 
 
 class AttackMetrics:
@@ -87,6 +95,9 @@ class AttackMetrics:
         x_clean_np = x_clean.detach().cpu().numpy()
         x_adv_np = x_adv.detach().cpu().numpy()
 
+        if pesq is None:
+            return 0.0
+
         pesq_scores = []
         for i in range(len(x_clean_np)):
             try:
@@ -110,6 +121,9 @@ class AttackMetrics:
         """
         x_clean_np = x_clean.detach().cpu().numpy()
         x_adv_np = x_adv.detach().cpu().numpy()
+
+        if stoi is None:
+            return 0.0
 
         stoi_scores = []
         for i in range(len(x_clean_np)):

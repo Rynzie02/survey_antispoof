@@ -12,9 +12,15 @@ dependencies = [
     "soundfile>=0.12.0",
     "matplotlib>=3.7.0",
     "tqdm>=4.65.0",
-    "pesq>=0.0.4",
     "pystoi>=0.3.3",
     "speechbrain>=0.5.15",
+]
+
+[project.optional-dependencies]
+eval = [
+    "pesq>=0.0.4",
+]
+research = [
     "diffusers>=0.21.0",
     "transformers>=4.57,<5",
     "accelerate>=0.20.0",
@@ -28,3 +34,7 @@ dev = [
     "tensorboard>=2.13.0",
     "seaborn>=0.12.0",
 ]
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple/"
+default = true

@@ -44,6 +44,7 @@ experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/vocoder/pqmf_output.wav
 
 
 experiments/dual_target_attack/results/*
+experiments/dual_target_attack/models/ecapa_tdnn_pretrained/*
 
 # LaTeX 中间文件
 *.aux
