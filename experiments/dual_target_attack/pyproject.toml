@@ -14,6 +14,7 @@ dependencies = [
     "tqdm>=4.65.0",
     "pystoi>=0.3.3",
     "speechbrain>=0.5.15",
+    "resemblyzer>=0.1.4",
 ]
 
 [project.optional-dependencies]

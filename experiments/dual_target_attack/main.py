@@ -21,6 +21,7 @@ from models.speaker_model import load_speaker_model
 from models.purification import load_purification_model
 from attacks.dual_pgd import DualTargetPGD, SingleTargetPGD, AdaptiveWeightPGD
 from attacks.diffattack_pgd import DiffAttackPGD
+from attacks.fulltrace_pgd import FullTraceDiffAttackPGD
 from data.dataset import get_dataloader
 from evaluation.metrics import AttackMetrics
 
@@ -52,7 +53,22 @@ def run_experiment(config, attack_type="dual"):
     # Load models
     print("Loading models...")
     speaker_model = load_speaker_model(
-        model_path=config.speaker_model_path, device=config.device
+        model_path=config.speaker_model_path,
+        model_type=getattr(config, "speaker_model_type", "ecapa"),
+        device=config.device,
+        input_sr=config.sample_rate,
+    )
+    eval_speaker_model = load_speaker_model(
+        model_path=getattr(config, "eval_speaker_model_path", config.speaker_model_path),
+        model_type=getattr(config, "eval_speaker_model_type", "ecapa"),
+        device=config.device,
+        input_sr=config.sample_rate,
+    )
+    xvector_model = load_speaker_model(
+        model_path=getattr(config, "xvector_model_path", None),
+        model_type=getattr(config, "xvector_model_type", "xvector"),
+        device=config.device,
+        input_sr=config.sample_rate,
     )
 
     purification_model = load_purification_model(
@@ -78,11 +94,24 @@ def run_experiment(config, attack_type="dual"):
         attacker = AdaptiveWeightPGD(speaker_model, purification_model, config)
     elif attack_type == "diffattack":
         attacker = DiffAttackPGD(speaker_model, purification_model, config)
+    elif attack_type == "fulltrace":
+        attacker = FullTraceDiffAttackPGD(speaker_model, purification_model, config)
     else:
         raise ValueError(f"Unknown attack type: {attack_type}")
 
     # Initialize metrics
-    metrics_evaluator = AttackMetrics(speaker_model, purification_model, config.device)
+    metrics_evaluator = AttackMetrics(
+        eval_speaker_model,
+        purification_model,
+        config.device,
+        sample_rate=config.sample_rate,
+        xvector_model=xvector_model,
+        ecapa_sva_threshold=getattr(config, "ecapa_sva_threshold", 0.75),
+        xvector_sva_threshold=getattr(config, "xvector_sva_threshold", 0.75),
+        resemblyzer_sva_threshold=getattr(
+            config, "resemblyzer_sva_threshold", 0.75
+        ),
+    )
 
     # Run attack on all samples
     print("Running attacks...")
@@ -115,7 +144,7 @@ def run_experiment(config, attack_type="dual"):
         # Execute attack
         if attack_type == "single":
             x_adv = attacker.attack(x_clean, target_embed)
-        elif attack_type == "diffattack":
+        elif attack_type in ("diffattack", "fulltrace"):
             x_adv, trajectory = attacker.attack(x_clean, return_trajectory=True)
         else:
             x_adv, trajectory = attacker.attack(
@@ -134,25 +163,26 @@ def run_experiment(config, attack_type="dual"):
         all_metrics.append(batch_metrics)
 
         # Save audio samples
-        audio_base = os.path.join(config.audio_output_dir, f"{attack_type}_{run_ts}")
-        adv_dir = os.path.join(audio_base, "adv")
-        purified_dir = os.path.join(audio_base, "purified")
-        os.makedirs(adv_dir, exist_ok=True)
-        os.makedirs(purified_dir, exist_ok=True)
-        with torch.no_grad():
-            x_purified = metrics_evaluator.purification_model(x_adv)
+        if getattr(config, "save_audio", True):
+            audio_base = os.path.join(config.audio_output_dir, f"{attack_type}_{run_ts}")
+            adv_dir = os.path.join(audio_base, "adv")
+            purified_dir = os.path.join(audio_base, "purified")
+            os.makedirs(adv_dir, exist_ok=True)
+            os.makedirs(purified_dir, exist_ok=True)
+            with torch.no_grad():
+                x_purified = metrics_evaluator.purification_model(x_adv)
 
-        def save_wav(path, tensor):
-            arr = (tensor.squeeze().cpu().numpy() * 32767).astype(np.int16)
-            wavfile.write(path, config.sample_rate, arr)
+            def save_wav(path, tensor):
+                arr = (tensor.squeeze().cpu().numpy() * 32767).astype(np.int16)
+                wavfile.write(path, config.sample_rate, arr)
 
-        for i in range(x_clean.shape[0]):
-            fname = os.path.basename(file_paths[i])
-            save_wav(os.path.join(adv_dir, f"adv_{fname}"), x_adv[i])
-            save_wav(
-                os.path.join(purified_dir, f"purified_{fname}"),
-                x_purified[i].squeeze(0),
-            )
+            for i in range(x_clean.shape[0]):
+                fname = os.path.basename(file_paths[i])
+                save_wav(os.path.join(adv_dir, f"adv_{fname}"), x_adv[i])
+                save_wav(
+                    os.path.join(purified_dir, f"purified_{fname}"),
+                    x_purified[i].squeeze(0),
+                )
 
         # Log progress and checkpoint
         if batch_idx % config.log_interval == 0:
@@ -187,6 +217,16 @@ def run_experiment(config, attack_type="dual"):
     results = {
         "attack_type": attack_type,
         "config": {
+            "speaker_model_type": getattr(config, "speaker_model_type", "ecapa"),
+            "eval_speaker_model_type": getattr(
+                config, "eval_speaker_model_type", "ecapa"
+            ),
+            "xvector_model_type": getattr(config, "xvector_model_type", "xvector"),
+            "ecapa_sva_threshold": getattr(config, "ecapa_sva_threshold", 0.75),
+            "xvector_sva_threshold": getattr(config, "xvector_sva_threshold", 0.75),
+            "resemblyzer_sva_threshold": getattr(
+                config, "resemblyzer_sva_threshold", 0.75
+            ),
             "epsilon": config.epsilon,
             "num_iterations": config.num_iterations,
             "alpha": config.alpha,
@@ -207,6 +247,8 @@ def run_experiment(config, attack_type="dual"):
 
     # Free GPU memory before next experiment
     del speaker_model, purification_model, attacker, metrics_evaluator
+    del eval_speaker_model
+    del xvector_model
     torch.cuda.empty_cache()
 
     return avg_metrics, results["success"]
@@ -263,7 +305,7 @@ def main():
         "--attack-type",
         "--attack_type",
         dest="attack_type",
-        choices=["all", "single", "dual", "adaptive", "diffattack"],
+        choices=["all", "single", "dual", "adaptive", "diffattack", "fulltrace"],
         default="all",
         help="Which experiment flow to run.",
     )

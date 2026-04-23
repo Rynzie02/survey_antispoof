@@ -11,7 +11,7 @@ class Config:
     _base_dir = Path(__file__).resolve().parent
 
     # Device
-    gpu_id = 5
+    gpu_id = 0
     device = torch.device(
         f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
     )
@@ -23,10 +23,16 @@ class Config:
     sample_rate = 16000
     audio_length = 3.0  # seconds
 
-    # Speaker Model (ECAPA-TDNN, local weights)
-    speaker_model_type = "ecapa"
+    # Speaker Model for attack optimization: "ecapa" or "tortoise"
+    speaker_model_type = "tortoise"
     speaker_model_path = str(_base_dir / "models" / "ecapa_tdnn_pretrained")
-    embedding_dim = 192
+    embedding_dim = 1024  # 192 for ecapa, 1024 for tortoise
+
+    # Speaker Model for evaluation metrics
+    eval_speaker_model_type = "ecapa"
+    eval_speaker_model_path = str(_base_dir / "models" / "ecapa_tdnn_pretrained")
+    xvector_model_type = "xvector"
+    xvector_model_path = "/home/wht/pyproj/tts_related/asv/spkrec-xvect-voxceleb"
 
     # Purification Model (De-AntiFake DiffWave, first-stage)
     purification_type = "deantifake"
@@ -40,22 +46,25 @@ class Config:
 
     # Attack Parameters
     attack_type = "dual_pgd"
-    epsilon = 0.03  # Perturbation budget (relative to audio amplitude)
-    num_iterations = 50
+    epsilon = 0.05  # Perturbation budget (relative to audio amplitude)
+    num_iterations = 60
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.2  # Weight for speaker recognition loss
-    beta = 0.8  # Weight for purification robustness loss
+    alpha = 0.4  # Weight for speaker recognition loss
+    beta = 0.6  # Weight for purification robustness loss
     weight_strategy = "fixed"  # 'fixed', 'adaptive', or 'staged'
 
     # Evaluation
     target_asr = 0.90  # Target attack success rate
     target_ppr = 0.50  # Target post-purification robustness
     ppr_threshold = 0.5  # source_sim below this → attack survived purification
+    ecapa_sva_threshold = 0.75
+    xvector_sva_threshold = 0.75
+    resemblyzer_sva_threshold = 0.75
 
     # Training/Experiment
-    batch_size = 1
+    batch_size = 4
     use_targeted = (
         False  # True: pull toward target speaker; False: push away from source
     )
@@ -64,6 +73,7 @@ class Config:
     seed = 42
 
     # Logging
+    save_audio = False  # set False to skip saving adv/purified wav files
     log_dir = str(_base_dir / "results" / "logs")
     checkpoint_dir = str(_base_dir / "results" / "checkpoints")
     figure_dir = str(_base_dir / "results" / "figures")

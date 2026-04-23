@@ -30,7 +30,7 @@ class DiffAttackPGD:
         self.device = config.device
         self.alpha = getattr(config, "alpha", 0.5)
         self.beta = getattr(config, "beta", 0.5)
-        self.t_interval = getattr(config, "diffattack_t_interval", 2)
+        self.t_interval = getattr(config, "diffattack_t_interval", 1)
         self.use_targeted = getattr(config, "use_targeted", False)
 
         if self.use_targeted:
