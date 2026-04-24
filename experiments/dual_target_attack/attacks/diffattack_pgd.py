@@ -112,7 +112,10 @@ class DiffAttackPGD:
 
         # Clean embedding (no purification)
         with torch.no_grad():
-            emb_clean = self.speaker_model.get_embedding(x_clean)
+            if hasattr(self.speaker_model, 'get_clean_embeddings'):
+                emb_clean = self.speaker_model.get_clean_embeddings(x_clean)
+            else:
+                emb_clean = self.speaker_model.get_embedding(x_clean)
 
         # Random init
         x_adv = x_clean.clone().detach()
@@ -164,8 +167,11 @@ class DiffAttackPGD:
             # ---- Embedding loss gradient ----
             with torch.enable_grad():
                 x_pur = x_purified.squeeze(1).clone().detach().requires_grad_(True)
-                emb_adv = self.speaker_model.get_embedding(x_pur)
-                emb_loss = -F.cosine_similarity(emb_clean, emb_adv, dim=1).mean()
+                if hasattr(self.speaker_model, 'compute_loss'):
+                    emb_loss = self.speaker_model.compute_loss(emb_clean, x_pur)
+                else:
+                    emb_adv = self.speaker_model.get_embedding(x_pur)
+                    emb_loss = -F.cosine_similarity(emb_clean, emb_adv, dim=1).mean()
                 grad_emb = torch.autograd.grad(emb_loss, x_pur)[0].detach()
 
             # grad_emb is w.r.t. x_purified (B,T) → unsqueeze to (B,1,T)

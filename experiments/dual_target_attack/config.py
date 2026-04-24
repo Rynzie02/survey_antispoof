@@ -2,16 +2,41 @@
 Configuration file for dual-target adversarial attack experiments
 """
 
+import os
+
+os.environ.setdefault("CUDA_DEVICE_ORDER", "PCI_BUS_ID")
+
+import logging
 from pathlib import Path
 
 import torch
 
+logging.basicConfig(level=logging.WARNING)
+
+
+def _find_tts_related_root(start: Path) -> Path:
+    for candidate in (start, *start.parents):
+        if candidate.name == "tts_related":
+            return candidate
+    return start.parents[2]
+
+
+def _resolve_path(env_var: str, *candidates: Path) -> str:
+    override = os.environ.get(env_var)
+    if override:
+        return override
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return str(candidates[0])
+
 
 class Config:
     _base_dir = Path(__file__).resolve().parent
+    _tts_related_root = _find_tts_related_root(_base_dir)
 
     # Device
-    gpu_id = 0
+    gpu_id = 5
     device = torch.device(
         f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
     )
@@ -24,15 +49,19 @@ class Config:
     audio_length = 3.0  # seconds
 
     # Speaker Model for attack optimization: "ecapa" or "tortoise"
-    speaker_model_type = "tortoise"
+    speaker_model_type = "vits+tortoise"
     speaker_model_path = str(_base_dir / "models" / "ecapa_tdnn_pretrained")
-    embedding_dim = 1024  # 192 for ecapa, 1024 for tortoise
+    embedding_dim = 192  # 192 for ecapa, 1024 for tortoise
 
     # Speaker Model for evaluation metrics
     eval_speaker_model_type = "ecapa"
     eval_speaker_model_path = str(_base_dir / "models" / "ecapa_tdnn_pretrained")
     xvector_model_type = "xvector"
-    xvector_model_path = "/home/wht/pyproj/tts_related/asv/spkrec-xvect-voxceleb"
+    xvector_model_path = _resolve_path(
+        "DUAL_ATTACK_XVECTOR_MODEL_PATH",
+        _tts_related_root / "asv" / "spkrec-xvect-voxceleb",
+        _base_dir / "models" / "xvector_tdnn_pretrained",
+    )
 
     # Purification Model (De-AntiFake DiffWave, first-stage)
     purification_type = "deantifake"
@@ -45,20 +74,20 @@ class Config:
     purification_use_checkpoint = True
 
     # Attack Parameters
-    attack_type = "dual_pgd"
-    epsilon = 0.05  # Perturbation budget (relative to audio amplitude)
-    num_iterations = 60
+    attack_type = "fulltrace"
+    epsilon = 0.06  # Perturbation budget (relative to audio amplitude)
+    num_iterations = 80
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.4  # Weight for speaker recognition loss
-    beta = 0.6  # Weight for purification robustness loss
-    weight_strategy = "fixed"  # 'fixed', 'adaptive', or 'staged'
+    alpha = 0.8  # Weight for speaker recognition loss
+    beta = 0.2  # Weight for purification robustness loss
+    weight_strategy = "staged"  # 'fixed', 'adaptive', or 'staged'
 
     # Evaluation
     target_asr = 0.90  # Target attack success rate
     target_ppr = 0.50  # Target post-purification robustness
-    ppr_threshold = 0.5  # source_sim below this → attack survived purification
+    ppr_threshold = 0.5  # source_sim below this -> attack survived purification
     ecapa_sva_threshold = 0.75
     xvector_sva_threshold = 0.75
     resemblyzer_sva_threshold = 0.75
