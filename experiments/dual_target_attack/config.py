@@ -36,7 +36,7 @@ class Config:
     _tts_related_root = _find_tts_related_root(_base_dir)
 
     # Device
-    gpu_id = 0
+    gpu_id = 5
     device = torch.device(
         f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
     )
@@ -75,16 +75,16 @@ class Config:
     purification_use_checkpoint = True
 
     # Attack Parameters
-    attack_type = "fulltrace"
+    attack_type = "diffattack"
     epsilon = 0.04  # Perturbation budget (relative to audio amplitude)
     num_iterations = 200
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.01  # Weight for speaker recognition loss
-    beta = 0.99  # Weight for purification robustness loss
+    alpha = 0.1  # Weight for speaker recognition loss
+    beta = 0.9  # Weight for purification robustness loss
     weight_strategy = "staged"  # 'fixed', 'adaptive', or 'staged'
-    staged_direct_ratio = 0.6  # staged: first 75% iters direct-only, last 25% add purification
+    staged_direct_ratio = 0.7  # staged: first 75% iters direct-only, last 25% add purification
 
     # Evaluation
     target_asr = 0.90  # Target attack success rate
@@ -101,7 +101,7 @@ class Config:
     resemblyzer_sva_threshold = 0.7235
 
     # Training/Experiment
-    batch_size = 4
+    batch_size = 8
     use_targeted = (
         False  # True: pull toward target speaker; False: push away from source
     )

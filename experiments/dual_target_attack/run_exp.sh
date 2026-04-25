@@ -37,7 +37,7 @@ print(f"  purification_step_stride={config.purification_step_stride}")
 print(f"  diffattack_t_interval={getattr(config, 'diffattack_t_interval', 1)}")
 print(f"  log_dir={config.log_dir}")
 
-metrics, success = run_experiment(config, attack_type="fulltrace")
+metrics, success = run_experiment(config, attack_type=config.attack_type)
 print("[run_diffattack] finished")
 print(f"[run_diffattack] success={success}")
 print(f"[run_diffattack] metrics={metrics}")
