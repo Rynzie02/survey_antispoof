@@ -1,9 +1,10 @@
 """
 Speaker encoder wrappers for adversarial attacks.
 Supports: ECAPA-TDNN / x-vector (SpeechBrain), Tortoise-TTS autoregressive conditioning encoder,
-          VITS posterior encoder.
+          VITS posterior encoder, WavLM (microsoft/wavlm-base-plus-sv).
 """
 
+import logging
 import os
 import sys
 from pathlib import Path
@@ -19,6 +20,8 @@ VITS_CONFIG = os.path.join(VITS_DIR, "ljs_base.json")
 
 ECAPA_SAVEDIR = os.path.join(os.path.dirname(__file__), "ecapa_tdnn_pretrained")
 XVECTOR_SAVEDIR = os.path.join(os.path.dirname(__file__), "xvector_tdnn_pretrained")
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _find_tts_related_root(start: Path) -> Path:
@@ -265,6 +268,51 @@ class TortoiseSpeakerEncoder(nn.Module):
         return self.get_embedding(x)
 
 
+WAVLM_SAVEDIR = os.path.join(os.path.dirname(__file__), "wavlm_pretrained")
+
+
+class WavLMSpeakerEncoder(nn.Module):
+    """
+    WavLM-based speaker encoder using microsoft/wavlm-base-plus-sv.
+    Input: (B, T) waveform at 16kHz
+    Output: (B, 256) L2-normalized speaker embedding
+    """
+
+    def __init__(self, model_path=None, device="cuda", input_sr=16000):
+        super().__init__()
+        from transformers import Wav2Vec2FeatureExtractor, WavLMForXVector
+
+        source = model_path or WAVLM_SAVEDIR
+        if not os.path.isdir(source) or not os.listdir(source):
+            source = "microsoft/wavlm-base-plus-sv"
+
+        self._feature_extractor = Wav2Vec2FeatureExtractor.from_pretrained(source)
+        self._model = WavLMForXVector.from_pretrained(source)
+        self._model.requires_grad_(False)
+        self._model.eval()
+        self._model.to(device)
+
+        self._device = device
+        self._input_sr = input_sr
+        self._target_sr = 16000
+        self.embedding_dim = 512
+
+    def get_embedding(self, x: torch.Tensor) -> torch.Tensor:
+        if x.ndim != 2:
+            raise ValueError(f"Expected (batch, samples), got {tuple(x.shape)}")
+
+        if self._input_sr != self._target_sr:
+            x = torchaudio.functional.resample(x, self._input_sr, self._target_sr)
+
+        # Run through model directly (keeps gradients for attack)
+        outputs = self._model(input_values=x)
+        emb = outputs.embeddings  # (B, 256)
+        return F.normalize(emb, p=2, dim=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.get_embedding(x)
+
+
 class EnsembleSpeakerEncoder(nn.Module):
     """
     Ensemble of speaker encoders with potentially different embedding dims.
@@ -302,17 +350,138 @@ class EnsembleSpeakerEncoder(nn.Module):
         return self.get_embedding(x)
 
 
+def _build_ecapa_fallback(model_path=None, device="cuda", reason=""):
+    fallback_path = (
+        model_path if model_path and os.path.isdir(model_path) else ECAPA_SAVEDIR
+    )
+    LOGGER.warning(
+        "Falling back to ECAPA speaker encoder%s",
+        f" because {reason}" if reason else "",
+    )
+    return ECAPASpeakerEncoder(model_path=fallback_path, device=device)
+
+
 def load_speaker_model(model_path=None, model_type=None, num_speakers=None, device="cuda", input_sr=16000):
     mtype = model_type or "ecapa"
-    if mtype == "vits+tortoise":
-        model = EnsembleSpeakerEncoder([
-            VITSSpeakerEncoder(device=device, input_sr=input_sr),
-            TortoiseSpeakerEncoder(device=device, input_sr=input_sr),
-        ])
+    if mtype in ("vits+tortoise", "vits+tortoise+ecapa", "vits+tortoise+ecapa+wavlm", "vits+tortoise+wavlm", "vits+tortoise+wavlm+ecapa"):
+        encoders = []
+
+        if os.path.exists(VITS_CKPT):
+            try:
+                encoders.append(VITSSpeakerEncoder(device=device, input_sr=input_sr))
+            except (ImportError, ModuleNotFoundError, FileNotFoundError) as exc:
+                LOGGER.warning("Skipping VITS speaker encoder: %s", exc)
+        else:
+            LOGGER.warning(
+                "Skipping VITS speaker encoder: missing checkpoint %s",
+                VITS_CKPT,
+            )
+
+        tortoise_ckpt = _resolve_tortoise_ckpt()
+        if os.path.exists(tortoise_ckpt):
+            try:
+                encoders.append(
+                    TortoiseSpeakerEncoder(
+                        model_path=tortoise_ckpt,
+                        device=device,
+                        input_sr=input_sr,
+                    )
+                )
+            except (ImportError, ModuleNotFoundError, FileNotFoundError) as exc:
+                LOGGER.warning("Skipping Tortoise speaker encoder: %s", exc)
+        else:
+            LOGGER.warning(
+                "Skipping Tortoise speaker encoder: missing checkpoint %s",
+                tortoise_ckpt,
+            )
+
+        if mtype == "vits+tortoise+wavlm":
+            try:
+                encoders.append(WavLMSpeakerEncoder(device=device, input_sr=input_sr))
+            except Exception as exc:
+                LOGGER.warning("Skipping WavLM speaker encoder: %s", exc)
+
+        if mtype == "vits+tortoise+wavlm+ecapa":
+            try:
+                encoders.append(WavLMSpeakerEncoder(device=device, input_sr=input_sr))
+            except Exception as exc:
+                LOGGER.warning("Skipping WavLM speaker encoder: %s", exc)
+            try:
+                encoders.append(ECAPASpeakerEncoder(model_path=model_path, device=device))
+            except Exception as exc:
+                LOGGER.warning("Skipping ECAPA speaker encoder: %s", exc)
+
+        if mtype == "vits+tortoise+ecapa":
+            try:
+                encoders.append(ECAPASpeakerEncoder(model_path=model_path, device=device))
+            except Exception as exc:
+                LOGGER.warning("Skipping ECAPA speaker encoder: %s", exc)
+
+        if mtype == "vits+tortoise+ecapa+wavlm":
+            try:
+                encoders.append(ECAPASpeakerEncoder(model_path=model_path, device=device))
+            except Exception as exc:
+                LOGGER.warning("Skipping ECAPA speaker encoder: %s", exc)
+            try:
+                encoders.append(WavLMSpeakerEncoder(device=device, input_sr=input_sr))
+            except Exception as exc:
+                LOGGER.warning("Skipping WavLM speaker encoder: %s", exc)
+
+        if len(encoders) >= 2:
+            model = EnsembleSpeakerEncoder(encoders)
+        elif len(encoders) == 1:
+            model = encoders[0]
+            LOGGER.warning(
+                "Only one encoder is available for '%s'; using %s only.",
+                mtype,
+                type(model).__name__,
+            )
+        else:
+            model = _build_ecapa_fallback(
+                model_path=model_path,
+                device=device,
+                reason="VITS/Tortoise checkpoints are unavailable",
+            )
     elif mtype == "vits":
-        model = VITSSpeakerEncoder(device=device, input_sr=input_sr)
+        try:
+            model = VITSSpeakerEncoder(
+                checkpoint_path=(
+                    model_path if model_path and os.path.isfile(model_path) else None
+                ),
+                device=device,
+                input_sr=input_sr,
+            )
+        except (ImportError, ModuleNotFoundError, FileNotFoundError) as exc:
+            model = _build_ecapa_fallback(
+                device=device,
+                reason=f"VITS speaker encoder could not be loaded ({exc})",
+            )
     elif mtype == "tortoise":
-        model = TortoiseSpeakerEncoder(device=device, input_sr=input_sr)
+        try:
+            model = TortoiseSpeakerEncoder(
+                model_path=(
+                    model_path if model_path and os.path.isfile(model_path) else None
+                ),
+                device=device,
+                input_sr=input_sr,
+            )
+        except (ImportError, ModuleNotFoundError, FileNotFoundError) as exc:
+            model = _build_ecapa_fallback(
+                device=device,
+                reason=f"Tortoise speaker encoder could not be loaded ({exc})",
+            )
+    elif mtype == "wavlm":
+        try:
+            model = WavLMSpeakerEncoder(
+                model_path=model_path if model_path and os.path.isdir(model_path) else None,
+                device=device,
+                input_sr=input_sr,
+            )
+        except Exception as exc:
+            model = _build_ecapa_fallback(
+                device=device,
+                reason=f"WavLM speaker encoder could not be loaded ({exc})",
+            )
     elif mtype == "xvector":
         model = XVectorSpeakerEncoder(model_path=model_path, device=device)
     else:

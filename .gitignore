@@ -45,6 +45,16 @@ experiments/De-AntiFake/PhonePuRe/encoder_models/TTS/TTS/vocoder/pqmf_output.wav
 
 experiments/dual_target_attack/results/*
 experiments/dual_target_attack/models/ecapa_tdnn_pretrained/*
+experiments/dual_target_attack/models/wavlm_pretrained/*
+!experiments/dual_target_attack/models/wavlm_pretrained/.gitattributes
+!experiments/dual_target_attack/models/wavlm_pretrained/README.md
+!experiments/dual_target_attack/models/wavlm_pretrained/config.json
+!experiments/dual_target_attack/models/wavlm_pretrained/preprocessor_config.json
+experiments/dual_target_attack/models/xvector_tdnn_pretrained/*
+!experiments/dual_target_attack/models/xvector_tdnn_pretrained/.gitattributes
+!experiments/dual_target_attack/models/xvector_tdnn_pretrained/README.md
+!experiments/dual_target_attack/models/xvector_tdnn_pretrained/config.json
+!experiments/dual_target_attack/models/xvector_tdnn_pretrained/hyperparams.yaml
 
 # LaTeX 中间文件
 *.aux

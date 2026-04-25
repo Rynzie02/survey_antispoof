@@ -5,6 +5,8 @@ Loss = alpha * (-cos_sim(emb_clean, emb(x_adv)))           # break direct clonin
      + beta  * (-cos_sim(emb_clean, emb(purify(x_adv))))   # break post-purification cloning
 """
 
+import math
+
 import torch
 import torch.nn.functional as F
 
@@ -23,8 +25,15 @@ class FullTraceDiffAttackPGD:
         self.alpha = getattr(config, "alpha", 0.5)
         self.beta = getattr(config, "beta", 0.5)
         self.weight_strategy = getattr(config, "weight_strategy", "fixed")
-        # staged: first half optimizes direct only, second half adds purif
-        self.stage_switch = config.num_iterations // 2
+        # staged: keep the first direct_ratio iterations cheap, then add diffusion.
+        self.stage_direct_ratio = min(
+            1.0,
+            max(0.0, getattr(config, "staged_direct_ratio", 0.75)),
+        )
+        self.stage_switch = min(
+            self.num_iterations,
+            math.floor(self.num_iterations * self.stage_direct_ratio),
+        )
         self.device = config.device
 
     def attack(self, x_clean, return_trajectory=False):

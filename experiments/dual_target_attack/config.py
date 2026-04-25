@@ -36,20 +36,21 @@ class Config:
     _tts_related_root = _find_tts_related_root(_base_dir)
 
     # Device
-    gpu_id = 5
+    gpu_id = 0
     device = torch.device(
         f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
     )
 
     # Data
     # Set your dataset path here. `run_diffattack.sh` will use this value directly.
-    data_root = "/mnt/wht/tts_related/antipurify/voxceleb1/samples_1000"
-    num_samples = 32  # Number of test samples
+    # data_root = "/mnt/wht/tts_related/antipurify/voxceleb1/samples_1000"
+    data_root = "/mnt/wht/tts_related/antipurify/voxceleb1/test_800"
+    num_samples = 64  # Number of test samples
     sample_rate = 16000
     audio_length = 3.0  # seconds
 
     # Speaker Model for attack optimization: "ecapa" or "tortoise"
-    speaker_model_type = "vits+tortoise"
+    speaker_model_type = "vits+tortoise+wavlm+ecapa"
     speaker_model_path = str(_base_dir / "models" / "ecapa_tdnn_pretrained")
     embedding_dim = 192  # 192 for ecapa, 1024 for tortoise
 
@@ -75,22 +76,29 @@ class Config:
 
     # Attack Parameters
     attack_type = "fulltrace"
-    epsilon = 0.06  # Perturbation budget (relative to audio amplitude)
-    num_iterations = 80
+    epsilon = 0.04  # Perturbation budget (relative to audio amplitude)
+    num_iterations = 200
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.8  # Weight for speaker recognition loss
-    beta = 0.2  # Weight for purification robustness loss
+    alpha = 0.01  # Weight for speaker recognition loss
+    beta = 0.99  # Weight for purification robustness loss
     weight_strategy = "staged"  # 'fixed', 'adaptive', or 'staged'
+    staged_direct_ratio = 0.6  # staged: first 75% iters direct-only, last 25% add purification
 
     # Evaluation
     target_asr = 0.90  # Target attack success rate
     target_ppr = 0.50  # Target post-purification robustness
     ppr_threshold = 0.5  # source_sim below this -> attack survived purification
-    ecapa_sva_threshold = 0.75
-    xvector_sva_threshold = 0.75
-    resemblyzer_sva_threshold = 0.75
+    
+    #    === Calibration Results ===
+    #ECAPA:       EER=0.0037  threshold=0.3195
+    #XVector:     EER=0.0600  threshold=0.9472
+    #Resemblyzer: EER=0.0425  threshold=0.7235
+
+    ecapa_sva_threshold = 0.3195
+    xvector_sva_threshold = 0.9472
+    resemblyzer_sva_threshold = 0.7235
 
     # Training/Experiment
     batch_size = 4
