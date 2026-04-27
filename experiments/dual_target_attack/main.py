@@ -306,7 +306,7 @@ def main():
         "--attack_type",
         dest="attack_type",
         choices=["all", "single", "dual", "adaptive", "diffattack", "fulltrace"],
-        default="all",
+        default="diffattack",
         help="Which experiment flow to run.",
     )
     parser.add_argument("--data-root", dest="data_root", help="Override dataset root.")

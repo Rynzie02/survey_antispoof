@@ -54,10 +54,12 @@ class AttackMetrics:
     def _sva_from_similarity(similarity, threshold):
         return float(np.mean(np.asarray(similarity) >= threshold))
 
-    def compute_asr(self, x_clean, x_adv, threshold=0.75):
+    def compute_asr(self, x_clean, x_adv, threshold=None):
         """
         Compute Attack Success Rate (ASR): adv_source_sim < threshold (in [0,1])
         """
+        if threshold is None:
+            threshold = self.ecapa_sva_threshold
         with torch.no_grad():
             clean_embed = self.speaker_model.get_embedding(x_clean)
             adv_embed = self.speaker_model.get_embedding(x_adv)
@@ -284,7 +286,7 @@ class AttackMetrics:
                 / 2
             ).detach().cpu().numpy()
         metrics = {
-            "asr": self.compute_asr(x_clean, x_adv),
+            "asr": self.compute_asr(x_clean, x_adv, threshold=self.ecapa_sva_threshold),
             "adv_source_sim": float(np.mean(adv_source_sim_vec)),
             "ppr": ppr,
             "purified_source_sim": purified_source_sim,

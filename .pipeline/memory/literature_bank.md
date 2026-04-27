@@ -106,6 +106,14 @@
 | SafeSpeech: Robust and Universal Voice Protection Against Malicious Speech Synthesis | 2025 | USENIX Security 2025 | **极高相关**：提出SPEC技术生成对净化鲁棒的防克隆扰动，是本研究攻击侧的直接对立面，重要baseline | accepted | 2026-04-16 |
 | Robust Speaker Verification System Against Adversarial Attacks Using Diffusion Models | 2026 | Springer 2026 | 相关：扩散模型增强说话人识别系统对抗鲁棒性 | accepted | 2026-04-16 |
 
+### 8. 新增文献（2026-04-27）
+
+| 标题 | 年份 | 来源 | 相关性 | 状态 | 日期 |
+|------|------|------|--------|------|------|
+| SampleShield: Attack-Agnostic Defense for Speaker Verification via Downsampling and Upsampling | 2024 | Information Sciences, doi:10.1016/j.ins.2024.120618 | 相关：无需攻击先验的ASV防御，随机下采样+语音超分辨率上采样，可作为非扩散净化基线 | accepted | 2026-04-27 |
+| Neural Codec-based Adversarial Sample Detection for Speaker Verification | 2024 | Interspeech 2024, arXiv:2406.04582 | 高度相关：利用神经编解码器丢弃冗余扰动检测对抗样本，与VocalBridge的EnCodec思路形成对比 | accepted | 2026-04-27 |
+| AntiPure: Towards Robust Defense against Customization via Protective Perturbation Resistant to Purification | 2025 | ICCV 2025, arXiv:2509.13922 | **极高相关**：形式化anti-purification任务，提出抗净化保护扰动，虽针对图像/扩散定制化，但方法论直接支撑本研究核心问题 | accepted | 2026-04-27 |
+
 ### 研究空白（初步）
 - 同时针对说话人识别和净化防御的双重攻击
 - 净化感知的自适应对抗样本生成
