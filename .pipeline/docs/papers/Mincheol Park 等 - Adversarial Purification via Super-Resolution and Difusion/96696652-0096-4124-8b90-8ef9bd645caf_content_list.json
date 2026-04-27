@@ -1,0 +1,1532 @@
+[
+    {
+        "type": "text",
+        "text": "This ICCV paper is the Open Access version, provided by the Computer Vision Foundation. Except for this watermark, it is identical to the accepted version; the final published version of the proceedings is available on IEEE Xplore. ",
+        "bbox": [
+            240,
+            1,
+            807,
+            46
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Adversarial Purification via Super-Resolution and Difusion ",
+        "text_level": 1,
+        "bbox": [
+            196,
+            130,
+            800,
+            151
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Mincheol Park1.2， Cheonjun Park5， Seungseop $\\mathrm { L i m ^ { 4 } }$ ，Mijin ${ \\mathrm { K o o } } ^ { 6 }$ ， Hyunwuk Lee²， Won Woo ${ \\mathrm { R o } } ^ { 3 }$ ，Suhyun $\\mathrm { K i m } ^ { 7 * }$ 1Samsung Advanced Institute of Technology, ²Samsung Electronics, 3Yonsei University, 4AITRICS, 5Hankuk University of Foreign Studies,Seoul National University,7Kyung Hee University ",
+        "bbox": [
+            106,
+            179,
+            895,
+            252
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "{mincheol.park， cheonjun.park， hyunwuk.lee, wro}@yonsei.ac.kr,ss.lim@aitrics.com， starmj09@snu.ac.kr， dr.suhyun.kim@gmail.com",
+        "bbox": [
+            220,
+            256,
+            774,
+            286
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            251,
+            321,
+            325,
+            338
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Deep neural networks are widely used in various computer vision tasks,but their vulnerability to adversarial perturbationsremains a significant challenge forreliable decisionmaking. Adversarial purification, a test-time defense strategy, has shown potential in countering these threats by removing noise through diffusion models. This plug-and-play method, using off-the-shelf models,appears highly effective. However, the purified data from diffusion often deviates more from the original data than the adversarial examples, leading to missing critical information and causing misclassification. In this study,we propose that upsampling with Super-Resolution (SR), followed by downsampling,can also aid in eliminating adversarial noise,similar to the noise addition and removal process in diffusion models.While SR alone is not as effective as the diffusion process,it better restores the original features typically associated with the early layers of networks. By combining SR, which initially mitigates damage to early-layer information from adversarial attacks,with diffusion,we observe a synergistic effect, leading to enhanced performance over diffusion models alone. Our comprehensive evaluations demonstrate that this combined approach,PuriFlow,significantly improves accuracy and robustness,working synergistically with state-of-the-art methods. ",
+        "bbox": [
+            93,
+            354,
+            482,
+            715
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1. Introduction ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            744,
+            220,
+            762
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Deep Neural Networks (DNNs) have been widely accepted in various computer vision tasks.However, their susceptibility to small,human-imperceptible noises can lead to untrustworthy decision-making. In particular, the subtle, maliciously manipulated noises,known as adversarial perturbations,produce fatal images called adversarial examples [1O]. This intentional threat appears across numerous types of attacks [3, 9, 13, 34], leaving many DNNs vulnerable and posing substantial challenges to their deployment in AI-powered systems. ",
+        "bbox": [
+            93,
+            771,
+            482,
+            877
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/0a37d2b181e60db156fd127d180b1eaf4c07fdcc75560cf5d82229531e09027d.jpg",
+        "image_caption": [
+            "Figure 1. The overview of PuriFlow,which begins with restoring features of adversarial examples using the SR and drifting downsampled SR images within the forward diffusion.The perturbed images are then denoised in the reverse diffusion for classification. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            517,
+            325,
+            901,
+            580
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            672,
+            903,
+            717
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "To counter the adversarial threats,adversarial purification [38, 58] has emerged as a test-time defense strategy. This approach is powered by leveraging off-the-shelf diffusion models.At its core,noise removal through stochastic denoising effectively eliminates artifacts introduced by various attacks. Unlike adversarial training and certified methods [27, 30, 34],which require prior knowledge of target attacks, this simple application of generative power excels in protecting classifier without the need for training,pointing to a new direction. ",
+        "bbox": [
+            516,
+            719,
+            903,
+            868
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "While diffusion models appear effective in purification, a key problem remains widely discussed in studies [5,11, 32, ",
+        "bbox": [
+            516,
+            871,
+            903,
+            900
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "\\*Corresponding author ",
+        "bbox": [
+            111,
+            888,
+            232,
+            900
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "4605 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "CvF ",
+        "bbox": [
+            106,
+            3,
+            179,
+            42
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/97c0b4d32afbc06973d38d0cc10f98d99a1808b32265383169faccbf4fb53259.jpg",
+        "image_caption": [
+            "Figure 2. The example of purification on the clean images. The top row exhibits the ground truth images.The second and third rows depict purified images obtained using diffusion and our proposed PuriFlow. The fourth row visualizes Grad-CAM[44] as represented by ResNet-5O.Compared to Diffpure,PuriFlow enhances visual fidelity and accuracy by preserving DNN's activation. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            96,
+            92,
+            482,
+            492
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "38,60]: how to lower the upper bound of differences between purified and original data, which can exceed those caused by adversarial attacks. This concern also arises when clean data is input,as shown in Figure 2. However, resolving it solely within the diffusion model is not straightforward. The noise predictor in off-the-shelf diffusion models is optimized to predict only the mean under isotropic covariance [26], limiting its ability to fully restore subtle features tied to true data covariates.To improve the restoration of details,diffusion models may require retraining with a proper objective [37], which may not align well with testtime defenses. Recently, guidance during noise removal has been proposed for test-time defenses [5]; however, this approach,despite allowing extensive processing time,is limited to large-scale datasets, impacting its generality. ",
+        "bbox": [
+            93,
+            625,
+            482,
+            849
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To improve purification without retraining, we note that adversarial attacks are designed to maximize changes in model output with minimal alterations to the input. This results in alterations in the feature map that can be substantial, while changes in the image might be minor.Diffusionbased purification processes，which lack prior knowledge of the original image,risk deviating in the wrong direction during the noise addition and recovery phases, especially if the starting image contains feature information significantly distorted by adversarial noises.Therefore,it is crucial to eliminate as much distorted information as possible before applying the diffusion process. ",
+        "bbox": [
+            93,
+            856,
+            480,
+            900
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            92,
+            905,
+            227
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "We hypothesize that using Super-Resolution (SR) to upsample and then downsample an image could help reduce noise.Our tests confirm that while SR does reduce adversarial noise, it is not as effective as diffusion models.However,an in-depth experiment reveals that SR performs better than diffusion models in restoring features to the early layers of a network. This insight suggests that initially, using SR to reduce adversarial noise before applying diffusion could enhance overall performance by restoring the features the diffusion process alone cannot recover. ",
+        "bbox": [
+            516,
+            228,
+            903,
+            377
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "This paper proposes PuriFlow,an enhanced purification flow that leverages the synergy of SR and the diffusion process. As shown in Figure 1,PuriFlow integrates SR before the forward diffusion process to restore distorted features of adversarial images early on. By boosting content similarity [28], SR generates enhanced samples with features closer to the originals,even when mapped into a highdimensional space. Our findings show that content proxim-ity increases when SR images are resized back to their original dimensions,positioning resized SR images in regions with a higher probability for correct labels.In other words, resizing SR effectively reduces the initial cross-entropy on adversarial examples,allowing better diffusion. Our theoretical analysis and comprehensive evaluations demonstrate that this initialization aids in restoring features by diffusion, further reduces cross-entropy, and improves accuracy. ",
+        "bbox": [
+            516,
+            380,
+            903,
+            618
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Our contributions can be summarized as three-fold: ",
+        "bbox": [
+            529,
+            621,
+            870,
+            633
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "· We find the purification effectiveness of the SR process. While SR alone is less effective in fully eliminating adversarial noises,it excels at preserving original features in the early layers of the network. · Our approach, PuriFlow, finds a synergistic effect by integrating SR with diffusion. Our insight into geometrical analysis and empirical study finds that this integration can reduce cross-entropy in adversarial examples. · Our pipeline utilizes only off-the-shelf SR and diffusion models. With negligible execution time required for SR, this plug-and-play method demonstrates improved accuracy and robustness in comprehensive evaluations. ",
+        "bbox": [
+            516,
+            630,
+            905,
+            815
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2. Related Work ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            829,
+            653,
+            845
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Denoising defenses. Traditional test-time adversarial defenses often apply denoising techniques to input images. JPEG compression has been employed to remove highfrequency noise [14,16], but Guo et al. [22] found it insufficient, proposing total variance minimization with image quilting as an alternative. Likewise,Prakash et al. [40] use wavelet denoising combined with BayesShrink to mitigate artifacts leading to misclassification,which surpasses total variance minimization and Wiener fltering in adversarial defenses [54]. Xie et al. [55] denoise feature maps through non-local means, supporting adversarial training. While practical, these methods often distort image details and face a core challenge:the inverse problem,which results in non-unique solutions. ",
+        "bbox": [
+            516,
+            856,
+            903,
+            900
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "4606 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            90,
+            482,
+            257
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "SR defenses. Modern SR models have gained attention to enhance perceptual quality in adversarial examples [36]. Recently,Bhardwaj et al.[7] raised concerns about the computational demands of the SR models,which can limit realtime applicability. They demonstrate the effectiveness of a highly effcient SR model [8], showing robust performance even on compact neural processing units.PuriFlow shares a similar purpose on rapid SR applications but adds weight to its synergistic use for restoring refined features with minimal overhead,assisting diffusion to enhance defense. ",
+        "bbox": [
+            93,
+            267,
+            482,
+            419
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Adversarial purification. Purifying adversarial noise using generative models has shown promise in strengthening classifier robustness as a test-time defense.PixelDefend [47] utilizes an autoregressive generative model, while Defense-GAN [43] relies on GANs. Langevin Dynamics (LD) sampling has also been effective for defenses through energy-based models [15,21,25]. Yoon et al. [58] introduce a denoising score-based model with an LD variant for denoising processes.DiffPure [38] and Lee and Kim [32] employ forward and reverse-time Stochastic Differential Equations (SDEs) [26,46] for purification,but the loss of class information remains a risk due to the dependence on diffusion time steps.Bai et al.[5] mitigate this problem with contrastive guidance,while ScoreOpt [6O] uses a one-shot denoiser. This work attempts to tackle losing crucial information in purified images by combining SR with diffusion. ",
+        "bbox": [
+            93,
+            430,
+            482,
+            671
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.Background for Diffusion Models ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            683,
+            395,
+            700
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "The score-based diffusion model is widely accepted in adversarial purification. It performs with bidirectional processes: forward and reverse time transition of $\\mathbf { x } _ { t } ~ \\in ~ \\mathbb { R } ^ { d }$ over the time interval $t \\in [ 0 , T ]$ .Starting from an original sample ${ \\bf x } _ { 0 } \\sim p _ { 0 } ( { \\bf x } )$ where $p _ { 0 } ( \\mathbf { x } )$ is the unknown, true data distribution,the diffusion model progressively transforms $p _ { 0 } ( \\mathbf { x } )$ into a nearly spherical Gaussian distribution $p _ { T } ( \\mathbf { x } ) \\approx \\mathcal { N } ( \\mathbf { 0 } , \\mathbf { I } _ { d } )$ . This converted distribution $p _ { T } ( \\mathbf { x } )$ retains no information about $p _ { 0 } ( \\mathbf { x } )$ ",
+        "bbox": [
+            93,
+            708,
+            482,
+            844
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "This forward process of $\\{ \\mathbf { x } _ { t } \\} _ { t = 0 } ^ { T }$ , as defined by Ito SDE, is given with the positive increment of $t$ ： ",
+        "bbox": [
+            93,
+            845,
+            480,
+            875
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/214688766eeab28b3ee5fe9f6ea4609c37aa660bdfccda03332b178a4677614b.jpg",
+        "text": "$$\n\\begin{array} { r } { d \\mathbf { x } = f ( \\mathbf { x } , t ) d t + g ( t ) d \\mathbf { w } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            200,
+            883,
+            372,
+            901
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where the initial data $\\mathbf { x } _ { 0 } \\sim p _ { 0 } ( \\mathbf { x } ) , f ( \\cdot , t ) : \\mathbb { R } ^ { d } \\mapsto \\mathbb { R } ^ { d }$ is the drift coefficient of $\\mathbf { x } _ { t }$ and $g ( \\cdot ) : \\mathbb { R } \\mapsto \\mathbb { R }$ is the diffusion coefficient tied with Brownian motion $\\mathbf { w } \\in \\mathbb { R } ^ { d }$ . Here, when $f ( \\mathbf { x } , t )$ is affine,the transition kernel always becomes a Gaussian distribution $p _ { t ^ { \\prime } t } \\big ( \\mathbf { x } _ { t } \\big | \\mathbf { x } _ { t ^ { \\prime } } \\big )$ where $0 \\leq t ^ { \\prime } < t \\leq$ $T$ [49]. Thus, the forward diffusion process allows for a direct transition with a closed form using the Gaussian kernel $p _ { 0 t } ( \\mathbf { x } _ { t } | \\mathbf { x } _ { 0 } )$ from $t \\ : = \\ : 0$ to a certain $t$ ，which prevents the need for neural network estimations. ",
+        "bbox": [
+            516,
+            90,
+            905,
+            226
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Given a perturbed sample $\\mathbf { x } _ { T } \\sim p _ { T } ( \\mathbf { x } )$ , the reverse-time SDE defines that it drifts backward in the time steps: ",
+        "bbox": [
+            516,
+            228,
+            903,
+            257
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/e70b2b1f1a990ee9c20f1cff8c380edd2285fac3a120505fd0ecf2ad94d234e0.jpg",
+        "text": "$$\nd \\mathbf { x } = [ f ( \\mathbf { x } , t ) - g ^ { 2 } ( t ) \\nabla _ { \\mathbf { x } } \\mathrm { l o g } p _ { t } ( \\mathbf { x } ) ] d t + g ( t ) d \\bar { \\mathbf { w } } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            552,
+            267,
+            866,
+            286
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $\\bar { \\bf w }$ represents a standard Wiener process and the infinitesimal time step $d t$ is negative. A key component in Eq. 2 is the score function $\\nabla _ { \\mathbf { x } } \\log p _ { t } ( \\mathbf { x } )$ ，which offers how the density $p _ { t } ( \\mathbf { x } )$ changes with respect to $\\mathbf { x }$ . Instead of directly knowing this function,one approach is to train a neural network, $\\mathbf { \\boldsymbol { s } } _ { \\boldsymbol { \\theta } } ( \\mathbf { \\boldsymbol { x } } , t )$ , to estimate it. This training is achieved by solving a denoising score-matching [51] problem: ",
+        "bbox": [
+            516,
+            296,
+            905,
+            402
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/b7c317b125cd1d6fd74263344af95d4fe965881cfe8fc1b999f926b94474e7b6.jpg",
+        "text": "$$\n\\begin{array} { r } { \\ell ( \\theta ) = \\sum _ { t = 1 } ^ { T } \\lambda ( t ) \\mathbb { E } _ { \\mathbf { x } , \\tilde { \\mathbf { x } } | \\mathbf { x } } [ \\mathbf { s } _ { \\theta } ( \\tilde { \\mathbf { x } } , t ) - \\nabla _ { \\tilde { \\mathbf { x } } } \\mathrm { l o g } p _ { 0 t } ( \\tilde { \\mathbf { x } } | \\mathbf { x } ) | | _ { 2 } ^ { 2 } ] . } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            522,
+            411,
+            897,
+            441
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Here,Gaussian kernel $p _ { 0 t } ( \\tilde { \\mathbf { x } } | \\mathbf { x } )$ depicts the transition from $\\tilde { \\mathbf { x } } = \\mathbf { x } _ { t }$ to $\\mathbf { x } = \\mathbf { x } _ { 0 }$ and $\\lambda ( t )$ is weighting function ensur-ing that the contributions at different times are appropriately balanced. This optimized model serves as $\\mathbf { \\boldsymbol { s } } _ { \\boldsymbol { \\theta } ^ { * } } \\left( \\mathbf { \\boldsymbol { x } } , t \\right)$ where $\\theta ^ { * } = \\mathrm { a r g m i n } _ { \\theta } \\ell ( \\theta )$ to replace the elusive score function, enabling an effective reverse diffusion process. ",
+        "bbox": [
+            516,
+            453,
+            905,
+            544
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4. Methodology ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            556,
+            647,
+            574
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "In this section, we introduce our motivation, design methodology,and geometrical analysis of the proposed approach, PuriFlow.To begin,we briefly review adversarial attacks. ",
+        "bbox": [
+            516,
+            583,
+            903,
+            627
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Adversarial attack. Given a clean image $\\mathbf { X } _ { 0 }$ with label $y$ ， adversarial attacks generally seek perturbations to mislead a classifier $\\mathcal { F } _ { \\phi } ( \\cdot ) : \\mathbb { R } ^ { d } \\mapsto \\mathbb { R } ^ { K }$ into incorrectly classifying $\\mathbf { X } _ { 0 }$ . This manipulated image $\\mathbf { x } _ { 0 } ^ { a }$ is generated by maximizing cross-entropy loss within a tiny region around $\\mathbf { X } _ { 0 }$ ： ",
+        "bbox": [
+            516,
+            638,
+            905,
+            714
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/4edd4cfc98988d432bd6e7b4ea3ba92d0f9b97843e0006d25db8f1a269352cc6.jpg",
+        "text": "$$\n{ \\bf x } _ { 0 } ^ { a } = \\operatorname * { l i m } _ { i \\to N } \\prod _ { { \\mathcal { B } } ( { \\bf x } _ { 0 } ^ { i } , \\epsilon ) } ( { \\bf x } _ { 0 } ^ { i } + \\mu \\mathrm { s i g n } ( \\nabla _ { { \\bf x } _ { 0 } ^ { i } } \\ell _ { c e } ( \\phi ; { \\bf x } _ { 0 } ^ { i } , y ) ) ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            526,
+            723,
+            872,
+            752
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathbf { x } _ { 0 } ^ { 0 }$ is the initial clean image $\\mathbf { X } _ { 0 }$ and $N$ is the number of attack iterations. $B ( \\mathbf { x } _ { 0 } ^ { i } , \\epsilon )$ is the $\\ell _ { p }$ -norm ball around $\\mathbf { x } _ { 0 } ^ { i }$ within a radius of $\\epsilon$ ， $\\Pi ( \\cdot )$ is the projection to the norm ball, and $\\mu$ denotes the step size.The gradient can be obtained from surrogate networks when $\\mathcal { F } _ { \\phi } ( \\cdot )$ is unknown. ",
+        "bbox": [
+            516,
+            762,
+            905,
+            838
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4.1.PuriFlow: Enhanced Purification Flow ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            848,
+            848,
+            864
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Given an adversarial example, $\\mathbf { x } _ { 0 } ^ { a }$ ,VP-SDE [48] is widely accepted approach for purification.VP-SDE controls noise addition through drift coefficients $\\begin{array} { r } { \\pmb { f } ( \\mathbf { x } , t ) ~ = ~ - \\frac { 1 } { 2 } \\beta _ { t } \\mathbf { x } } \\end{array}$ and $g ( t ) = \\sqrt { \\beta _ { t } }$ ,where $\\begin{array} { r } { \\beta _ { t } = \\frac { 1 } { t } \\beta _ { m a x } + ( 1 - \\frac { 1 } { t } ) \\beta _ { m i n } } \\end{array}$ [38]. This model then diffuses the data by solving the forward-time SDE in Eq. 1 with a closed form: ",
+        "bbox": [
+            516,
+            871,
+            903,
+            900
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "4607 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "image",
+        "img_path": "images/f364674f94d0a919c8bea1bb39524a9dfe7e13e948948a320cf5d131c4e3936e.jpg",
+        "image_caption": [
+            "Figure 3.Top: visualization of different image types.AE denotes the adversarial example generated by a PGD attack on ResNet-50 using an ImageNet-1k image.SR indicates the downsampled highresolution image.Diffusion and PuriFlow use the same diffusion method, VP-SDE [38]. Bottom: corresponding feature maps from the Conv2_2 layer of VGG-19,as described in [18]. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            94,
+            88,
+            482,
+            228
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            349,
+            480,
+            410
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/b33bfb3bc086f4ea66ad45667cedcfebbc9c63347d434cb84a3f41f2d9451321.jpg",
+        "text": "$$\n{ \\bf x } _ { t } ^ { a } = \\sqrt { \\bar { \\alpha } _ { t } } { \\bf x } _ { 0 } ^ { a } + \\sqrt { 1 - \\bar { \\alpha } _ { t } } { \\bf z } _ { t } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            194,
+            420,
+            377,
+            439
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathbf { z } _ { t } \\sim \\mathcal { N } ( \\mathbf { 0 } , \\mathbf { I } _ { d } )$ and $\\bar { \\alpha } _ { t } = e ^ { - \\int _ { 0 } ^ { t } \\beta _ { t } \\left( s \\right) d s }$ ",
+        "bbox": [
+            94,
+            450,
+            385,
+            468
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "The corresponding diffusion process is then performed by solving the reverse-time SDE in Eq. 2: ",
+        "bbox": [
+            91,
+            468,
+            482,
+            497
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/b3742d0507db62cfffe3e8755d18b0043524e09c8cc43e09b6bc85f939e18da4.jpg",
+        "text": "$$\nd \\mathbf { x } = [ f ( \\mathbf { x } _ { t } ^ { a } , t ) - g ^ { 2 } ( t ) \\nabla _ { \\mathbf { x } _ { t } ^ { a } } \\mathrm { l o g } p _ { t } ( \\mathbf { x } _ { t } ^ { a } ) ] d t + g ( t ) d \\bar { \\mathbf { w } } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            507,
+            442,
+            527
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where the drift coefficients $f ( \\cdot , t )$ and $g ^ { 2 } ( t )$ ,follows [5, 48]. ",
+        "bbox": [
+            91,
+            537,
+            480,
+            553
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "During this reverse process, the crucial step is computing the score, defined as $\\nabla _ { \\mathbf { x } _ { t } ^ { a } } \\log p _ { t } \\big ( \\mathbf { x } _ { t } ^ { a } \\big )$ . Here, we raise a key question: Can the neural network $s _ { \\theta ^ { * } } ( \\cdot , t )$ ,trained for score estimation,precisely predict $\\scriptstyle x _ { 0 }$ from $ { \\boldsymbol { { x } } } _ { t } ^ { a }$ ？Even if $\\mathbf { \\boldsymbol { s } } _ { \\boldsymbol { \\theta } ^ { * } } \\left( \\cdot , t \\right)$ is well-trained,accurately estimating the direction toward $\\mathbf { x } _ { \\mathrm { 0 } }$ is not straightforward when dealing with the noised data $\\mathbf { x } _ { t } ^ { a }$ that has been perturbed from $\\mathbf { x } _ { 0 } ^ { a }$ ，since $\\mathbf { \\boldsymbol { s } } _ { \\boldsymbol { \\theta } ^ { * } } \\left( \\cdot , t \\right)$ has not been exposed to such perturbed data during training with Eq.3.In other words,the trained neural network lacks prior knowledge of guiding $\\mathbf { x } _ { t } ^ { a }$ , risking deviations in the wrong direction during the noise addition and recovery phases. ",
+        "bbox": [
+            93,
+            554,
+            482,
+            718
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "This concern is seemingly explicit. Figure 3 shows that the perturbations introduced by Eq. 4 appear subtle in pixel values but cause significant damage to the underlying features of $\\mathbf { X } _ { 0 }$ . These observations indicate that diffusion alone struggles to fully reconstruct the original features. To address this, we seek an existing method that positions the perturbed data closer to its ground-truth image,aiming to reduce feature discrepancies early on and thus ensure a more precise projection of the score function. ",
+        "bbox": [
+            93,
+            719,
+            482,
+            854
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "To this end, we focus on a model that can effectively reduce content distance [18,28] to capture feature proximity. Reducing feature-level shifts that lead to increased crossentropy aligns with the goal of purification, ultimately improving classification accuracy. This approach also benefits clean data in preserving features.In this context, the SR model suits this purpose. The SR model, $\\mathcal { H } _ { \\omega ^ { \\ast } } ( \\cdot ) : \\mathbb { R } ^ { d } \\mapsto $ $\\mathbb { R } ^ { D }$ such that $D \\ > \\ d$ , is designed to upsample and interpolate low-resolution images into high-resolution counterparts. To optimize its parameters $\\omega$ ，various SR methods [1,28,31,45,52] minimize both pixel distance and VGG loss [31], which captures mutual similarity in feature maps across different layers of the VGG model: ",
+        "bbox": [
+            93,
+            856,
+            480,
+            900
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/47d77a7f64d9d779b49d7c4f9cf44aab3ec3dd49c03d4c59d277a1c0be30f029.jpg",
+        "image_caption": [
+            "(b) Synergistic effect in feature restoration of SR combined with diffusion. Diffusion and $\\mathrm { S R } { + } \\mathrm { D i }$ iffusion use the same diffusion time $t ^ { \\prime } = 9 0$ . ",
+            "Figure 4.Normalized content distance from the ground truth for each image type, measured across specific CONV layers of VGG-19 as shown in Figure 5. Real values are provided in the Appendix. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            519,
+            87,
+            903,
+            319
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            426,
+            903,
+            577
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/0c407399c2e8e2b39506e06147d32ea9de069f0414964ffad21a2b7331739106.jpg",
+        "text": "$$\n\\omega ^ { * } = \\operatorname* { m i n } _ { \\omega } \\frac { 1 } { W ^ { l } H ^ { l } } \\Big ( \\sum _ { u = 1 } ^ { W ^ { l } } \\sum _ { v = 1 } ^ { H ^ { l } } [ \\Phi ^ { l } ( \\mathbf { X } ) _ { u , v } - \\Phi ^ { l } ( \\mathcal { H } _ { \\omega } ( \\mathbf { x } ) ) _ { u , v } ] ^ { 2 } \\Big ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            514,
+            585,
+            905,
+            632
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $\\textbf { X } \\in \\ \\mathbb { R } ^ { D }$ and $\\textbf { x } \\in \\mathbb { R } ^ { d }$ ，with $W ^ { l }$ and $H ^ { l }$ denoting the dimensions of extracted features $\\Phi ^ { l } ( \\cdot )$ in the $l$ -th convolution layer. Thus,SR models can naturally reduce the content distance by enhancing feature similarity while estimating unknown pixels and their covariates in $\\mathbb { R } ^ { D }$ . ",
+        "bbox": [
+            516,
+            642,
+            903,
+            718
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Our findings,as illustrated in Figure 4,show that SR images downsampled from $\\mathbb { R } ^ { D }$ to $\\mathbb { R } ^ { d }$ can also reduce the content distance. This reduction covers all layers of the VGG network, demonstrating that even a one-shot application can effectively mitigate feature discrepancies present in adversarial examples.Notably,as observed in Figure 4a, increasing $t ^ { \\prime }$ when applying diffusion alone cannot sufficiently aid in restoring features tied to the early layers of the CNN. This observation suggests that a single application of SR can be more effective than diffusion in recovering detailed features [59] captured by the early layers. ",
+        "bbox": [
+            516,
+            719,
+            905,
+            885
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In this paper, we propose an enhanced purification flow, ",
+        "bbox": [
+            534,
+            886,
+            903,
+            900
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "4608 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/4e0a4d6f683efa98cf78776e8a141e97d4d4676541e0ed56871d0ea7612e7f8a.jpg",
+        "image_caption": [
+            "Figure 5. Transition of diffusion only and SR-integrated diffusion with the same diffusion time of $t ^ { \\prime } = 9 0$ under a PGD attack $( \\epsilon = 8 / 2 5 5$ ， $N = 1 0 0$ ）onResNet-50using ImageNet-1k.“SR”represents downsampled high-dimensionalimages,while“AE”denotes adversarial examples.Contentdistance18]fromthegroundtruthismeasurdintwoconvolutiallayersofVGG-19andplotted withotropy "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            98,
+            89,
+            901,
+            222
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "PuriFlow,where SR works before the start of the forwardtime SDE.As shown in Figure 4b, this approach demon-strates the effectiveness of using SR early before solving both SDEs.By correcting feature distortions that diffusion alone struggles to recover, SR allows for a synergistic effect, enhancing feature restoration across all layers through diffusion.As observed in Figure 5,the early reduction in content distance leads to a notable decrease in cross-entropy. Thus,the subsequent diffusion aligns the data more closely with the ground truth. To delve into this synergistic effect, we provide a theoretical study from a manifold perspective. We examine how SR influences data positioning and allows for more precise use of the score function within diffusion. ",
+        "bbox": [
+            93,
+            304,
+            482,
+            500
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4.2. Geometrical Analysis on PuriFlow ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            508,
+            390,
+            525
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Suppose $\\mathcal { M } \\subset \\mathbb { R } ^ { d }$ is the set of all data points, i.e., $\\forall \\mathbf { x } \\in \\mathcal { M }$ ， defining $\\mathcal { M }$ as the data manifold. That is, the data distribution $p _ { 0 }$ is uniform on the data manifold $\\mathcal { M }$ 、Then, within a local neighborhood,the manifold coincides with its tangent space of dimension $k \\ll d$ ,expressed as follows: ",
+        "bbox": [
+            93,
+            530,
+            482,
+            606
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/0f903d5fc916ae7941d31a275c252fdb4d3e18aeaaba393b1973e34a875f093c.jpg",
+        "text": "$$\n\\begin{array} { r } { \\mathcal { M } \\cap \\mathcal { B } ( \\mathbf { x } _ { 0 } , d r ) = T _ { \\mathbf { x } _ { 0 } } \\mathcal { M } \\cap \\mathcal { B } ( \\mathbf { x } _ { 0 } , d r ) , T _ { \\mathbf { x } _ { 0 } } \\mathcal { M } \\simeq \\mathbb { R } ^ { k } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            101,
+            614,
+            454,
+            635
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $T _ { \\mathbf { x } _ { 0 } } \\mathcal { M }$ denotes the tangent space to the manifold $\\mathcal { M }$ at $\\mathbf { x } _ { 0 }$ and $d r$ is an infinitesimal radius within which the manifold can be locally approximated by its tangent space. Here,we take note of a property of the trained score function in diffusion models [12]. ",
+        "bbox": [
+            93,
+            645,
+            482,
+            720
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Remark 1. The noisy data become increasingly concentrated on spherical manifolds as diffusion time $t$ increases. The score function is trained via denoising score matching (Eq. 3), using data on $\\mathcal { M }$ Let $\\mathcal { P } _ { t } ( \\cdot )$ denote a mapping from noisy data $\\mathbf { } _ { \\pmb { x } _ { t } }$ to its estimated clean counterpart $\\hat { \\mathbf { x } } _ { 0 }$ ： ",
+        "bbox": [
+            93,
+            729,
+            482,
+            805
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/ae05b9f91e670ac14bfffe78834b876cdf36990da8e2c064bc12e4eba5ded113.jpg",
+        "text": "$$\n\\mathcal { P } _ { t } ( \\cdot ) : x _ { t } \\mapsto \\hat { x } _ { 0 } = - \\frac { 1 } { 2 } ( 1 - \\alpha _ { t } ) ( x _ { t } + 2 s _ { \\theta ^ { * } } ( { x } _ { t } , t ) ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            112,
+            814,
+            437,
+            843
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathcal { P } _ { t } ( { \\pmb x } _ { t } ) \\in \\mathcal { M }$ and it satisfies $J _ { \\mathcal { P } _ { t } } ^ { 2 } \\ = J _ { \\mathcal { P } _ { t } } \\ = J _ { \\mathcal { P } _ { t } } ^ { T } \\ :$ $\\mathbb { R } ^ { d } \\to T _ { \\mathcal { P } _ { t } ( \\pmb { x } _ { t } ) } \\mathcal { M }$ That is, $\\mathcal { P } _ { t } ( \\cdot )$ acts as an orthonormal projection onto $\\mathcal { M }$ ",
+        "bbox": [
+            91,
+            853,
+            482,
+            900
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Remark 2. The score function is trained solely on the data concentrated on both the noisy and data manifolds.Therefore, applying it to data outside these manifolds may lead to inaccurate inference. ",
+        "bbox": [
+            514,
+            303,
+            901,
+            363
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Both premises suggest that when the score function is applied to off-manifold data, such as adversarial examples [7], its inaccurate inference may lead to misaligned orthonormal projections onto an unintended tangent space.Thus,the offmanifold data should be corrected to better align with its underlying manifold.Now, we show that the applying SR followed by downsampling can typically position off-manifold data, degraded from $\\mathbf { X } _ { 0 }$ ,closer to the local manifold, which is the tangent space of $\\mathbf { X } _ { 0 }$ ",
+        "bbox": [
+            516,
+            369,
+            905,
+            506
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Proposition 1. Suppose $\\mathcal { H } _ { \\omega ^ { * } }$ is an ideal $S R$ and smooth continuity, and let $\\mathcal { R }$ be a linear downsampler. Given an offmanifold data $\\mathfrak { D } ( \\pmb { x } _ { 0 } )$ degraded from $\\scriptstyle { \\boldsymbol { x } } _ { 0 }$ ,the processed data $\\mathcal { R H } _ { \\omega ^ { * } } ( \\mathfrak { D } ( \\mathbf { x } _ { 0 } ) )$ is projected near the tangent space $T _ { x _ { 0 } } { \\mathcal { M } }$ of the data manifold $\\mathcal { M }$ at $\\scriptstyle x _ { 0 }$ with a tiny $\\delta > 0$ ： ",
+        "bbox": [
+            516,
+            511,
+            905,
+            587
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/f1d193fca8dcb702de98062fe62edafb9bc82089d7a86958feb0e80e4af25285.jpg",
+        "text": "$$\n\\lVert \\mathcal { R H } _ { \\omega ^ { * } } ( \\mathfrak { D } ( \\pmb { x } _ { 0 } ) ) - \\Pi _ { T _ { \\mathfrak { x } _ { 0 } } \\mathcal { M } } ( \\mathfrak { D } ( \\pmb { x } _ { 0 } ) ) \\rVert _ { F } < \\delta .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            553,
+            592,
+            839,
+            611
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "In Section 5, we evaluate the effectiveness of using the score function more accurately, supported by Proposition 1, against various adversarial attacks. ",
+        "bbox": [
+            516,
+            616,
+            903,
+            660
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5. Experiment ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            671,
+            637,
+            689
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "We evaluate the performance of PuriFlow in two configurations: integrating SR with solving SDEs [38] and combining SR with a recent alternative, iterative One-Shot Denois-ing (OSD) [6O]. OSD is defined by Tweedie's formula [50], expressed as $\\mathbb { E } [ { \\mathbf { x } } | \\tilde { \\mathbf { x } } ] = \\tilde { \\mathbf { x } } + \\sigma ^ { 2 } \\nabla _ { \\tilde { \\mathbf { x } } } \\mathrm { l o g } p _ { \\sigma } ( \\tilde { \\mathbf { x } } )$ ,where $\\tilde { \\mathbf { x } }$ denotes perturbed data and $p _ { \\sigma } ( \\tilde { \\mathbf { x } } )$ represents marginal Gaussian perturbation of $p ( \\mathbf { x } )$ . This formulation avoids repeated noise removal steps for varying time $t$ ",
+        "bbox": [
+            516,
+            696,
+            903,
+            818
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "In this context, the denoising score-matching problem defined by Eq. 3 optimizes the neural network $\\mathbf { \\boldsymbol { s } } _ { \\boldsymbol { \\theta } ^ { * } } \\left( \\cdot , t \\right)$ ， given $\\mathbf { X } _ { t }$ , to predict a fully denoised $\\mathbf { X } _ { 0 }$ per a specific time $t$ Thus,Tweedie's formula can be represented as: ",
+        "bbox": [
+            516,
+            819,
+            903,
+            878
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/e49fac2312f6cb3fdc8bf6802f49d582d45731bb520316dc87b37f04283b4ed3.jpg",
+        "text": "$$\n\\mathbb { E } [ \\mathbf { x } _ { 0 } \\vert \\mathbf { x } _ { t ^ { \\prime } } ] = \\mathbf { x } _ { t ^ { \\prime } } + \\sigma ^ { 2 } \\nabla _ { \\mathbf { x } _ { t ^ { \\prime } } } \\mathrm { l o g } p _ { \\sigma } ( \\mathbf { x } _ { t ^ { \\prime } } ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            588,
+            882,
+            831,
+            902
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "4609 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "table",
+        "img_path": "images/9a43b9ac9581a64a9d2283353cf8a6a4ce84c7af5378e03b113253db900ae1af.jpg",
+        "table_caption": [
+            "Table 1. Comparison of different adversarial purification methods against $3 \\mathrm { P D A + E O T }$ attacks with $\\ell _ { \\infty }$ perturbations. Our evaluations uses WRN-28-10 on CIFAR-10, with consistent experimental settings as outlined in [38, 60] for $\\epsilon = 8 / 2 5 5$ .(\\* This purification utilizes a variant of the LD sampling.) "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>Criterion</td><td>Standard (%)</td><td>Robust (%)</td></tr><tr><td>Yang et al. [56]</td><td>Gibbs Update</td><td>94.80</td><td>40.80</td></tr><tr><td>Song et al. [47]</td><td>Mask+Recon.</td><td>95.00</td><td>9.00</td></tr><tr><td>Hill et al. [24]</td><td>EBM+LD</td><td>84.12</td><td>54.90</td></tr><tr><td>Yoon et al. [58]</td><td>DSM+LD*</td><td>86.14</td><td>70.01</td></tr><tr><td>Nie et al. [38]</td><td>SDEs</td><td>89.02</td><td>81.40</td></tr><tr><td>Bai et al. [5]</td><td>Guide+SDEs</td><td>92.61</td><td>81.94</td></tr><tr><td>PuriFlow([38])</td><td>SR+SDEs</td><td>90.06</td><td>83.00</td></tr><tr><td>Zhang et al. [60]</td><td>iOSD</td><td>93.75</td><td>88.08</td></tr><tr><td>PuriFlow([60])</td><td>SR+iOSD</td><td>94.14</td><td>91.01</td></tr></table>",
+        "bbox": [
+            93,
+            88,
+            482,
+            233
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "The alternative proposed by [6O] involves iteratively applying OSD using Eq. 11 during noise removal. Therefore, it can serve as a suitable baseline to confirm synergies with SR.We assess these configurations,detailed as algorithms in the Appendix,across key test-time defense scenarios, including adaptive white-box,preprocessor-blind [58],and black-box attacks. This section also includes an ablation study to demonstrate the impact of incorporating SR.Detailed experimental settings and additional evaluations for certified robustness are provided in the Appendix.For adaptive attacks,we adopt MDSR [33] for efficiency and ESR-GAN [52] otherwise.We denote $t ^ { \\prime }$ on a discrete scale [26] from 1 to 1OoO to represent the continuous interval [0,1]. ",
+        "bbox": [
+            93,
+            338,
+            482,
+            534
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "5.1. Defense on Adaptive Attacks ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            545,
+            346,
+            560
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "In this section,we evaluate the performance of PuriFlow against four strong adaptive attacks: BPDA $^ +$ EOT[3,4], an adaptive ensemble white-box attack; AutoAttack [13], an adaptive white-box attack; $\\mathrm { P G D + E O T }$ [32],and DiffAttack [29],a diffusion-based purification targeted attack. Here,the evaluations focus on projections within an $\\ell _ { \\infty }$ - norm ball,as the projection in $\\ell _ { 2 }$ -norm ball is less effective. ",
+        "bbox": [
+            93,
+            568,
+            480,
+            672
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "BPDA+EOT. Backward Pass Differentiable Approximation (BPDA) combined with Expectation over Transformation (EOT) is used to evaluate randomized adversarial purification methods.Table 1 demonstrates that PuriFlow outperforms standalone diffusion on CIFAR-1O with WRN-28- 10,achieving a more balanced standard and robust accuracy than the guiding method. In addition,integrating SR with iterative OSD further enhances performance,emphasizing its critical role in diffusion-based purification. ",
+        "bbox": [
+            93,
+            681,
+            480,
+            816
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "AutoAttack. Tables 2 demonstrates the effectiveness of PuriFlow against AutoAttack,on ImageNet-1k. PuriFlow outperforms adversarial training methods and a diffusiononly approach across ResNet-5O and DeiT-S. Compared to diffusion only,it achieves notable robust accuracy improvements, including $1 1 . 9 9 \\%$ (ResNet-50) and $9 . 9 4 \\%$ (DeiT-S), and standard accuracy.PuriFlow also shows efficiency with reduced diffusion time $t ^ { \\prime }$ on this large-scale dataset. ",
+        "bbox": [
+            93,
+            825,
+            480,
+            900
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/8de7d8f6647190979507378cee18ad660bdce087718ead4fe2242937a4630edc.jpg",
+        "table_caption": [
+            "Table 2.Evaluation comparing adversarial training (AT) and purification (AP) methods against AutoAttack with $\\ell _ { \\infty }$ perturbations at $\\epsilon = 4 / 2 5 5$ on ImageNet-1k.Diffusion time is set to $t ^ { \\prime } = 1 5 0$ for [38] as specified its study and $t ^ { \\prime } = 1 3 0$ for PuriFlow. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Type Method</td><td>Standard (%)</td><td>Robust (%)</td></tr><tr><td colspan=\"2\">ResNet-50</td><td>76.13 0.00</td></tr><tr><td rowspan=\"4\">AT</td><td>Engstrom et al. [17] 62.56</td><td>31.06</td></tr><tr><td>Wong et al. [53] 55.62</td><td>26.95</td></tr><tr><td>Salman et al. [42]</td><td>64.02 37.89</td></tr><tr><td>Bai et al. [6] 67.38</td><td>35.51</td></tr><tr><td rowspan=\"2\">AP</td><td>Nie et al. [38]</td><td>67.79 40.93</td></tr><tr><td>PuriFlow([38])</td><td>71.68 52.92</td></tr><tr><td colspan=\"2\">DeiT-S</td><td>79.90 0.00</td></tr><tr><td rowspan=\"2\">AT</td><td>Bai et al. [6]</td><td>66.50 35.50</td></tr><tr><td>Nie et al. [38] 73.63</td><td>43.18</td></tr><tr><td rowspan=\"2\">AP</td><td>PuriFlow([38])</td><td></td></tr><tr><td>75.69</td><td>53.12</td></tr></table>",
+        "bbox": [
+            526,
+            88,
+            893,
+            275
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/c19c6c882aaf47c74add4a27d6edd6eafdb07fd83b0fdee3ac4e211f1b87c589.jpg",
+        "table_caption": [
+            "Table 3. Evaluation comparing adversarial training (AT) and purification （AP) methods against $\\mathrm { P G D + E O T }$ within an $\\ell _ { \\infty }$ -norm ball of radius $\\epsilon = 8 / 2 5 5$ on CIFAR-1O.Results are sourced from [32].(\\* Fora fair comparison,PuriFlow and [6O] are directly evaluated on the same settings with $t ^ { \\prime } = 2 5 0$ ,as stated in [60].) "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Type Method</td><td></td><td>Standard (%) Robust (%)</td></tr><tr><td colspan=\"2\">WRN-28-10</td><td>0.00</td></tr><tr><td rowspan=\"3\">AT</td><td>Pang et al. [39]</td><td>95.63 88.62</td></tr><tr><td>Gowal et al. [19]</td><td>64.95 88.54</td></tr><tr><td>Gowal et al. [20]</td><td>87.51</td></tr><tr><td rowspan=\"3\">AP</td><td>Yoon et al. [58]</td><td>85.66</td></tr><tr><td>Zhang et al. [60]*</td><td>93.75</td></tr><tr><td>PuriFlow([60])*</td><td>94.14</td></tr><tr><td colspan=\"2\">WRN-70-16</td><td>0.00 68.66</td></tr><tr><td rowspan=\"3\">AT</td><td>Gowal et al. [19]</td><td>95.79 91.10</td></tr><tr><td>Gowal et al. [20]</td><td>88.74</td></tr><tr><td>Rebuffi et al. [41]</td><td>69.03 92.22 69.97</td></tr><tr><td rowspan=\"3\">AP</td><td>Yoon et al. [58]</td><td>86.76</td></tr><tr><td>Zhang et al. [60]*</td><td>95.11</td></tr><tr><td>PuriFlow([60])*</td><td>95.31</td></tr></table>",
+        "bbox": [
+            526,
+            357,
+            893,
+            593
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            702,
+            903,
+            747
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "$\\mathbf { P G D + E O T }$ 、Motivated by [32], we assess PuriFlow's robustness against $\\mathrm { P G D + E O T }$ that utilizes gradient signs within the entire randomized defense framework.Table 3 shows PuriFlow's strength on CIFAR-10,achieving the highest standard accuracy for WRN-28-1O and WRN-70- 16.Despite the substantial impact of $\\mathrm { P G D + E O T }$ on randomized purification,PuriFlow achieves superior robust accuracy among purification methods,demonstrating a synergistic effect in which SR effectively acts as the initialization before starting the iterative one-shot denoising process. ",
+        "bbox": [
+            516,
+            757,
+            903,
+            909
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "discarded",
+        "text": "4610 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "table",
+        "img_path": "images/482b70fa0fcd6cbb6a07702a0c13123d3940545d145ec8a99478c4fde226c753.jpg",
+        "table_caption": [
+            "Table 4. Evaluation against DiffAttack, targeting WRN-70-16 on CIFAR-1O and ResNet-5O on ImageNet-1k.Each diffusion time $t ^ { \\prime }$ is the same as those used for other attacks on PuriFlow. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Type Method</td><td></td><td>Standard (%) Robust (%)</td></tr><tr><td colspan=\"3\">WRN-70-16</td></tr><tr><td rowspan=\"3\">AP</td><td></td><td>95.79 90.07</td></tr><tr><td>Nie et al. [38]</td><td>45.31 90.21</td></tr><tr><td>PuriFlow([38])</td><td>59.47</td></tr><tr><td colspan=\"3\">ResNet-50</td></tr><tr><td rowspan=\"3\">AP</td><td></td><td>76.13 0.00 28.13</td></tr><tr><td>Nie et al. [38]</td><td>67.79</td></tr><tr><td>PuriFlow([38])</td><td>71.68</td></tr></table>",
+        "bbox": [
+            104,
+            88,
+            470,
+            212
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/3aacc642953330d98459f1bf36ec8d25fd059a04a1acda38c40c09796c0a4ba8.jpg",
+        "table_caption": [
+            "Table 5. Comparison under a preprocessor-blind PGD attack targeting only the classifier, within an $\\ell _ { \\infty }$ perturbations at $\\epsilon = 4 / 2 5 5$ on ImageNet-1k.The time $t ^ { \\prime }$ for both AP methods is set as 10. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Type</td><td>Method</td><td>Standard (%)</td></tr><tr><td colspan=\"2\">ResNet-50</td><td>0.00</td></tr><tr><td rowspan=\"4\">AT</td><td>Engstrom et al. [17]</td><td>76.13 62.56 38.97</td></tr><tr><td>Wong et al. [53]</td><td>55.62 29.15</td></tr><tr><td>Salman et al. [42]</td><td>64.02 38.01</td></tr><tr><td>Bai et al. [6]</td><td>67.38 40.27</td></tr><tr><td rowspan=\"2\">AP</td><td>Nie et al. [38]</td><td>74.52</td></tr><tr><td>PuriFlow([38])</td><td>74.05</td></tr><tr><td colspan=\"2\">DeiT-S</td><td>79.90</td></tr><tr><td>AT</td><td>Bai et al. [6]</td><td>66.50 40.32 34.59</td></tr><tr><td rowspan=\"2\">AP</td><td>Nie et al. [38]</td><td>78.94</td></tr><tr><td>PuriFlow([38])</td><td>78.44 49.85</td></tr></table>",
+        "bbox": [
+            102,
+            273,
+            472,
+            460
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "DiffAttack. DiffAttack neutralizes vanishing and exploding gradients,high memory costs,and increased randomness—natural defensive effects from lengthy $t ^ { \\prime }$ of diffusionbased purification. Table 4 demonstrates that while purification methods using $t ^ { \\prime } = 1 0 0$ for CIFAR-10 and $t ^ { \\prime } = 1 5 0$ for ImageNet-1k exhibit limitations in robustness by this intentional attack, integrating SR demonstrates a notable improvement by $1 4 . 1 6 \\%$ and $1 5 . 6 2 \\%$ .We hypothesize that SR's early enhancement of feature proximity helps mitigate diverging feature maps from the ground truth,even under the reconstruction-deviating impacts of DiffAttack. ",
+        "bbox": [
+            93,
+            536,
+            480,
+            703
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.2.Defense on Preprocessor-Blind Attack ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            712,
+            418,
+            728
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "We evaluate PuriFlow against the PGD ( $N = 1 0 0 \\AA$ attack, targeting only the classifier on ImageNet-1k. Table 5 shows that PuriFlow, leveraging only off-the-shelf models,sur-passes adversarial training methods in both standard and robust accuracy for ResNet-50 and DeiT-S.Notably, PuriFlow significantly outperforms diffusion only [38] at the same practical diffusion time $t ^ { \\prime } = 1 0$ ,achieving comparable standard accuracy while enhancing robust accuracy by $1 1 . 0 5 \\%$ for ResNet-50 and $1 5 . 2 6 \\%$ for DeiT-S.This improvement signifies the synergistic importance of SR in adversarial purification utilizing diffusion models. ",
+        "bbox": [
+            93,
+            734,
+            480,
+            900
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/8ca961b42768e5cc1fde5939ed5bbea5a10dbbc93415be8cd2552f38543c5a2d.jpg",
+        "table_caption": [
+            "Table 6.Evaluation of ResNet-5O under a black-box attack using Square Attack $( N = 5 0 0 0 )$ ）within an $\\ell _ { \\infty }$ -norm ball of radius $\\epsilon =$ 4/255 on ImageNet-1k. Diffusion time is set to $t ^ { \\prime } = 1 5 0$ for [38] as specified in their study and $t ^ { \\prime } = 1 0$ for PuriFlow.Evaluation settings follow those in [38]. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Type</td><td>Method</td><td>Standard (%)</td><td>Robust (%)</td></tr><tr><td colspan=\"2\">ResNet-50</td><td>76.13</td><td>9.25</td></tr><tr><td rowspan=\"3\">AP</td><td>Nie et al. [38]</td><td>67.79</td><td>62.88</td></tr><tr><td></td><td></td><td></td></tr><tr><td>PuriFlow [38]</td><td>74.00</td><td>68.36</td></tr></table>",
+        "bbox": [
+            526,
+            88,
+            892,
+            160
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/593258b479b4eb8e2df85d8498fa8af06413ebcb8a2494c018040cc93a5ab7c9.jpg",
+        "table_caption": [
+            "Table 7. Comparison of SR with other denoising methods as an initialization approach for diffusion [38] $( t ^ { \\prime } = 9 0 )$ ）underaPGD attack on ImageNet-1k.“TVM\"refers to total variance minimization, while“NL-means”denotes the non-local means algorithm. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Method</td><td>Type</td><td>Standard (%)</td><td>Robust (%)</td></tr><tr><td>ResNet-50</td><td></td><td>76.13</td><td>0.00</td></tr><tr><td>Wavelet</td><td>Denoising</td><td>71.15</td><td>68.63</td></tr><tr><td>TVM</td><td>Denoising</td><td>57.80</td><td>56.96</td></tr><tr><td>NL-means</td><td>Denoising</td><td>64.32</td><td>62.67</td></tr><tr><td>DRLN×2[2]</td><td>SR</td><td>71.66</td><td>68.72</td></tr><tr><td>EDSR×2[33]</td><td>SR</td><td>71.77</td><td>68.73</td></tr><tr><td>ESRGAN×2[52]</td><td>SR</td><td>72.97</td><td>68.75</td></tr><tr><td>MDSR×2[33]</td><td>SR</td><td>73.32</td><td>69.47</td></tr></table>",
+        "bbox": [
+            514,
+            260,
+            905,
+            404
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.3.Defense on Black-Box Attack ",
+        "text_level": 1,
+        "bbox": [
+            517,
+            501,
+            772,
+            517
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Table 6 shows that PuriFlow, using $t ^ { \\prime } = 1 0 $ -approximately $6 . 6 7 \\%$ of the diffusion time required by diffusion-only method [38]—achieves notable improvements in both standard and robust accuracy for ResNet-5O. Specifically,it shows enhancements of $6 . 2 1 \\%$ and $5 . 4 8 \\%$ in each accuracy on ImageNet-1k. These results highlight the synergy of initialization for diffusion, indicating better performance and greater efficiency in this black-box attack. ",
+        "bbox": [
+            516,
+            526,
+            905,
+            647
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.4. Ablation Study ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            664,
+            665,
+            680
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Impact of SR compared to various candidates. Puri-Flow can be configured by combining various initialization methods.We test several SR models and traditional denoising techniques by selectively replacing each method used in diffusion-based purification.This evaluation, conducted with PGD targeting the classifier on ImageNet-1k,is shown in Table 7.While Wavelet denoising is practical for PGD, it stands less effective than SR techniques. Among SR models tested, ${ \\bf M D S R } \\times 2$ outperforms DRLN $\\times 2$ ， $\\mathrm { E D S R } \\times 2$ ,and ESRGAN $\\times 2$ ,achieving the highest standard and robust accuracies.Furthermore,we explore different upsample ratios $( \\times 2 , \\times 4 , \\times 8 )$ using ESRGAN. Table 1O indicates that $\\times 2$ represents the best balance between efficiency and performance,making it the optimal choice for PuriFlow. ",
+        "bbox": [
+            516,
+            689,
+            905,
+            900
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "discarded",
+        "text": "4611 ",
+        "bbox": [
+            483,
+            945,
+            513,
+            957
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/4fe572259b76f64594bc61c1b9746c90eaf91c7518d6ab539d55da9f82244e04.jpg",
+        "table_caption": [
+            "Table8.EvaluationofuriFowunderapreprocesor-blndPGDatackonImageNet-1kselectivelymployingof-te-shelfmodels.Left: ResNet-50,ERGAN $\\times 2$ ,and VP-SDE are the classifier, SR model,and diffusion [38] model,respectively,with diffusion time $t ^ { \\prime } = 1 0$ Right: Impact of diffusion models within PuriFlow, evaluated at diffusion time $t ^ { \\prime } = 9 0$ using ResNet-5O and DeiT-S on ImageNet-1k. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>SR</td><td>Diffusion</td><td>Classifier</td><td>Standard (%)</td><td>Robust (%)</td><td>Wall time (s/img)</td><td>Model</td><td>Type</td><td>Standard (%)</td><td>Robust (%)</td></tr><tr><td rowspan=\"3\">√</td><td></td><td>√</td><td>76.13</td><td>00.00</td><td>~0.00</td><td>ResNet-50</td><td>VP-SDE</td><td>72.97</td><td>68.75</td></tr><tr><td></td><td>√</td><td>73.68</td><td>30.70</td><td>0.01</td><td></td><td>VE-SDE</td><td>73.39</td><td>66.51</td></tr><tr><td>√</td><td>√</td><td>74.52</td><td>38.37</td><td>1.08</td><td>DeiT-S</td><td>VP-SDE</td><td>77.29</td><td>72.37</td></tr><tr><td>√</td><td>√</td><td>√</td><td>74.00</td><td>49.92</td><td>1.09</td><td></td><td>VE-SDE</td><td>77.72</td><td>69.33</td></tr></table>",
+        "bbox": [
+            99,
+            89,
+            898,
+            166
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/ece5999885ffdd75e6a8baae8ce9f3ba8737ab661e994e4dc216fecc39951aec.jpg",
+        "table_caption": [
+            "Table 9. Top:Wall time for PuriFlow with different SR models. Bottom:Examples of purification times $( s / \\operatorname { i m g } )$ for configurations using WRN-70-16 [38] and WRN-28-10 [60] on CIFAR-10. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Off-the-shelf models</td><td>ESRGAN×2</td><td>EDSR×2</td><td>MDSR×2</td></tr><tr><td>SR (each column)</td><td>0.01</td><td>0.01</td><td>~0.00</td></tr><tr><td>Diffusion [38]</td><td>1.08</td><td>0.81</td><td>0.73</td></tr><tr><td>ResNet-50</td><td>~0.00</td><td>~0.00</td><td>~0.00</td></tr><tr><td>Total wall time(s/img)</td><td>1.09</td><td>0.82</td><td>0.73</td></tr><tr><td>Configuration</td><td>Criterion</td><td>Iterations</td><td>Purif. time</td></tr><tr><td>Diffusion [38]</td><td>SDEs</td><td>t&#x27;=100</td><td>5.27</td></tr><tr><td>SR+Diffusion</td><td>SR+SDEs</td><td>t&#x27;=100</td><td>0.005+5.27</td></tr><tr><td>ScoreOpt-O [60]</td><td>iOSD</td><td>M=5</td><td>0.51</td></tr><tr><td>SR+ScoreOpt-O</td><td>SR+iOSD</td><td>M=5</td><td>0.005+0.51</td></tr></table>",
+        "bbox": [
+            91,
+            236,
+            482,
+            382
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "table",
+        "img_path": "images/03f3c9c5dfae7ca1b55e184498e9b9686d24ce962c6126e7b97091ec2f03c298.jpg",
+        "table_caption": [],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Ratio</td><td>Standard (%)</td><td>Robust (%)</td><td>FLOPs</td><td>Params</td></tr><tr><td>×8</td><td>71.26%</td><td>66.80%</td><td>1110G</td><td>16.7M</td></tr><tr><td>×4</td><td>72.41%</td><td>67.32%</td><td>899G</td><td>16.7M</td></tr><tr><td>×2</td><td>72.97%</td><td>68.75%</td><td>224G</td><td>16.7M</td></tr></table>",
+        "bbox": [
+            102,
+            445,
+            472,
+            515
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Table 10.Impact of SR upsampling ratios from ESRGAN $\\times 2$ combined with diffusion [38] $t ^ { \\prime } = 9 0 $ )usingResNet-50 on ImageNet-1k.FLOPs represent computational complexity [23],and Params refer to the number of trainable parameters. ",
+        "bbox": [
+            93,
+            522,
+            480,
+            578
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Off-the-shelf model adoption and latency analysis. Table 8 shows the enhanced defensive capabilities achieved by integrating off-the-shelf models into PuriFlow's framework. The table highlights the individual and combined effects of SR and diffusion.When used together, SR and diffusion im-prove robust accuracy by $1 9 . 2 2 \\%$ and $1 1 . 5 5 \\%$ ,respectively, illustrating their strong synergistic effect on adversarial examples.Although combining SR with diffusion slightly decreases standard accuracy compared to diffusion alone, the robustness gains make this trade-off useful, with a tolerable latency of $1 . 0 9 \\ : \\mathrm { s / i m g }$ when executed on a single NVIDIA RTX 4090 GPU.Table 9 further confirms that integrating SR models adds minimal latency to the overall purification process.Specifically, SR's execution time is $1 { , } 0 5 4 \\times$ faster than the diffusion's,and its overhead is only $1 / 1 0 2$ compared to one-shot denoising methods.This result emphasizes SR's role as an effective and efficient initialization. ",
+        "bbox": [
+            93,
+            606,
+            482,
+            861
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Impact of diffusion types. We explore VE-SDE [46], which can act as an alternative to diffusion. Table 8 demon-strates that VP-SDE slightly reduces standard accuracy (approximately $0 . 4 2 \\%$ for ResNet-50 and $0 . 4 3 \\%$ for DeiT-S) but enhances robust accuracy by $2 . 2 4 \\%$ and $3 . 0 4 \\%$ ,respectively.Despite the minor drop in standard accuracy, integrating VP-SDE shows overall robustness， synergizing a balanced performance with SR. ",
+        "bbox": [
+            93,
+            871,
+            480,
+            900
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "image",
+        "img_path": "images/c26934501a279a730ca2ee867019e15d9603e82ee51365eb8b20f249a48a66da.jpg",
+        "image_caption": [
+            "Figure 6.Impact of iterative SR on cross-entropy and MSEs under a PGD( $N = 1 0 0$ ）attack targeting ResNet-5O within an $\\ell _ { \\infty }$ -norm ball $( \\epsilon = 4 / 2 5 5 )$ on ImageNet-1k. SR, SR',and SR\" indicate one, two,and three rounds of SR using ESRGAN $\\times 2$ ,respectively. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            521,
+            238,
+            898,
+            372
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            462,
+            903,
+            551
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Iterative applications of SR without diffusion. Figure 6 shows the impact of repeated SR applications for adversarial examples relative to their originals, with changes in MSE and cross-entropy and their impact on standard and robust accuracy. Up to three rounds of SR demonstrate a trade-off: MSE increases while cross-entropy decreases and eventually saturates. Here,robust accuracy rises but converges while standard accuracy decreases. We conjecture that repeated SR may behave as seen in model inversion [35,57]: Images are generated to minimize cross-entropy loss,but this steady direction moves them farther from the originals. ",
+        "bbox": [
+            516,
+            560,
+            905,
+            726
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "6. Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            516,
+            739,
+            630,
+            756
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "We introduce PuriFlow, a novel purification flow integrating Super-Resolution(SR) with diffusion. While SR alone is less effective at mitigating adversarial noise, its image upsampling and downsampling excel at restoring subtle features captured by early layers.Diffusion alone lacks this ability. However, their mixture synergistically reduces overall feature proximity and cross-entropy. PuriFlow outperforms leading methods in extensive evaluations,demonstrating efficiency for minimal SR overhead. ",
+        "bbox": [
+            516,
+            763,
+            903,
+            900
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "discarded",
+        "text": "4612 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Acknowledgment ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            89,
+            240,
+            106
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "This research was partly supported by the IITP(Institute of Information & Communications Technology Planning & Evaluation)-ITRC(Information Technology Research Center） grant funded by the Korea government(MSIT)(IITP-2025-RS-2023-00258649, $50 \\%$ )，the National Research Foundation of Korea(NRF） grant funded by the Korea government(MSIT) (RS-2025-00562437, $40 \\%$ ),and Institute of Information & communications Technology Planning & Evaluation (IITP) grant funded by the Korea government(MSIT) (No.RS-2022-00155911,Artificial Intelli-gence Convergence Innovation Human Resources Development (Kyung Hee University), $10 \\%$ ). ",
+        "bbox": [
+            93,
+            116,
+            482,
+            296
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            94,
+            315,
+            186,
+            330
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "[1]Yasin Almalioglu,Kutsev Bengisu Ozyoruk,Abdulkadir Gokce,Kagan Incetan, Guliz Irem Gokceler,Muhammed Ali Simsek,Kivanc Ararat,Richard J Chen,Nicholas J Durr, Faisal Mahmood, et al. Endol2h: deep super-resolution for capsule endoscopy. IEEE Transactions on Medical Imaging, 2020.4   \n[2] Saeed Anwar and Nick Barnes.Densely residual laplacian super-resolution.IEEE Transactions on Pattern Analysis and Machine Intelligence,2020.7   \n[3] Anish Athalye,Nicholas Carlini,and David Wagner. Obfuscated gradients give a false sense of security: Circumventing defenses to adversarial examples.In International Conference on Machine Learning,2018.1,6   \n[4] Anish Athalye,Logan Engstrom,Andrew Ilyas,and Kevin Kwok.Synthesizing robust adversarial examples. In International Conference on Machine Learning,2018.6   \n[5] Mingyuan Bai, Wei Huang,Tenghui Li, Andong Wang, Junbin Gao,CesarF Caiafa,and Qibin Zhao.Diffusion models demand contrastive guidance for adversarial purification to advance. In International Conference on Machine Learning, 2024. 1,2, 3,4, 6   \n[6] Yutong Bai, Jieru Mei, Alan L Yuille,and Cihang Xie. Are transformers more robust than cnns?Advances in Neural Information Processing Systems,2021.6,7   \n[7] Kartikeya Bhardwaj,Dibakar Gope,James Ward,Paul Whatmough,and Danny Loh． Super-efficient super resolution for fast adversarial defense at the edge.In 2022 Design,Automation&Test inEuropeConference&Exhibition, 2022. 3, 5   \n[8] Kartikeya Bhardwaj,Milos Milosavljevic,Liam O'Neil, Dibakar Gope,Ramon Matas,Alex Chalfin, Naveen Suda, Lingchuan Meng,and DannyLoh.Collapsible linear blocks for super-efficient super resolution.Proceedings of Machine Learning and Systems,2022.3   \n[9] Junyoung Byun，Seungju Cho,Myung-Joon Kwon,Hee-Seon Kim,and Changick Kim. Improving the transferability of targeted adversarial examples through object-based diverse input. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,2022.1   \n[10] Junyoung Byun,Myung-Joon Kwon, Seungju Cho, Yoonji Kim,and Changick Kim. Introducing competition to boost the transferability of targeted adversarial examples through clean feature mixup.In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattrn Recognition, 2023.   \n[11] Nicholas Carlini,Florian Tramer, Krishnamurthy Dj Dvi-jotham,Leslie Rice,Mingjie Sun,and J Zico Kolter. (certified!）adversarial robustness for free!In International Conference on Learning Representations,2023.1   \n[12] Hyungjin Chung，Byeongsu Sim，Dohoon Ryu, and Jong Chul Ye. Improving diffusion models for inverse problems using manifold constraints.Advances in Neural Information Processing Systems,2022.5   \n[13] Francesco Croce and Matthias Hein.Reliable evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks. In International Conference on Machine Learning,2020. 1, 6   \n[14] Nilaksh Das,Madhuri Shanbhogue,Shang-Tse Chen, Fred Hohman,Li Chen,Michael E Kounavis,and Duen Horng Chau. Keeping the bad guys out: Protecting and vaccinat-ing deep learning with_jpeg compression. arXiv preprint arXiv:1705.02900,2017. 3   \n[15] Yilun Du and Igor Mordatch. Implicit generation and modeling with energy based models.Advances in Neural Information Processing Systems,2019.3   \n[16] Gintare Karolina Dziugaite， Zoubin Ghahramani,and Daniel M Roy. A study of the effect of jpg compression on adversarial images. arXiv preprint arXiv:1608.00853,2016. 3   \n[17] Logan Engstrom,Andrew Ilyas, Hadi Salman, Shibani Santurkar,and Dimitris Tsipras.Robustness (python library), 2019.6, 7   \n[18] Leon A Gatys,Alexander S Ecker,and Matthias Bethge.Image style transfer using convolutional neural networks. In Proceedings of the IEEE/CVF Conference on Computer Vision and Patern Recognition, 2016.4,5   \n[19] Sven Gowal, Chongli Qin, Jonathan Uesato,Timothy Mann, and Pushmeet Kohli.Uncovering the limits of adversarial training against norm-bounded adversarial examples.arXiv preprint arXiv:2010.03593,2020. 6   \n[20] Sven Gowal, Sylvestre-Alvise Rebufi, Olivia Wiles,Florian Stimberg,Dan Andrei Calian,and Timothy A Mann. Improving robustness using generated data. Advances in Neural Information Processing Systems,2021. 6   \n[21] Will Grathwohl, Kuan-Chieh Wang,Joern-Henrik Jacobsen, David Duvenaud, Mohammad Norouzi,and Kevin Swersky.Your classifier is secretly an energy based model and you should treat it like one. In International Conference on Learning Representations,2020. 3   \n[22] Chuan Guo,Mayank Rana,Moustapha Cisse,and Laurens van der Maaten. Countering adversarial images using input transformations. In International Conference on Learning Representations,2018.3   \n[23] Kaiming He, Xiangyu Zhang, Shaoqing Ren,and Jian Sun. Deep residual learning for image recognition. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,2016. 8   \n[24] Mitch Hill, Jonathan Mitchell,and Song-Chun Zhu. Stochastic security: Adversarial defense using long-run dynamics of energy-based models. International Conference on Learning Representations,2020.6   \n[25] Mitch Hill, Jonathan Craig Mitchell,and Song-Chun Zhu. Stochastic security: Adversarial defense using long-run dy-namics of energy-based models. In International Conference on Learning Representations,2021. 3   \n[26] Jonathan Ho,Ajay Jain,and Pieter Abbeel.Denoising diffusion probabilistic models.Advances in Neural Information Processing Systems,2020. 2,3,6   \n[27] Ziyu Jiang,Tianlong Chen,Ting Chen,and Zhangyang Wang.Robust pre-training by adversarial contrastive learn-ing. Advances in Neural Information Processing Systems, 2020.1   \n[28] Justin Johnson,Alexandre Alahi,and Li Fei-Fei. Perceptual losses for real-time style transfer and super-resolution.In European Conference on Computer Vision,2016.2, 4   \n[29] Mintong Kang,Dawn Song,and Bo Li. Diffattack: Evasion attacks against diffusion-based adversarial purification.Advances in Neural Information Processing Systems,2024.6   \n[30] Minseon Kim, Jihoon Tack,and Sung Ju Hwang.Adversarial self-supervised contrastive learning.Advances in Neural Information Processing Systems,2020.1   \n[31] Christian Ledig,Lucas Theis,Ferenc Huszar, Jose Caballero, Andrew Cunningham,Alejandro Acosta,Andrew Aitken, Alykhan Tejani, Johannes Totz, Zehan Wang,et al.Photorealistic single image super-resolution using a generative adversarial network.In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,2017. 4   \n[32] Minjong Lee and Dongwoo Kim. Robust evaluation of diffusion-based adversarial purification. In Proceedings of the IEEE/CVF International Conference on Computer Vision,2023.1,3,6   \n[33] Bee Lim, Sanghyun Son, Heewon Kim, Seungjun Nah,and Kyoung Mu Lee. Enhanced deep residual networks for sin-gle image super-resolution. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops,2017. 6,7   \n[34] Aleksander Madry,Aleksandar Makelov,Ludwig Schmidt, Dimitris Tsipras,and Adrian Vladu. Towards deep learning models resistant to adversarial atacks. In International Conference on Learning Representations,2018.1   \n[35] Alexander Mordvintsev, Christopher Olah,and Mike Tyka. Inceptionism: Going deeper into neural networks. Google Research Blog,2015.8   \n[36] Aamir Mustafa, Salman H. Khan, Munawar Hayat, Jianbing Shen,and Ling Shao.Image super-resolution as a defense against adversarial attacks. IEEE Transactions on Image Processing,2020. 3   \n[37] Alexander Quinn Nichol and Prafulla Dhariwal. Improved denoising diffusion probabilistic models．In International Conference on Machine Learning,2021.2   \n[38] Weili Nie, Brandon Guo, Yujia Huang, Chaowei Xiao,Arash Vahdat,and Anima Anandkumar. Diffusion models for adversarial purification. In International Conference on Machine Learning,2022. 1,2,3,4,5,6,7, 8   \n[39] Tianyu Pang,Min Lin, Xiao Yang,Jun Zhu,and Shuicheng Yan.Robustness and accuracy could be reconcilable by (proper) definition. In International Conference on Machine Learning, 2022. 6   \n[40] Aaditya Prakash,Nick Moran,Solomon Garber,Antonella DiLillo,and James Storer.Deflecting adversarial attacks with pixel deflection. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,2018. 3   \n[41] Sylvestre-Alvise Rebuf, Sven Gowal, Dan A Calian, Florian Stimberg, Olivia Wiles,and Timothy Mann.Fixing data augmentation to improve adversarial robustness. arXiv preprint arXiv:2103.01946,2021. 6   \n[42] Hadi Salman，Andrew Ilyas,Logan Engstrom,Ashish Kapoor, and Aleksander Madry. Do adversarially robust imagenet models transfer better? Advances in Neural Information Processing Systems,2020.6,7   \n[43] Pouya Samangouei, Maya Kabkab,and Rama Chellappa. Defense-GAN: Protecting classifiers against adversarial at-tacks using generative models. In International Conference on Learning Representations,2018. 3   \n[44] Ramprasaath R Selvaraju,Michael Cogswell, Abhishek Das, Ramakrishna Vedantam，Devi Parikh,and Dhruv Batra. Grad-cam:Visual explanations from deep networks via gradient-based localization.In Proceedings of the IEEE/CVF International Conference on Computer Vision,2017. 2   \n[45] Taizhang Shang,Qiuju Dai, Shengchen Zhu, Tong Yang,and Yandong Guo. Perceptual extreme super-resolution network with receptive field block. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition Workshops,2020.4   \n[46] Jiaming Song, Chenlin Meng,and Stefano Ermon. Denoising diffusion implicit models. In International Conference on Learning Representations,2021. 3, 8   \n[47] Yang Song,Taesup Kim, Sebastian Nowozin, Stefano Ermon,and Nate Kushman. Pixeldefend: Leveraging generative models to understand and defend against adversarial examples.In International Conference on Learning Representations,2018. 3, 6   \n[48] Yang Song,Jascha Sohl-Dickstein, Diederik P Kingma,Abhishek Kumar, Stefano Ermon,and Ben Poole. Score-based generative modeling through stochastic differential equations. International Conference on Learning Representations, 2021. 3, 4   \n[49] Yang Song,Jascha Sohl-Dickstein, Diederik P Kingma,Abhishek Kumar, Stefano Ermon,and Ben Poole. Score-based generative modeling through stochastic diferential equations. In International Conference on Learning Representations,2021. 3   \n[50] Soobin Um, Suhyeon Lee,and Jong Chul Ye.Don't play favorites:Minority guidance for diffusion models. In International Conference on Learning Representations,2024. 5   \n[51] Pascal Vincent. A connection between score matching and denoising autoencoders. Neural Computation,2011.3   \n[52] Xintao Wang,Ke Yu, Shixiang Wu, Jinjin Gu, Yihao Liu, Chao Dong,Yu Qiao,and Chen Change Loy. Esrgan: Enhanced suner-resolution generative adversarial networks. In European Conference on Computer Vision Workshops,2018. 4,6,7   \n[53]Eric Wong,Leslie Rice,and J.Zico Kolter.Fast is better than free:Revisiting adversarial training.In International Conference on Learning Representations,2020.6,7   \n[54] Fei Wu,Wenxue Yang,Limin Xiao,and Jinbin Zhu. Adaptive wiener filter and natural noise to eliminate adversarial perturbation.Electronics,2020.3   \n[55] Cihang Xie,Yuxin Wu,Laurens van der Maaten,Alan L Yuille,and Kaiming He. Feature denoising for improving adversarial robustness.In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,2019. 3   \n[56] Yuzhe Yang,Guo Zhang,Dina Katabi,and Zhi Xu．Menet: Towards effective adversarial robustness with matrix estimation. In International Conference on Machine Learning, 2019. 6   \n[57] Hongxu Yin,Pavlo Molchanov, Jose M Alvarez, Zhizhong Li,Arun Mallya,Derek Hoiem,Niraj K Jha,and Jan Kautz. Dreaming to distill: Data-free knowledge transfer via deepinversion. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition,2020. 8   \n[58] Jongmin Yoon, Sung Ju Hwang,and Juho Lee.Adversarial purification with score-based generative models.In International Conference on Machine Learning,2021.1,3,6   \n[59] MD Zeiler. Visualizing and understanding convolutional networks.In European Conference on Computer Vision,2014. 4   \n[60] Boya Zhang,Weijian Luo,and Zhihua Zhang. Enhancing adversarial robustness via score-based optimization. Advances in Neural Information Processing Systems,2023.2,3,5,6, 8 ",
+        "bbox": [
+            99,
+            340,
+            482,
+            901
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            79,
+            905,
+            897
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "discarded",
+        "text": "4613 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            93,
+            68,
+            482,
+            898
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            516,
+            75,
+            905,
+            896
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "discarded",
+        "text": "4614 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            91,
+            92,
+            482,
+            546
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "discarded",
+        "text": "4615 ",
+        "bbox": [
+            483,
+            945,
+            514,
+            957
+        ],
+        "page_idx": 10
+    }
+]

@@ -1,0 +1,975 @@
+[
+    {
+        "type": "text",
+        "text": "Diffusion-Based Adversarial Purification for Speaker Verification ",
+        "text_level": 1,
+        "bbox": [
+            145,
+            71,
+            852,
+            137
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Yibo Bai, Xiao-Lei Zhang, and Xuelong Li ",
+        "bbox": [
+            328,
+            148,
+            645,
+            164
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract—Recently, automatic speaker verification (ASV) based on deep learning is easily contaminated by adversarial attacks, which is a new type of attack that injects imperceptible perturbations to audio signals so as to make ASV produce wrong decisions. This poses a significant threat to the security and reliability of ASV systems. To address this issue, we propose a Diffusion-Based Adversarial Purification (DAP) method that enhances the robustness of ASV systems against such adversarial attacks. Our method leverages a conditional denoising diffusion probabilistic model to effectively purify the adversarial examples and mitigate the impact of perturbations. DAP first introduces controlled noise into adversarial examples, and then performs a reverse denoising process to reconstruct clean audio. Experimental results demonstrate the efficacy of the proposed DAP in enhancing the security of ASV and meanwhile minimizing the distortion of the purified audio signals. ",
+        "bbox": [
+            78,
+            222,
+            488,
+            422
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Index Terms—Speaker verification, adversarial defense, diffusion model ",
+        "bbox": [
+            76,
+            430,
+            488,
+            455
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "I. INTRODUCTION ",
+        "text_level": 1,
+        "bbox": [
+            220,
+            481,
+            348,
+            494
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "A UTOMATIC speaker verification (ASV) aims to verifyindividuals based on their unique voiceprint characteristics. It has been widely used in biometric authentication. However, ASV systems are vulnerable to attackers [1], which raises a concern in enhancing their security in real-world applications. Particularly, recently a new type of attacker named adversarial attack, which adds imperceptible perturbations to original utterances, can easily contaminate an ASV system by making it e.g. accept speakers that should have been rejected or just the opposite, without changing the perception quality of the utterances to human. The polluted utterances are called adversarial examples, while the original utterances are also called genuine examples. In recent years, there has been growing interest in studying the susceptibility of ASV systems to adversarial attacks. For example, [1], [2] found that the state-of-the-art ASV models are highly vulnerable to adversarial attacks. [3] conducted transferable gray-box attacks on ASV systems across different features and different models. ",
+        "bbox": [
+            78,
+            502,
+            488,
+            773
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "In response to this emerging threat landscape, researchers have begun investigating techniques to enhance the robustness and security of ASV systems against adversarial attacks. Current defense methods can be classified into three categories: adversarial training, adversarial detection and adversarial purification [4]. Specifically, adversarial training mainly utilizes the adversarial examples to retrain the ASV model. One weakness of this kind of methods is that it needs to modify the parameters of the original model [5]. Adversarial detection adds a detection head in front of the ASV model to reject adversarial examples as an input into the system [6]. However, it may hinder human access to ASV when his/her voice was polluted by adversarial perturbations. Adversarial purification aims to purify all incoming inputs to eliminate adversarial perturbations [4]. It overcomes the weaknesses of the first two kinds of methods, which is our focus in this paper. ",
+        "bbox": [
+            78,
+            775,
+            488,
+            804
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            508,
+            220,
+            919,
+            430
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Adversarial purification for ASV can be divided into two categories: preprocessing and reconstruction. Preprocessing methods apply empirical knowledge to the input signals. They are typically data-free and have low computational complexity. For example, [7] applied median, mean and Gaussian filters to the input utterance. [8] proposed to add white noise with different variance to the entire utterance. Reconstruction methods focus on recover the original audio or its acoustic features from the adversarial examples. [9] proposed a separation network to estimate adversarial noise for restoring the clean speech. [10] proposed to reproduce the acoustic features with a selfsupervised model. Although existing purification methods have demonstrated effectiveness in defending ASV systems, the quality of the reconstructed audio signals was not guaranteed to high level. Some methods introduce additional noise into the purified samples, while others produce unexpected distortion to the audio signals which make the signals deviate significantly from their origins. ",
+        "bbox": [
+            508,
+            433,
+            918,
+            702
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "To address the above issue, we propose the Diffusion-Based Adversarial Purification (DAP) method. This novel method utilizes a diffusion model to purify the impact of adversarial attacks by reconstructing the original speech waveform, which defends ASV systems with high reliability. Our contributions can be summarized as follows: We propose the first adversarial defense diffusion model for ASV systems. Our method achieves the state-of-the-art performance on the ASV purification task, and retains the essential information of the original speech signal. ",
+        "bbox": [
+            508,
+            704,
+            919,
+            853
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "II. RELATED WORK ",
+        "text_level": 1,
+        "bbox": [
+            645,
+            875,
+            782,
+            887
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "A. Automatic speaker verification ",
+        "text_level": 1,
+        "bbox": [
+            508,
+            895,
+            735,
+            909
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Speaker verification aims to determine whether a test utterance belongs to a speaker that it declares to. Most of the current ASV systems comprise three components: an acoustic feature extractor, an encoder front-end which yields a speaker embedding from the acoustic features, and a scoring backend which evaluates the similarity of the representations of two utterances. Commonly used acoustic features include Melfrequency cepstral coefficients (MFCCs) or logarithmic filterbanks (LogFBank). Given a test utterance $x ^ { t }$ and an enrollment utterance $x ^ { e }$ , the scoring process of ASV can be defined as: ",
+        "bbox": [
+            508,
+            915,
+            918,
+            944
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 ",
+        "bbox": [
+            80,
+            30,
+            415,
+            41
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "arXiv:2310.14270v3 [eess.AS] 9 Jul 2024 ",
+        "bbox": [
+            26,
+            272,
+            60,
+            713
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "1 ",
+        "bbox": [
+            911,
+            31,
+            919,
+            40
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "Corresponding author: Xiao-Lei Zhang Yibo Bai is with the Department of Electrical and Electronic Engineering, The University of Hong Kong, Hong Kong (e-mail: baiyibo@connect.hku.hk). Xiao-Lei Zhang is with the School of Marine Science and Technology, Northwestern Polytechnical University, 127 Youyi West Road, Xi’an, Shaanxi 710072, China, with the Institute of Artificial Intelligence (TeleAI), China Telecom Corp Ltd, 31 Jinrong Street, Beijing 100033, P. R. China, and also with the Research and Development Institute of Northwestern Polytechnical University, Shenzhen 518063, China. (e-mail: xiaolei.zhang $@$ nwpu.edu.cn). Xuelong Li is with TeleAI, China Telecom Corp Ltd, 31 Jinrong Street, Beijing 100033, P. R. China (e-mail: xuelong li@ieee.org). ",
+        "bbox": [
+            78,
+            819,
+            490,
+            944
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/a6644113e4696139f1d58bebdf2b77fe06350c92ae6739d1378b04bfcbcd4f91.jpg",
+        "image_caption": [
+            "Fig. 1. A speaker verification pipeline with DAP method. Initially, the adversarial example is introduced into a diffusion model positioned before the ASV system for processing. Subsequently, the diffusion model employs a ”diffusion” process on the adversarial input, followed by the reversal of this process to reconstruct the original clean audio. Finally, the ASV system produces the correct verification outcome. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            266,
+            71,
+            727,
+            191
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            78,
+            275,
+            490,
+            395
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "img_path": "images/4a9d225094126a2b48c0943aee32312ddaecd96be305deaa072ef84480d488aa.jpg",
+        "text": "$$\ns = S ( F ( x ^ { t } ) , F ( x ^ { e } ) )\n$$",
+        "text_format": "latex",
+        "bbox": [
+            210,
+            401,
+            357,
+            419
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "where $S ( \\cdot )$ denotes the scoring back-end, $F ( \\cdot )$ is the encoder front-end, and $s$ is the similarity score between $x ^ { t }$ and $x ^ { e }$ . By comparing the similarity score with a predefined threshold, the system determines whether to accept the test utterance. ",
+        "bbox": [
+            78,
+            424,
+            490,
+            484
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "B. Adversarial attack to ASV ",
+        "text_level": 1,
+        "bbox": [
+            78,
+            500,
+            277,
+            512
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Given a genuine audio utterance $x$ from a speaker $i$ , an adversarial attack creates a perturbation signal $\\epsilon$ to $x$ . The adversarial example is formulated as $\\tilde { x } = x + \\epsilon$ subject to the condition $\\| \\tilde { x } - x \\| _ { p } \\leq \\varepsilon$ which guarantees that $\\tilde { x }$ is similar to $x$ , where $\\varepsilon$ is a very small number that controls the energy of $\\epsilon$ , and $\\| \\cdot \\| _ { p }$ is the $\\ell _ { p }$ -norm. As shown in Fig. 1, $\\tilde { x }$ aims to cause an error of the ASV system. ",
+        "bbox": [
+            78,
+            517,
+            490,
+            622
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "C. Denoising diffusion probabilistic models ",
+        "text_level": 1,
+        "bbox": [
+            80,
+            637,
+            370,
+            651
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The denoising diffusion probabilistic models [11] are a type of generative models used to produce data similar to the input. Specifically, the diffusion model works by progressively adding Gaussian noise to blur the training data and then learning how to denoise it and recover the original input. Once trained, the diffusion model can reverse the diffusion process to generate new data from random noise. ",
+        "bbox": [
+            78,
+            655,
+            490,
+            760
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Recently, diffusion models have garnered interest among researchers. They utilize diffusion and denoising processes for high-quality content generation. By incorporating specific generation conditions, the outcomes of diffusion models can be controlled [12] to satisfy different applications such as speech enhancement, speech command recognition, image reconstruction, and remote sensing [13], [14], [15], [16]. ",
+        "bbox": [
+            78,
+            761,
+            490,
+            866
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "III. METHODOLOGY ",
+        "text_level": 1,
+        "bbox": [
+            210,
+            877,
+            356,
+            891
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "A. Framework ",
+        "text_level": 1,
+        "bbox": [
+            78,
+            896,
+            176,
+            910
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "The objective of our research is to develop a robust adversarial purification model $D ( \\cdot )$ for ASV, which eliminates the ",
+        "bbox": [
+            76,
+            915,
+            488,
+            944
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "perturbation $\\epsilon$ in $\\tilde { x }$ and produces a purified audio $\\tilde { x } ^ { \\prime }$ . It can be formulated as a problem of $\\tilde { x } ^ { \\prime } = D ( \\tilde { x } )$ subject to: ",
+        "bbox": [
+            508,
+            275,
+            918,
+            305
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "img_path": "images/d86ddf22c287dbdf6212e116c495642583f3395b5bd9ea30e77402f4fdeae7d9.jpg",
+        "text": "$$\nS ( \\tilde { x } ^ { \\prime } , x ^ { e } ) = S ( x , x ^ { e } )\n$$",
+        "text_format": "latex",
+        "bbox": [
+            642,
+            315,
+            785,
+            334
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "This paper proposes to take the denoising diffusion probabilistic model [11] as $D ( \\cdot )$ to purify adversarial perturbation and transform these adversarial examples into clean data for ASV. The proposed DAP method is illustrated in Fig. 1. Given an adversarial audio $\\tilde { x }$ , DAP purifies it to $\\tilde { x } ^ { \\prime }$ for satisfying Eq. (2). Specifically, DAP first introduces noise to $\\tilde { x }$ via a forward process with a diffusion timestep $T$ . Subsequently, it reconstructs the clean audio signal $\\tilde { x } ^ { \\prime }$ via a reverse denoising process before feeding it into the ASV system for analysis. In the next subsection, we will present the denoising diffusion probabilistic model in detail. ",
+        "bbox": [
+            508,
+            345,
+            919,
+            511
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "B. Diffusion-Based audio purification ",
+        "text_level": 1,
+        "bbox": [
+            509,
+            537,
+            759,
+            553
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "A $T$ -step denoising diffusion probabilistic model consists of two processes: the diffusion process, a.k.a. forward process, and the reverse process, which can both be represented as a $T$ - step parameterized Markov chain. In its diffusion process, the model adds $T$ rounds of noise to the real example $x _ { 0 }$ to obtain the noised sample $x _ { T }$ . The reverse process aims to recover the original $x _ { 0 }$ based on $x _ { T }$ . Following the Markov assumption, the state at $t$ step in the diffusion process, only depends on the state at $t - 1$ step, so the process can be defined as: ",
+        "bbox": [
+            508,
+            559,
+            919,
+            695
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "img_path": "images/7157b92b2e374d90e842df45235fee6738eff6bf2a45a91d448b1937fc14ee7b.jpg",
+        "text": "$$\nq ( x _ { 1 } , \\cdot \\cdot \\cdot , x _ { T } | x _ { 0 } ) = \\prod _ { t = 1 } ^ { T } q ( x _ { t } | x _ { t - 1 } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            591,
+            704,
+            834,
+            747
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "where $q ( x _ { t } | x _ { t - 1 } ) ~ = ~ \\mathcal { N } ( x _ { t } ; ~ \\sqrt { 1 - \\beta _ { t } } x _ { t - 1 } , \\beta _ { t } \\mathbf { I } )$ . In other words, $x _ { t }$ is sampled from a Gaussian distribution with mean $\\sqrt { 1 - \\beta _ { t } } x _ { t - 1 }$ and variance $\\beta _ { t }$ , where $\\beta _ { t }$ is a hyperparameter determined by a predefined strategy, usually satisfying $\\beta _ { 1 } < \\beta _ { 2 } < \\cdots < \\beta _ { T }$ . ",
+        "bbox": [
+            508,
+            756,
+            919,
+            832
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Then, employing the recursive reparameterization trick, $x _ { t }$ can be represented in terms of $x _ { 0 }$ : ",
+        "bbox": [
+            506,
+            834,
+            919,
+            863
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "img_path": "images/fe2c0e9b1565c83896cbdb5e1687ab4743d7d17f42643e18bb6725c9452b81f0.jpg",
+        "text": "$$\nx _ { t } = \\sqrt { \\bar { \\alpha } _ { t } } x _ { 0 } + ( 1 - \\bar { \\alpha } _ { t } ) \\epsilon ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            625,
+            872,
+            800,
+            892
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "where $\\epsilon \\sim \\mathcal { N } ( 0 , \\mathbf { I } )$ , $\\alpha _ { t } = 1 - \\beta _ { t }$ and $\\begin{array} { r } { \\bar { \\alpha } _ { t } = \\prod _ { i = 1 } ^ { t } \\alpha _ { i } } \\end{array}$ . We have: ",
+        "bbox": [
+            506,
+            900,
+            919,
+            919
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "img_path": "images/dc077bd419f22e84fc9776b7be1259a5a8db669201c17dcd8e507e624d182e01.jpg",
+        "text": "$$\nq ( x _ { t } | x _ { 0 } ) = \\mathcal { N } ( x _ { t } ; \\sqrt { \\bar { \\alpha } _ { t } } x _ { 0 } , ( 1 - \\bar { \\alpha } _ { t } ) \\mathbf { I } ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            584,
+            928,
+            841,
+            945
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 ",
+        "bbox": [
+            80,
+            30,
+            415,
+            41
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "discarded",
+        "text": "2 ",
+        "bbox": [
+            911,
+            31,
+            919,
+            40
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Similarly, for the reverse process that transforms $x _ { T }$ back to $x _ { 0 }$ , we have: ",
+        "bbox": [
+            76,
+            69,
+            490,
+            98
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/7b2e92d17afd3d82461bfc989db720bd07f636b759ee2d94484918fc95b4b595.jpg",
+        "text": "$$\np _ { \\theta } ( x _ { 0 } , \\cdot \\cdot \\cdot , x _ { T - 1 } | x _ { T } ) = \\prod _ { t = 1 } ^ { T } p _ { \\theta } ( x _ { t - 1 } | x _ { t } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            143,
+            102,
+            421,
+            145
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $p _ { \\theta } ( \\cdot )$ is used to estimate $q ( \\cdot )$ in Eq. (3) and $p _ { \\theta } ( x _ { t - 1 } | x _ { t } ) \\ = \\ { \\mathcal { N } } ( x _ { t - 1 } ; \\mu _ { \\theta } ( x _ { t } , t ) , \\sigma _ { \\theta } ( x _ { t } , t ) ^ { 2 } \\mathbf { I } )$ with the parameterized $\\mu _ { \\theta }$ and $\\sigma _ { \\theta } ^ { 2 }$ described as [17]: ",
+        "bbox": [
+            76,
+            147,
+            490,
+            194
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/dc3677542fd39c9c90093b1ccea12e455e0ea99c8af35d4496f13ef0fabbda98.jpg",
+        "text": "$$\n\\mu _ { \\theta } ( x _ { t } , t ) = \\frac { 1 } { \\sqrt { \\alpha _ { t } } } ( x _ { t } - \\frac { \\beta _ { t } } { \\sqrt { 1 - \\bar { \\alpha } _ { t } } } \\epsilon _ { \\theta } ( x _ { t } , t ) ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            140,
+            196,
+            428,
+            232
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "and ",
+        "bbox": [
+            76,
+            236,
+            104,
+            248
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/1c428c19446db0d106984f7eaba77da9b4f501655bc48f6077bcc172b9d7ed00.jpg",
+        "text": "$$\n\\sigma _ { \\theta } ( x _ { t } , t ) ^ { 2 } = \\tilde { \\beta } _ { t } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            228,
+            246,
+            338,
+            265
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $\\begin{array} { r c l } { \\tilde { \\beta } _ { t } } & { = } & { \\frac { 1 - \\bar { \\alpha } _ { t - 1 } } { 1 - \\bar { \\alpha } _ { t } } \\beta _ { t } } \\end{array}$ 1−α¯t−11−α¯ βt for t > 1 and β˜1 = β1, and $\\epsilon _ { \\theta } ( x _ { t } , t )$ represents a deep neural network model used to predict Gaussian noise $\\epsilon$ from $x _ { t }$ and $t$ . ",
+        "bbox": [
+            78,
+            268,
+            490,
+            316
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "According to [11], we train diffusion model with the following unweighted objective function: ",
+        "bbox": [
+            78,
+            318,
+            488,
+            347
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/5d1d845b467a7c2c849af5924178084d91cb18b69f6ead476bf5f360acca9db9.jpg",
+        "text": "$$\n\\mathbb { E } _ { x _ { 0 } , t , \\epsilon } \\left. \\epsilon - \\epsilon _ { \\theta } ( \\sqrt { \\bar { \\alpha } _ { t } } x _ { 0 } + \\sqrt { ( 1 - \\bar { \\alpha } _ { t } ) } \\epsilon , t ) \\right. _ { 2 } ^ { 2 } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            133,
+            351,
+            431,
+            380
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $t$ is uniformly sampled from the range 1 to $T$ . After training, $\\epsilon _ { \\theta }$ is able to predict $\\epsilon$ well. In the inference stage, the diffusion model first begins with a diffused sample $x _ { T }$ , then the reverse process iteratively utilizes $\\epsilon _ { \\theta }$ to get the mean $\\mu _ { \\theta }$ and finally recover $x _ { 0 }$ from $x _ { T }$ . ",
+        "bbox": [
+            78,
+            382,
+            490,
+            458
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Existing theorems have proven that in the forward process Eq. (3) of the diffusion model, the KL divergence between the distribution of clean data and the distribution of adversarial examples monotonically decreases [18]. This indicates that the two distributions gradually become more similar as $t$ increases, enabling the use of the reverse process to reconstruct clean inputs from adversarial examples. This comprehensive process constitutes the foundation of our innovative defense approach against adversarial attacks. While the previous method in [18] focuses on purifying images with fixed width and height, our method can flexibly handle audio signals with variable length. Given an adversarial audio $\\tilde { x }$ , we initiate the forward process with $x _ { 0 } = \\tilde { x }$ . According to the above theorem in [18], there exists a timestep $t ^ { * }$ that minimizes the KL divergence between the two distributions. Therefore, by starting the reverse process with $T = t ^ { * }$ , the diffusion model can recover corresponding clean audio of $\\tilde { x }$ . The resulting audio utterance is then passed to the ASV system. ",
+        "bbox": [
+            78,
+            458,
+            490,
+            728
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "IV. EXPERIMENTS ",
+        "text_level": 1,
+        "bbox": [
+            217,
+            741,
+            349,
+            755
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "A. Experimental settings ",
+        "text_level": 1,
+        "bbox": [
+            78,
+            761,
+            245,
+            775
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "1) Dataset: We utilized VoxCeleb1 [19] for evaluating our DAP approach and VoxCeleb2 [20] for training the ASV and DAP models. VoxCeleb1 contains over 1,000 hours of speech data with 148,642 utterances from 1,211 speakers. VoxCeleb2 extends VoxCeleb1 with more speakers. This dataset offers an expanded set of development data to train our ASV models, which enables them to learn from a more diverse set of speakers. To balance computational requirements and ensure a representative evaluation, we conducted our adversarial research by randomly selecting 1,000 trials from the VoxCeleb1- O subset. ",
+        "bbox": [
+            78,
+            780,
+            490,
+            943
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "table",
+        "img_path": "images/de0ebdc628f84ea2871d362a354e81e23a12c3e4da032a38fdf26b1e52586901.jpg",
+        "table_caption": [
+            "TABLE I ECAPA-TDNN PERFORMANCE RESULTS FOR GENUINE EXAMPLES ON THE SPEAKER VERIFICATION TASK. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Trials</td><td>EER(%)</td><td>minDCF</td></tr><tr><td>VoxCeleb-O</td><td>1.069</td><td>0.107</td></tr><tr><td>VoxCeleb-E</td><td>1.201</td><td>0.131</td></tr><tr><td>VoxCeleb-H</td><td>2.288</td><td>0.226</td></tr><tr><td>1,000 trials</td><td>0.828</td><td>0.021</td></tr></table>",
+        "bbox": [
+            531,
+            114,
+            885,
+            189
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "2) ASV system: We employed ECAPA-TDNN [21] as the main victim ASV model for adversarial attacks, which consists of convolutional layers with 512 channels. We used the AAM-Softmax objective function [22] with hyperparameters $\\{ \\mathrm { s } { = } 3 2$ , $\\scriptstyle \\mathrm { m = 0 . 2 } \\}$ for training, along with attentive statistical pooling. The input acoustic feature is an 80-dimensional LogFBank representation with a $2 5 \\mathrm { m s }$ hamming window and a $1 0 \\mathrm { m s }$ step size. Additionally, cepstral mean and variance normalization (CMVN) is applied to the features. Data augmentation techniques including speed perturbing, superimposed disturbance, and reverberation enhancement are employed. Cosine distance is used to produce similarity scores between embeddings. ",
+        "bbox": [
+            508,
+            198,
+            919,
+            378
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3) Adversarial attack: We employed PGD attack [23] and BIM attack [24], which adopt the same parameters $\\scriptstyle { \\left\\{ \\epsilon = 3 0 \\right. }$ , $\\scriptstyle { \\alpha = 1 } \\}$ to generate the adversarial examples. The iteration step was normally set as 50. To ensure a consistent signal-to-noise ratio (SNR) between genuine and adversarial examples, we added Gaussian white noise to the genuine examples, with the noise level determined by the corresponding adversarial perturbations. As a result, the mean signal-to-noise ratio for the genuine examples was set to approximately 40dB. ",
+        "bbox": [
+            508,
+            381,
+            919,
+            516
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4) Evaluation metrics: We measured the performance of the ASV systems and the effectiveness of the defense mechanism using two commonly used metrics: Equal Error Rate (EER) and minimum Detection Cost Function (minDCF) with $p = 0 . 0 1 $ and $C _ { m i s s } = C _ { f a } = 1$ [25]. EER measures the point at which the false acceptance rate (FAR) equals the false rejection rate (FRR). minDCF is a cost-based metric that considers both false acceptance and false rejection errors, allowing for a more comprehensive evaluation of ASV system performance. ",
+        "bbox": [
+            508,
+            518,
+            919,
+            654
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "We evaluated the reconstruction performance of the purified signals using three objective metrics: Scale-Invariant Signalto-Distortion Ratio (SI-SDR), Short-Time Objective Intelligibility (STOI), and Perceptual Evaluation of Speech Quality (PESQ). These metrics assess the quality and intelligibility of the audio, where higher values indicate better speech quality. ",
+        "bbox": [
+            508,
+            656,
+            919,
+            746
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "5) Baseline and proposed methods: For our Diffusion-Based Adversarial Purification (DAP) model, we adopted the same architecture as DiffWave [17]. To introduce controlled noise during the training stage, we set step $T$ as 100 and utilized a linear noise schedule $\\{ 0 . 0 0 0 1 , 0 . 0 3 5 \\}$ to apply $\\beta _ { t }$ at each step. It makes $\\beta _ { t }$ begin with 0.0001 and increase to 0.035 over 100 steps. In the inference stage, the six-step variance schedule $[ 0 . 0 0 0 1 , \\ 0 . 0 0 1 , \\ 0 . 0 1 , \\ 0 . 0 5 , \\ 0 . 2 , \\ 0 . 3 5 ]$ is applied to set the value of $\\gamma$ in the fast sampling algorithm. In addition, We used adversarial examples generated by the PGD method for training the DAP model. We trained two DAP systems conditioned on 512-dimensional spectrogram, which were trained by 1k and $8 0 \\mathrm { k }$ iterations, respectively. ",
+        "bbox": [
+            508,
+            748,
+            919,
+            944
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 ",
+        "bbox": [
+            80,
+            30,
+            415,
+            41
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "discarded",
+        "text": "3 ",
+        "bbox": [
+            911,
+            31,
+            919,
+            40
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "table",
+        "img_path": "images/e420b3aaa4c2191ed03368dc66aa591360d574eb8d9caa13911f015dc59e2b4b.jpg",
+        "table_caption": [
+            "TABLE II EER $( \\% )$ RESULTS OF THE VICTIM ASV MODEL FOR GENUINE AND ADVERSARIAL EXAMPLES, GIVEN THE DEFENSE MODELS OF TERA, SPATIAL SMOOTHING, ADDING NOISE AND THE PROPOSED DAP METHOD. THE TERM “N/A” MEANS THAT NO DEFENSE MODEL IS APPLIED. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\"></td><td rowspan=\"2\">N/A</td><td colspan=\"2\">TERA [10]</td><td colspan=\"3\">Spatial smoothing [7]</td><td colspan=\"5\">Adding noise [8]</td><td colspan=\"2\">DAP (proposed)</td></tr><tr><td>1*TERA</td><td>9*TERA</td><td>Median</td><td>Mean</td><td>Gaussian</td><td>g=0.002</td><td>g=0.005</td><td>g=0.01</td><td>g=0.02</td><td>g=0.05</td><td>iter=1k</td><td>iter=80k</td></tr><tr><td>genuine</td><td>0.828</td><td>20.890</td><td>35.818</td><td>27.853</td><td>1.161</td><td>10.973</td><td>1.161</td><td>1.547</td><td>2.277</td><td>3.675</td><td>9.731</td><td>2.505</td><td>1.253</td></tr><tr><td>adv-PGD</td><td>91.683</td><td>48.356</td><td>42.360</td><td>27.557</td><td>88.935</td><td>26.722</td><td>23.188</td><td>5.609</td><td>3.727</td><td>4.762</td><td>9.524</td><td>3.340</td><td>7.087</td></tr><tr><td>adv-BIM</td><td>92.133</td><td>26.499</td><td>39.545</td><td>26.087</td><td>76.789</td><td>13.872</td><td>6.576</td><td>2.901</td><td>2.484</td><td>3.868</td><td>9.731</td><td>2.321</td><td>2.070</td></tr></table>",
+        "bbox": [
+            88,
+            111,
+            910,
+            188
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "table",
+        "img_path": "images/8c51fd06c08839daf13815853fedc253fafe47b767c50f97749bfc9d662bd22f.jpg",
+        "table_caption": [
+            "TABLE III QUALITY OF THE AUDIO SIGNALS THAT ARE FIRST GENERATED FROM PGD ADVERSARIAL EXAMPLES AND THEN PURIFIED BY DEFENSE MODELS. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Defender</td><td>SI-SDR</td><td>STOI</td><td>WB-PESQ</td><td>NB-PESQ</td></tr><tr><td>N/A</td><td>35.099</td><td>0.991</td><td>4.412</td><td>4.397</td></tr><tr><td>Median filter [7]</td><td>-16.359</td><td>0.632</td><td>1.152</td><td>1.397</td></tr><tr><td>Adding Noise [8]</td><td>12.572</td><td>0.867</td><td>1.556</td><td>2.353</td></tr><tr><td>DAP(proposed)</td><td>11.467</td><td>0.932</td><td>3.120</td><td>3.717</td></tr></table>",
+        "bbox": [
+            93,
+            250,
+            470,
+            330
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "image",
+        "img_path": "images/3eb9b2787a8ea0001e14546d8c4d20cdc20aaf5b2c27b8a66ea0bbaba042438f.jpg",
+        "image_caption": [
+            "Fig. 2. A comparison example between the original audio and its adversarial example with different defenders. The genuine example is from id10270/5r0dWxy17C8/00024.wav of VoxCeleb1. As TERA method focuses on feature-level purification, it is not included in Fig. 2(a). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            93,
+            345,
+            468,
+            560
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "We compared the proposed adversarial defense method with three adversarial defense methods [10], [7], [8]. (i) The TERA method [10] employed a self-supervised model to reconstruct the acoustic feature. We pretrained it with the same setting in [10] except on 80-dim LogFBank features. (ii) The spatial smoothing method [7] used median, mean, and Gaussian filters to process the input audio. (iii) The noise-based method [8] added Gaussian noise to the entire audio signal. In our experiments, the standard deviation of the noise was set to $\\{ 0 . 0 0 2 , 0 . 0 0 5 , 0 . 0 1 , 0 . 0 2 , 0 . 0 5 \\}$ . ",
+        "bbox": [
+            78,
+            632,
+            488,
+            782
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "B. Experimental results ",
+        "text_level": 1,
+        "bbox": [
+            78,
+            804,
+            238,
+            818
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "1) Defense performance: Table II compares the DAP method with three purification methods on the ASV defense task. DAP outperforms others in defending against adversarial examples while maintaining performance on genuine examples. Furthermore, DAP is capable of defending against both $\\ell _ { \\infty }$ and $\\ell _ { 2 }$ attacks. In addition, although self-supervised models like TERA are not trained for adversarial purification tasks, they could still demonstrate some defensive capabilities. ",
+        "bbox": [
+            78,
+            824,
+            488,
+            944
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "table",
+        "img_path": "images/4f351b5b41dc364affeee9a758787239a525888bcd328c7e7a2cc87d7ddc69ef.jpg",
+        "table_caption": [
+            "TABLE IV EER $( \\% )$ RESULTS OF ECAPA-TDNN AND FAST-RESNET34 UNDER PGD AND BIM ATTACK METHODS. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Attacker</td><td rowspan=\"2\">Steps</td><td colspan=\"3\">ECAPA-TDNN</td><td colspan=\"3\">Fast-ResNet34</td></tr><tr><td>N/A</td><td>Noise</td><td>DAP</td><td>N/A</td><td>Noise</td><td>DAP</td></tr><tr><td rowspan=\"4\">PGD</td><td>10</td><td>83.232</td><td>3.340</td><td>3.758</td><td>85.339</td><td>2.714</td><td>2.128</td></tr><tr><td>20</td><td>95.633</td><td>3.704</td><td>4.115</td><td>96.378</td><td>3.132</td><td>2.277</td></tr><tr><td>50</td><td>98.668</td><td>4.983</td><td>4.293</td><td>98.992</td><td>3.833</td><td>2.899</td></tr><tr><td>100</td><td>98.998</td><td>5.010</td><td>4.528</td><td>99.398</td><td>3.967</td><td>2.901</td></tr><tr><td rowspan=\"4\">BIM</td><td>10</td><td>59.872</td><td>3.311</td><td>3.520</td><td>62.128</td><td>2.505</td><td>1.852</td></tr><tr><td>20</td><td>84.258</td><td>3.448</td><td>3.868</td><td>87.628</td><td>2.714</td><td>2.244</td></tr><tr><td>50</td><td>94.821</td><td>3.643</td><td>4.348</td><td>95.899</td><td>3.132</td><td>2.996</td></tr><tr><td>100</td><td>95.834</td><td>3.883</td><td>4.348</td><td>96.604</td><td>3.292</td><td>3.125</td></tr></table>",
+        "bbox": [
+            511,
+            238,
+            918,
+            376
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "We also evaluated another pretrained self-supervised model— WavLM [26]. It reaches an EER of $9 . 4 2 7 \\%$ after purifying the PGD examples. ",
+        "bbox": [
+            508,
+            386,
+            918,
+            429
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "2) Reconstruction performance: In terms of audio reconstruction quality, DAP surpasses other methods as shown in Table III. Fig. 2 gives a visualized comparison between the original audio and its corresponding adversarial examples after processed by different defense methods. From the figure, we see that the adversarial example purified by DAP are observed to be more similar to the original signal compared to those purified by the other approaches, e.g. the highlighted part in the red box. Moreover, DAP can reduce the noise and reverberation component of the speech signal. We also conducted a human listening test on 50 DAP-purified samples with five listeners. In $52 \\%$ of the cases, listeners could not discern any differences, while $36 \\%$ of the samples were perceived as similar to the original audio but with slight noise. For the remaining $12 \\%$ , listeners noticed significant noise. ",
+        "bbox": [
+            508,
+            431,
+            919,
+            655
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "3) Effect of attack settings: In this subsection, we study the robustness of the proposed method against different attackers and with different victim models. Table IV lists the performance of the ECAPA-TDNN and Fast-ResNet34 victim models under the $\\ell _ { 2 }$ PGD and $\\ell _ { \\infty }$ BIM attack methods, where the standard deviation of the adding noise method was set to 0.01. The results show that our method is effective under different attack scenarios and different ASV architectures. ",
+        "bbox": [
+            508,
+            656,
+            919,
+            776
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "V. CONCLUSION ",
+        "text_level": 1,
+        "bbox": [
+            655,
+            790,
+            772,
+            804
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "In this letter, we propose a DAP method for the ASV defense against adversarial attacks. DAP utilizes a diffusion model to purify the adversarial examples and mitigate the perturbations in audio inputs. We conducted experiments in scenarios where the attackers are unaware of the defense method. The experimental results indicate that our approach outperforms the representative purification methods. It also introduces the minimal distortion to the genuine examples over the comparison methods. ",
+        "bbox": [
+            508,
+            809,
+            918,
+            944
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 ",
+        "bbox": [
+            81,
+            31,
+            415,
+            41
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "discarded",
+        "text": "4 ",
+        "bbox": [
+            911,
+            31,
+            919,
+            40
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "REFERENCES ",
+        "text_level": 1,
+        "bbox": [
+            238,
+            70,
+            330,
+            83
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "[1] J. Villalba, Y. Zhang, and N. Dehak, “x-vectors meet adversarial attacks: Benchmarking adversarial robustness in speaker verification.” in INTERSPEECH, 2020, pp. 4233–4237. [2] X. Li, J. Zhong, X. Wu, J. Yu, X. Liu, and H. Meng, “Adversarial attacks on gmm i-vector based speaker verification systems,” in ICASSP 2020- 2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2020, pp. 6579–6583.   \n[3] F. Kreuk, Y. Adi, M. Cisse, and J. Keshet, “Fooling end-to-end speaker verification with adversarial examples,” in 2018 IEEE international conference on acoustics, speech and signal processing (ICASSP). IEEE, 2018, pp. 1962–1966.   \n[4] H. Wu, J. Kang, L. Meng, H. Meng, and H.-y. Lee, “The defender’s perspective on automatic speaker verification: An overview,” arXiv preprint arXiv:2305.12804, 2023.   \n[5] I. J. Goodfellow, J. Shlens, and C. Szegedy, “Explaining and harnessing adversarial examples,” in International Conference on Learning Representations, 2014.   \n[6] X. Li, N. Li, J. Zhong, X. Wu, X. Liu, D. Su, D. Yu, and H. Meng, “Investigating robustness of adversarial samples detection for automatic speaker verification,” Interspeech 2020, 2020.   \n[7] H. Wu, S. Liu, H. Meng, and H.-y. Lee, “Defense against adversarial attacks on spoofing countermeasures of asv,” in ICASSP 2020-2020 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2020, pp. 6564–6568.   \n[8] L.-C. Chang, Z. Chen, C. Chen, G. Wang, and Z. Bi, “Defending against adversarial attacks in speaker verification systems,” in 2021 IEEE International Performance, Computing, and Communications Conference (IPCCC). IEEE, 2021, pp. 1–8.   \n[9] H. Zhang, L. Wang, Y. Zhang, M. Liu, K. A. Lee, and J. Wei, “Adversarial separation network for speaker recognition.” in INTERSPEECH, 2020, pp. 951–955.   \n[10] H. Wu, X. Li, A. T. Liu, Z. Wu, H. Meng, and H.-Y. Lee, “Improving the adversarial robustness for speaker verification by self-supervised learning,” IEEE/ACM Transactions on Audio, Speech, and Language Processing, vol. 30, pp. 202–217, 2021.   \n[11] J. Ho, A. Jain, and P. Abbeel, “Denoising diffusion probabilistic models,” Advances in neural information processing systems, vol. 33, pp. 6840– 6851, 2020.   \n[12] J. Choi, S. Kim, Y. Jeong, Y. Gwon, and S. Yoon, “Ilvr: Conditioning method for denoising diffusion probabilistic models. in 2021 ieee,” in CVF international conference on computer vision (ICCV), 2021, pp. 14 347–14 356.   \n[13] Y.-J. Lu, Z.-Q. Wang, S. Watanabe, A. Richard, C. Yu, and Y. Tsao, “Conditional diffusion probabilistic model for speech enhancement,” in ICASSP 2022-2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP). IEEE, 2022, pp. 7402–7406.   \n[14] W. Yu, Y. Xu, and P. Ghamisi, “Universal adversarial defense in remote sensing based on pre-trained denoising diffusion models,” arXiv preprint arXiv:2307.16865, 2023.   \n[15] S. Wu, J. Wang, W. Ping, W. Nie, and C. Xiao, “Defending against adversarial audio via diffusion model,” in The Eleventh International Conference on Learning Representations, 2022.   \n[16] I. Alkhouri, S. Liang, R. Wang, Q. Qu, and S. Ravishankar, “Diffusionbased adversarial purification for robust deep mri reconstruction,” arXiv preprint arXiv:2309.05794, 2023.   \n[17] Z. Kong, W. Ping, J. Huang, K. Zhao, and B. Catanzaro, “Diffwave: A versatile diffusion model for audio synthesis,” in International Conference on Learning Representations, 2020.   \n[18] W. Nie, B. Guo, Y. Huang, C. Xiao, A. Vahdat, and A. Anandkumar, “Diffusion models for adversarial purification,” in International Conference on Machine Learning. PMLR, 2022, pp. 16 805–16 827.   \n[19] A. Nagrani, J. S. Chung, and A. Zisserman, “Voxceleb: A large-scale speaker identification dataset,” Interspeech 2017, 2017.   \n[20] J. Chung, A. Nagrani, and A. Zisserman, “Voxceleb2: Deep speaker recognition,” Interspeech 2018, 2018.   \n[21] B. Desplanques, J. Thienpondt, and K. Demuynck, “Ecapa-tdnn: Emphasized channel attention, propagation and aggregation in tdnn based speaker verification,” Interspeech 2020, 2020.   \n[22] Y. Liu, L. He, and J. Liu, “Large margin softmax loss for speaker verification,” Interspeech 2019, 2019.   \n[23] L. Ruff, J. R. Kauffmann, R. A. Vandermeulen, G. Montavon, W. Samek, M. Kloft, T. G. Dietterich, and K.-R. Muller, “A unifying review of ¨ deep and shallow anomaly detection,” Proceedings of the IEEE, vol. 109, no. 5, pp. 756–795, 2021.   \n[24] S. Joshi, J. Villalba, P. Zelasko, L. Moro-Vel ˙ azquez, and N. Dehak, ´ “Study of pre-processing defenses against adversarial attacks on state-ofthe-art speaker recognition systems,” IEEE Transactions on Information Forensics and Security, vol. 16, pp. 4811–4826, 2021.   \n[25] A. Nagrani, J. S. Chung, J. Huh, A. Brown, E. Coto, W. Xie, M. McLaren, D. A. Reynolds, and A. Zisserman, “Voxsrc 2020: The second voxceleb speaker recognition challenge,” arXiv preprint arXiv:2012.06867, 2020.   \n[26] S. Chen, C. Wang, Z. Chen, Y. Wu, S. Liu, Z. Chen, J. Li, N. Kanda, T. Yoshioka, X. Xiao et al., “Wavlm: Large-scale self-supervised pretraining for full stack speech processing,” IEEE Journal of Selected Topics in Signal Processing, vol. 16, no. 6, pp. 1505–1518, 2022. ",
+        "bbox": [
+            76,
+            95,
+            490,
+            939
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            508,
+            70,
+            919,
+            208
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "JOURNAL OF LATEX CLASS FILES, VOL. 14, NO. 8, AUGUST 2015 ",
+        "bbox": [
+            80,
+            30,
+            415,
+            41
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "discarded",
+        "text": "5 ",
+        "bbox": [
+            911,
+            31,
+            919,
+            40
+        ],
+        "page_idx": 4
+    }
+]

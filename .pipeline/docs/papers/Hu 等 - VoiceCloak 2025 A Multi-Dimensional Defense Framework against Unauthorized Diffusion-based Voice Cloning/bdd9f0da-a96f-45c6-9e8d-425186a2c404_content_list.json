@@ -1,0 +1,2393 @@
+[
+    {
+        "type": "text",
+        "text": "VoiceCloak: A Multi-Dimensional Defense Framework against Unauthorized Diffusion-based Voice Cloning ",
+        "text_level": 1,
+        "bbox": [
+            114,
+            119,
+            885,
+            161
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Qianyue $\\mathbf { H } \\mathbf { u } ^ { 1 }$ , Junyan $\\mathbf { W } \\mathbf { u } ^ { 1 }$ , Wei $\\mathbf { L u } ^ { 1 * }$ , Xiangyang Luo 2 ",
+        "bbox": [
+            269,
+            171,
+            730,
+            190
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1School of Computer Science and Engineering, MoE Key Laboratory of Information Technology, Guangdong Province Key Laboratory of Information Security Technology, Sun Yat-sen University, Guangzhou 510006, China 2State Key Laboratory of Mathematical Engineering and Advanced Computing, Zhengzhou, 450002, China huqy $5 6 @$ mail2.sysu.edu.cn, wujy $2 9 8 @$ mail2.sysu.edu.cn, luwei3 $@$ mail.sysu.edu.cn, luoxy ieu@sina.com ",
+        "bbox": [
+            98,
+            193,
+            901,
+            248
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Abstract ",
+        "text_level": 1,
+        "bbox": [
+            251,
+            273,
+            312,
+            287
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Diffusion Models (DMs) have achieved remarkable success in realistic voice cloning (VC), while they also increase the risk of malicious misuse. Existing proactive defenses designed for traditional VC models aim to disrupt the forgery process, but they have been proven incompatible with DMs due to the intricate generative mechanisms of diffusion. To bridge this gap, we introduce VoiceCloak, a multi-dimensional proactive defense framework with the goal of obfuscating speaker identity and degrading perceptual quality in potential unauthorized VC. To achieve these goals, we conduct a focused analysis to identify specific vulnerabilities within DMs, allowing VoiceCloak to disrupt the cloning process by introducing adversarial perturbations into the reference audio. Specifically, to obfuscate speaker identity, VoiceCloak first targets speaker identity by distorting representation learning embeddings to maximize identity variation, which is guided by auditory perception principles. Additionally, VoiceCloak disrupts crucial conditional guidance processes, particularly attention context, thereby preventing the alignment of vocal characteristics that are essential for achieving convincing cloning. Then, to address the second objective, VoiceCloak introduces score magnitude amplification to actively steer the reverse trajectory away from the generation of high-quality speech. Noise-guided semantic corruption is further employed to disrupt structural speech semantics captured by DMs, degrading output quality. Extensive experiments highlight VoiceCloak’s outstanding defense success rate against unauthorized diffusion-based voice cloning. Audio samples of VoiceCloak are available at https://voice-cloak.github.io/VoiceCloak/. ",
+        "bbox": [
+            102,
+            297,
+            460,
+            674
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "1 Introduction ",
+        "text_level": 1,
+        "bbox": [
+            214,
+            694,
+            349,
+            709
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "Diffusion Models (DMs) Ho, Jain, and Abbeel (2020); Song, Meng, and Ermon (2020); Rombach et al. (2022) have recently emerged as powerful generative tools, achieving unprecedented success within realistic voice cloning (VC). Their iterative denoising process enables generating speech with remarkable naturalness, detail, and fidelity to human voice Popov et al. (2022); Kong et al. (2020); Jeong et al. (2021); Shen et al. (2024). However, the open-source availability and ease of use of these models intensify concerns about potential misuse. Attackers can synthesize highly realistic voice replicas from short public audio clips, as depicted in Figure 1(a), enabling sophisticated fraud and circumvention of voiceprint authentication. ",
+        "bbox": [
+            86,
+            713,
+            477,
+            866
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "image",
+        "img_path": "images/b8542de5041ffe8e368fe5c3728bb357be6ecc1697ff32d419af24665e10f55e.jpg",
+        "image_caption": [
+            "Figure 1: Illustration of diffusion-based voice cloning malicious misuse. (a) Voice forgery enables threats of fraud. (b) Traditional methods struggle due to ineffective disruptive gradients. (c) Audio protected by VoiceCloak resists highfidelity cloning. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            527,
+            272,
+            903,
+            449
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            519,
+            564,
+            910,
+            593
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "To counter such unauthorized use, two main defense paradigms are introduced, including forgery detection and proactive disruption. Reactive detection methods Jung et al. (2022); Zhou and Lim (2021); Wu et al. (2024) identify forgeries after they are crafted, often too late to prevent harm. This highlights the need for proactive defenses that disrupt the synthesis process itself. Prior proactive work Huang et al. (2021); Yu, Zhai, and Zhang (2023); Chen et al. (2024); Li et al. (2023) has focused on adding imperceptible adversarial perturbations to reference audio by compromising the functionality of either the voice decoder or the speaker identity encoder. ",
+        "bbox": [
+            519,
+            595,
+            911,
+            761
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "However, existing defenses designed for prior architectures are largely ineffective against Diffusion Models (DMs). This incompatibility arises from two fundamental challenges: gradient vanishing and dynamic conditioning (Figure 1). Specifically, (1) the single forward pass gradient computation relied upon by many defenses become unreliable or vanish within the multi-step denoising process of DMs and the corresponding deep computational graph, rendering such single-pass gradient information ineffective for disrupting the full generation trajectory Kang, Song, and Li (2023). (2) Strategies targeting specific subnetworks (e.g. speaker or content encoders) fail because DMs often employ dynamic conditioning mechanisms, which means no single modules solely responsible for condition processing. Consequently, methods targeting individual components struggle to cause global disruption. These fundamental incompatibilities underscore the need for novel strategies tailored to this generative paradigm. ",
+        "bbox": [
+            519,
+            763,
+            911,
+            888
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "\\*Corresponding author ",
+        "bbox": [
+            107,
+            876,
+            243,
+            888
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "discarded",
+        "text": "arXiv:2505.12332v5 [cs.SD] 9 Dec 2025 ",
+        "bbox": [
+            22,
+            284,
+            60,
+            713
+        ],
+        "page_idx": 0
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            86,
+            69,
+            477,
+            194
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "In light of the incompatibility of prior defenses with the diffusion paradigm, we introduce VoiceCloak, a novel proactive defense framework designed for two primary objectives against unauthorized voice cloning: Speaker Identity Obfuscation and Perceptual Fidelity Degradation. Driven by these two objectives, we conduct an analysis to identify and exploit corresponding intrinsic vulnerabilities within Diffusion Models (DMs). Based on this analysis, we design specific optimization objectives for the protective perturbation to effectively disrupt the synthesis process. ",
+        "bbox": [
+            86,
+            194,
+            477,
+            332
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "To achieve identity obfuscation, VoiceCloak first directly manipulates speaker representations within a universal embedding space, guided by psychoacoustic principles to maximize perceived identity distance and hinder the DM’s identity signature extraction. Second, recognizing that convincing mimicry depends on attention mechanisms in conditional guidance to align speaker style with content, we exploit this by introducing attention context divergence. This design prevents the attention mechanism from correctly utilizing contextual information, thereby disrupting the alignment required for accurate cloning. ",
+        "bbox": [
+            86,
+            333,
+            477,
+            484
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Simultaneously, to achieve fidelity degradation, we focus on vulnerabilities within the core generative process itself. First, we employ Score Magnitude Amplification (SMA) to exploit the sensitivity of the iterative denoising trajectory which is crucial for realistic output, steering the generation path away from high-fidelity regions. Furthermore, acknowledging that the U-Net’s understanding of highlevel semantics governs output naturalness, we utilize noiseguided semantic corruption to disrupt the capture of structural features to promote incoherence within the noise semantic space and degrade generation quality. These goaldriven strategies which originates from adversarial analysis form a comprehensive defense. Extensive experiments confirm the superior defense efficacy against diffusion-based VC attacks under equivalent perturbation budgets. ",
+        "bbox": [
+            86,
+            486,
+            477,
+            693
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Our contributions are summarized as follows: ",
+        "bbox": [
+            101,
+            694,
+            403,
+            707
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "• We propose VoiceCloak, a novel defense framework against Diffusion-Based VC that prevents unauthorized voice ”theft” by exploiting intrinsic diffusion vulnerabilities through multi-dimensional adversarial interventions. • We introduce auditory-perception-guided adversarial perturbations into speaker identity representations and disrupt the diffusion conditional guidance process to effectively distort identity information in synthesized audio. • We present SMA, which controls the score function to divert the denoising trajectory, complemented by a semantic function designed to adversarially corrupt structural semantic features within the U-Net, degrading the perceptual fidelity of the forged audio. ",
+        "bbox": [
+            93,
+            713,
+            478,
+            888
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            539,
+            69,
+            911,
+            97
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2 Related Work ",
+        "text_level": 1,
+        "bbox": [
+            642,
+            109,
+            789,
+            126
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2.1 Audio Diffusion Models ",
+        "text_level": 1,
+        "bbox": [
+            521,
+            128,
+            743,
+            143
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Diffusion Models Ruan et al. (2023); Kawar et al. (2023); Ruiz et al. (2023) a dominant force in generative modeling, demonstrating extraordinary performance across multimodal tasks, significantly advancing audio synthesis tasks like text-to-speech Popov et al. (2021); Jeong et al. (2021) and unconditional audio generation Kong et al. (2020); Liu et al. (2023). Particularly within voice cloning (VC), diffusion-based methodsPopov et al. (2022); Choi, Lee, and Lee (2024), mostly leveraging score-based formulations via stochastic differential equations (SDEs) Song et al. (2020), now yield outputs with remarkable naturalness and speaker fidelity. While impressive, this state-of-the-art performance significantly heightens concerns regarding potential misuse, directly motivating proactive defense strategies such as the framework proposed herein. ",
+        "bbox": [
+            519,
+            148,
+            911,
+            356
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "2.2 Proactive Defense via Adversarial Examples ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            367,
+            898,
+            382
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Beyond passive DeepFake detection, proactive defenses aim to preemptively disrupt malicious syntheses, by introducing adversarial perturbations to the original audio. Early work Huang et al. (2021) demonstrated the feasibility of this approach but struggled to balance effectiveness with imperceptibility. Subsequent research focused on improving this trade-off. Strategies included using psychoacoustic models to enhance imperceptibility Li et al. (2023), incorporating human-in-the-loop refinement for better balance Yu, Zhai, and Zhang (2023), , and employing GAN-based generators to improve efficiency Dong et al. (2024). ",
+        "bbox": [
+            519,
+            386,
+            911,
+            537
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Despite these advancements, prior proactive strategies were largely designed for earlier generative architectures like GANs. They often overlook the unique mechanisms and internal structures of Diffusion Models (DMs), limiting their applicability. Recognizing this critical gap, our work proposes a defense specifically tailored to the challenges of diffusion-based voice cloning. ",
+        "bbox": [
+            519,
+            539,
+            911,
+            636
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "3 Preliminaries ",
+        "text_level": 1,
+        "bbox": [
+            643,
+            648,
+            787,
+            665
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "3.1 Score-based Diffusion ",
+        "text_level": 1,
+        "bbox": [
+            521,
+            669,
+            728,
+            683
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "Score-based generative models define a continuous-time diffusion process using stochastic differential equations (SDEs) Song et al. (2020). The forward process gradually perturbs clean data $\\mathbf { x } _ { 0 } \\sim p _ { 0 } ( \\mathbf { x } )$ into noise via the SDE: ",
+        "bbox": [
+            519,
+            686,
+            911,
+            742
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "img_path": "images/0d948a2fa09fa21cc1976d1a2af8331bc3edaeb409283250dc7202366fb32413.jpg",
+        "text": "$$\n\\begin{array} { r } { d \\mathbf { x } = f ( \\mathbf { x } , t ) d t + g ( t ) d \\mathbf { w } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            627,
+            750,
+            803,
+            767
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "where $f ( \\mathbf { x } , t )$ and $g ( t )$ are the drift and diffusion coefficients, and w is a Wiener process. The corresponding reverse-time SDE that transforms $x _ { T }$ back into $p _ { 0 } ( \\mathbf { x } )$ can be expressed as: ",
+        "bbox": [
+            519,
+            772,
+            911,
+            829
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "equation",
+        "img_path": "images/b42f975e2f727b6e4508d408832759018cf854f19e6bf6390f2ab18c7300af0e.jpg",
+        "text": "$$\n\\begin{array} { r } { d \\mathbf { x } = \\left[ f ( \\mathbf { x } , t ) - g ( t ) ^ { 2 } \\nabla _ { \\mathbf { x } } \\log p _ { t } ( \\mathbf { x } ) \\right] d t + g ( t ) d \\bar { \\mathbf { w } } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            539,
+            834,
+            872,
+            854
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "where $\\bar { \\bf w }$ is the reverse-time Wiener process and $\\nabla _ { \\mathbf { x } } \\log p _ { t } ( \\mathbf { x } )$ represents the score-function. Then, the ",
+        "bbox": [
+            517,
+            861,
+            911,
+            888
+        ],
+        "page_idx": 1
+    },
+    {
+        "type": "text",
+        "text": "score-based diffusion model is trained to estimate the score function: ",
+        "bbox": [
+            84,
+            69,
+            478,
+            97
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/0a1bc0848cbe8edd97437f768dd8041000fafdf8cc27c94bd71afadcb5b5e40e.jpg",
+        "text": "$$\n\\arg \\operatorname* { m i n } _ { \\theta } \\lambda _ { t } \\mathbb { E } _ { p _ { t } ( x ) } \\left\\| s _ { \\theta } ( \\mathbf { x } _ { t } , t ) - \\nabla \\log p _ { t } ( \\mathbf { x } _ { t } | \\mathbf { x } _ { 0 } ) \\right\\| _ { 2 } ^ { 2 } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            106,
+            103,
+            436,
+            127
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where the expectation is taken over the data distribution $p _ { 0 } ( \\mathbf { x } _ { 0 } )$ and the transition kernel $p _ { t } ( \\mathbf { x } _ { t } | \\mathbf { x } _ { 0 } )$ . ",
+        "bbox": [
+            84,
+            136,
+            477,
+            165
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "3.2 Adversarial Vulnerability Analysis ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            178,
+            392,
+            194
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "As mentioned before, the optimization of perturbation is guided by two core objectives: (1) Speaker Identity Obfuscation and (2) Perceptual Fidelity Degradation. The design of these perturbations stems from a targeted analysis to identify and exploit specific vulnerabilities within the Diffusion Model (DM) generative process itself. ",
+        "bbox": [
+            86,
+            198,
+            477,
+            281
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "A primary objective of VoiceCloak is speaker identity obfuscation. Convincing identity mimicry in Diffusion Models (DMs) depends on precise conditional control which is guided by acoustic details modeled from the reference audio $x _ { r e f }$ . This guidance critically relies on mechanisms that align the target speaker’s acoustic characteristics from $x _ { r e f }$ with the phonetic content from $x _ { s r c }$ . Specifically, the attention block is responsible for executing this alignment. We identify this crucial acoustic style-to-content mapping as a key vulnerability,as inaccurate alignment directly compromises the successful rendering of the target speaker’s identity. Consequently, disrupting this attention-driven pathway offers a strategy for identity obfuscation. ",
+        "bbox": [
+            86,
+            282,
+            477,
+            462
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Complementary to identity obfuscation, the second objective is perceptual fidelity degradation, aimed at diminishing the usability of any synthesized speech. This involves targeting the core denoising process of DMs. The high fidelity of Diffusion-based VC relies on the model learning a precise reverse denoising trajectory to progressively refine noisy sample $x _ { t }$ towards the natural audio distribution. This reliance on trajectory precision presents an exploitable vulnerability. Therefore, adversarially diverting the trajectory can disrupt convergence towards the high quality audio region on the manifold. ",
+        "bbox": [
+            86,
+            463,
+            477,
+            614
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Additionally, we target the U-Net’s internal feature representations as a vulnerability for degrading perceptual quality. Prior attribute editing work Ronneberger, Fischer, and Brox (2015); Oh, Lee, and Lee (2024); Tumanyan et al. (2023) confirms that these hierarchical features within the U-Net are controllable and also encode crucial semantic and acoustic details that govern the coherence and naturalness of the synthesized speech. Therefore, adversarially corrupting these representations directly impair the model’s ability to synthesize natural-sounding speech, offering a complementary strategy for fidelity degradation. This analysis reveals critical vulnerabilities in DMs, providing targeted avenues for adversarial intervention. ",
+        "bbox": [
+            86,
+            616,
+            478,
+            795
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4 Methodology ",
+        "text_level": 1,
+        "bbox": [
+            210,
+            810,
+            351,
+            828
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "To provide the necessary background, the problem formulation is firstly established in Section 4.1. As shown in Figure 2, the VoiceCloak consists of four sub-modules, which will be introduced separately next. ",
+        "bbox": [
+            84,
+            833,
+            477,
+            888
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4.1 Problem Formulation ",
+        "text_level": 1,
+        "bbox": [
+            521,
+            68,
+            727,
+            83
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Assume that malicious users can obtain reference audio $x _ { r e f }$ of a target speaker. Leveraging open-source voice cloning models, they can synthesize speech which mimics the vocal characteristics of $x _ { r e f }$ , denoted $\\mathcal { V } \\mathcal { C } ( x _ { s r c } , x _ { r e f } , t )$ . Our goal is to proactively safeguard $x _ { r e f }$ against unauthorized voice cloning. We achieve this by introducing an imperceptible adversarial perturbation $\\delta$ to create a protected version $x _ { a d v } = x _ { r e f } + \\delta$ . This perturbation is optimized to disrupt the diffusion synthesis process when conditioned on $x _ { a d v }$ . Formally, we aim to find an optimal $\\delta$ that maximizes the dissimilarity between the outputs generated using $x _ { r e f }$ and $x _ { a d v }$ . ",
+        "bbox": [
+            519,
+            87,
+            911,
+            252
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/597e7d84eebc8c23a9d26ba83368584c01d13377dd663b31bd20d78afbff468a.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\arg \\operatorname* { m a x } _ { \\delta } \\mathcal { D } ( \\mathcal { V C } ( { x } _ { s r c } , { x } _ { r e f } , t ) , \\mathcal { V C } ( { x } _ { s r c } , { x } _ { a d v } , t ) ) , } \\\\ & { \\mathrm { s u b j e c t \\ t o } \\quad \\| \\delta \\| _ { \\infty } \\leq \\epsilon , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            537,
+            256,
+            872,
+            299
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathcal { D } ( \\cdot )$ measures the output discrepancy, $t$ is the diffusion timestep, and $\\epsilon$ is the $l _ { \\infty }$ -norm budget for the perturbation $\\delta$ . Our approach focuses on designing specific adversarial objectives that implicitly define $\\mathcal { D }$ by exploiting intrinsic vulnerabilities within the diffusion mechanism itself. ",
+        "bbox": [
+            519,
+            304,
+            911,
+            375
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "4.2 Adversarial Identity Obfuscation ",
+        "text_level": 1,
+        "bbox": [
+            521,
+            385,
+            815,
+            401
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Opposite-Gender Embedding Centroid Guidance Inspired by prior work showing dedicated speaker embeddings capture identity Chen et al. (2024), directly manipulating these embeddings offers a direct approach, but its practical utility is hindered by poor transferability when attacking unknown or different encoder models. ",
+        "bbox": [
+            519,
+            404,
+            911,
+            486
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Therefore, we explore leveraging speech Representation Learning Chen et al. (2022b) to extract general acoustic representations that inherently capture speaker identity cues. Specifically, we select WavLM Chen et al. (2022a) as our representation extractor, denoted as $\\mathcal { R } ( \\cdot )$ . By applying perturbations within this more general feature space, we aim for broader effectiveness against various models. As a baseline untargeted objective, we consider maximizing the embedding distance: ",
+        "bbox": [
+            519,
+            486,
+            911,
+            611
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "equation",
+        "img_path": "images/fe2510b92c89e2054d130f6ef1bc6b663983cb598fdae76506033ffbe3da6603.jpg",
+        "text": "$$\n\\mathcal { L } _ { I D } = 1 - S i m ( \\mathcal { R } ( x _ { a d v } ) , \\mathcal { R } ( x _ { r e f } ) ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            589,
+            616,
+            841,
+            633
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "where $S i m ( x _ { 1 } , x _ { 2 } )$ represents the cosine similarity metric. While this untargeted objective effectively pushes $x _ { a d v }$ away from the reference identity representation domain, it lacks specific directionality in high-dimensional space. So we further incorporate a targeted component guided by psychoacoustic principles. ",
+        "bbox": [
+            519,
+            638,
+            911,
+            722
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Psychoacoustic studies Kreiman and Sidtis (2011); Lavner, Gath, and Rosenhouse (2000) indicate that significant perceptual differences in speaker identity often exist between genders, linked to specific acoustic cues like F0 and formant structures . Leveraging this, we assume that guiding the adversarial embedding towards the opposite gender one will likely create the strongest perceptual contrast, enhancing identity obfuscation. ",
+        "bbox": [
+            519,
+            723,
+            911,
+            833
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "text",
+        "text": "Based on this insight, we propose an auditory-perceptionguided adversarial perturbation. Specifically, we first randomly select a speaker from the dataset whose gender is opposite to that of $x _ { r e f }$ . To establish a representative identity embedding, we compute the centroid $\\mathcal { C } _ { o p p }$ by averaging the embeddings of all utterances in $\\mathcal { X }$ within the WavLM feature space $\\mathcal { R }$ : ",
+        "bbox": [
+            519,
+            833,
+            910,
+            888
+        ],
+        "page_idx": 2
+    },
+    {
+        "type": "image",
+        "img_path": "images/d48e515532cd7f26d14b708e18ccde7ab1b544d6c89a1620d3948b7183c39b8c.jpg",
+        "image_caption": [
+            "Figure 2: Overview of the proposed framework. Perturbation optimization is guided by gradients from $\\mathcal { L } _ { t o t a l }$ , aggregating four targeting two objectives: (1) Identity Obfuscation (via Opposite-Gender Centroid Guidance and Attention Context Divergence) and (2) Perceptual Fidelity Degradation (Score Magnitude Amplification and Noise-Guided Semantic Corruption). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            109,
+            68,
+            892,
+            428
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            84,
+            510,
+            477,
+            551
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/2d71022fb3d65f279dbc6e96718f97591ff9333617a124accaf8db66f9e4358e.jpg",
+        "text": "$$\n\\mathcal { C } _ { o p p } = \\frac { 1 } { N } \\sum _ { x _ { i } \\in \\mathcal { X } } \\mathcal { R } ( x _ { i } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            202,
+            560,
+            359,
+            599
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/3864c8e89a9e5971185db85e28f3aec616e3c35f10884f856277225ff0281411.jpg",
+        "text": "$$\n\\mathcal { L } _ { I D } = - S i m ( \\mathcal { R } _ { a d v } , \\mathcal { R } _ { r e f } ) + \\underbrace { S i m ( \\mathcal { R } _ { a d v } , \\mathcal { C } _ { o p p } ) } _ { \\mathrm { G e n d e r } } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            107,
+            611,
+            436,
+            647
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathcal { X }$ is the set of opposite gender utterances, $N$ represents length of $\\mathcal { X }$ , $\\mathcal { R } _ { i }$ is the embedding of $x _ { i }$ in space $\\mathcal { R }$ . ",
+        "bbox": [
+            84,
+            654,
+            477,
+            681
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Finally, minimizing the Eq. 7 directs the optimization process to simultaneously dissociate from the original speaker identity and converge towards a region selected based on psychoacoustic principles to maximize identity ambiguity. ",
+        "bbox": [
+            84,
+            683,
+            478,
+            738
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Attention Context Divergence Building upon the motivation to disrupt conditional guidance for identity obfuscation (Section 3.2), we introduce Attention Context Divergence. This strategy targets the attention mechanism to interfere with its use of contextual information from $x _ { r e f }$ . ",
+        "bbox": [
+            86,
+            748,
+            477,
+            818
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Commonly in diffusion-based VC, conditional information from $x _ { r e f }$ is integrated via Linear-attention layers Katharopoulos et al. (2020). Within the U-Net, latent code representing the content $x _ { s r c } ^ { t }$ are linearly projected to $Q$ matrix, whereas condition latents $\\boldsymbol { x } _ { r e f } ^ { t }$ are projected to $K$ and ",
+        "bbox": [
+            86,
+            819,
+            478,
+            890
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "$V$ . Linear-attention first computes a context matrix by aggregating values $( V )$ weighted by keys $( K )$ : ",
+        "bbox": [
+            519,
+            511,
+            911,
+            539
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/a7dcd35d6ebc348cff20e1657f9a8867de4cd210e9ef3a235c239509903d43c0.jpg",
+        "text": "$$\n\\mathcal { H } _ { c t x } ( x _ { r e f } ) = \\mathrm { S o f t m a x } ( \\phi ^ { ( l , t ) } ( x _ { r e f } ^ { t } ) W _ { K } ^ { l } ) ( \\phi ^ { ( l , t ) } ( x _ { r e f } ^ { t } ) W _ { V } ^ { l } ) ^ { T } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            519,
+            541,
+            919,
+            563
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "where $\\mathcal { H } _ { c t x }$ represents the context hidden state, $\\phi ^ { ( l , t ) } ( \\cdot )$ is the deep features of the $l ^ { t h }$ block in U-Net at timestep $t$ , and $W _ { K } ^ { i } , W _ { V } ^ { l }$ are the projection matrices. Then, the context interacts with queries $( Q )$ to obtain the final attention output: $\\mathcal { A } ^ { l } = ( \\mathcal { H } _ { c t x } ) ^ { T } ( W _ { Q } ^ { l } \\phi ^ { ( l , t ) } ( x _ { s r c } ^ { t } ) )$ . This context representation provides a dynamic summary of the reference speaker’s stylistic features, weighted by their relevance to the current content queries during synthesis. By applying a softmax function, we obtain an explicit probability distribution over sequence positions which signifies the model’s information focus. Our strategy, therefore, is to maximize the Kullback-Leibler (KL) divergence Kullback and Leibler (1951) between the context distribution derived from the original reference and the adversarial audio: ",
+        "bbox": [
+            519,
+            565,
+            913,
+            762
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "equation",
+        "img_path": "images/743e294ce731320bec7aebcc19d3907352545b6a4ca2bcedb83bf43309870d34.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\mathcal { L } _ { c t x } = D _ { K L } ( P _ { r e f } \\parallel P _ { a d v } ) , } \\\\ & { P _ { a d v } = \\mathrm { S o f t m a x } ( \\mathcal { H } _ { c t x } ( x _ { a d v } ) ) , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            633,
+            765,
+            839,
+            803
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "Maximizing this divergence forces the attention pattern to deviate from the original, thereby hindering accurate style alignment. ",
+        "bbox": [
+            519,
+            805,
+            911,
+            847
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "To enhance the impact on identity, we directs the adversarial pressure on the U-Net’s downsampling path. The rationale is that these earlier layers primarily process coarser, lower-frequency features Wang et al. (2024) strongly associated with speaker timbre and identity. Therefore, focusing our proposed loss $\\mathcal { L } _ { c t x }$ on the attention layers within the U-Net’s downsampling path, the calculation of $P _ { a d v }$ can be restated as: ",
+        "bbox": [
+            519,
+            847,
+            911,
+            888
+        ],
+        "page_idx": 3
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            86,
+            69,
+            478,
+            137
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/625014c53d0f172da8e100e1afa2d8eafe756320680f5c58e783ca55c234c896.jpg",
+        "text": "$$\nP _ { a d v } = \\mathrm { S o f t m a x } ( \\sum _ { l } \\mathcal { H } _ { c t x } ^ { l } ( x _ { a d v } ) ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            165,
+            143,
+            397,
+            176
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where the layer index $l$ iterates over the set Down $( l \\in$ Down), representing the U-Net’s downsampling blocks. ",
+        "bbox": [
+            84,
+            184,
+            477,
+            213
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4.3 Perceptual Fidelity Degradation ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            226,
+            372,
+            242
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Score Magnitude Amplification To degrade perceptual fidelity by exploiting the sensitivity of the denoising trajectory, we introduce Score Magnitude Amplification. This design directly interferes with the score function $s _ { \\theta }$ , which is estimated by the U-Net according to Eq. 3 and provides the essential drift term for the reverse SDE. We posit that the magnitude of $s _ { \\theta }$ relates to the strength of the drift guiding the noisy sample toward the target data manifold. Exploiting this connection, the SMA objective involves maximizing the magnitude of the score prediction $s _ { \\theta }$ : ",
+        "bbox": [
+            86,
+            247,
+            477,
+            386
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/b221892135408d997d7cb3e6764a6f99a123f0e104b7fd93e39b503f6eddae60.jpg",
+        "text": "$$\n\\mathcal { L } _ { s c o r e } = \\mathbb { E } _ { p _ { t } ( x ) , t \\sim \\mathcal { U } ( 1 , T _ { a d v } ) } [ | | s _ { \\theta } ( x _ { s r c } ^ { t } , x _ { a d v } ^ { t } , t ) | | _ { 2 } ] ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            102,
+            393,
+            433,
+            412
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $p _ { t } ( x )$ is the distribution of noisy samples $x ^ { t } \\sim$ $q ( x ^ { t } | x ^ { 0 } ) , \\operatorname { \\mathbb { E } } [ \\cdot ]$ calculates the average value, $T _ { a d v }$ stands for adversarial timesteps which will be discussed in Section 4.4. Optimizing the above formula introduces an erroneous drift strength. Consequently, the denoising trajectory is forcefully diverted, resulting in a collapse in perceptual quality. ",
+        "bbox": [
+            84,
+            421,
+            478,
+            506
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Furthermore, the iterative nature of the diffusion process may amplify these induced trajectory deviations. Perturbations introduced at earlier timesteps can propagate through subsequent steps. This error cumulative effect thus enhances the efficacy of our adversarial strategy. ",
+        "bbox": [
+            86,
+            507,
+            478,
+            577
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Noise-Guided Semantic Corruption Following the motivation outlined in Section 3.2, we introduce a bidirectional semantic interference strategy. The core idea is twofold: (1) compel the features generated with $x _ { a d v }$ to diverge from those generated using the original reference $x _ { r e f }$ , and (2) concurrently guide these adversarial features towards a ”semantic-free” state. ",
+        "bbox": [
+            84,
+            585,
+            478,
+            681
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Specifically, consider a network layer $l$ within the frozen U-Net $\\mathcal { U } _ { \\theta }$ and timestep $t$ , we extract the original features $f ^ { ( l , t ) } = \\mathcal { U } _ { \\theta } ^ { l } ( x _ { s r c } , x _ { r e f } , t )$ conditioned on $x _ { r e f }$ , and $f _ { a d v } ^ { ( l , t ) } =$ $\\mathcal { U } _ { \\theta } ^ { l } ( x _ { s r c } , x _ { a d v } , t )$ corresponding to the adversarial version. Furthermore, to define a ”semantic-free” target, we leverage the U-Net’s activation modes to unstructured information. We extract features $f _ { n o i s e } ^ { ( l , t ) } = \\mathcal { U } _ { \\theta } ^ { l } ( x _ { n o i s e } , x _ { n o i s e } , t )$ by feeding Gaussian white noise $x _ { n o i s e }$ as both the source content and the reference condition. $f _ { n o i s e } ^ { ( l , t ) }$ can be considered to represent unstructured features and lack semantic information. The bidirectional objective aims to maximize the distance between $f _ { a d v } ^ { ( l , t ) }$ and $f ^ { ( l , t ) }$ while minimizing it with $f _ { n o i s e } ^ { ( l , t ) }$ . This objective encourages the adversarial features to abandon the original semantic structure and move towards a state of incoherence which can be formalized as: ",
+        "bbox": [
+            86,
+            683,
+            478,
+            888
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            521,
+            69,
+            805,
+            82
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/94e328b500b9dd4e71108461a068ee96974a620e27774bfe3d992bec92660513.jpg",
+        "text": "$$\n\\begin{array} { r } { \\mathcal { L } _ { s e m } = 1 - \\cos ( f _ { a d v } ^ { ( l , t ) } , f ^ { ( l , t ) } ) + \\underbrace { \\cos ( f _ { a d v } ^ { ( l , t ) } , f _ { n o i s e } ^ { ( l , t ) } ) } _ { \\mathrm { S e m - f r e e } } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            532,
+            80,
+            870,
+            119
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where we employ the cosine distance metric $\\cos ( \\cdot )$ as it emphasizes the structural similarity between high-dimensional features rather than their absolute error. For enhanced impact on perceptual quality, the $\\mathcal { L } _ { s e m }$ is strategically applied to layers within the U-Net’s upsampling path. These layers are critical for reconstructing the fine-grained acoustic details that govern output naturalness and perceived quality. ",
+        "bbox": [
+            519,
+            121,
+            911,
+            218
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "4.4 Joint Optimization of Defense Objectives ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            228,
+            874,
+            243
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "The final adversarial perturbation $\\delta$ for VoiceCloak is optimized to simultaneously achieve our dual objectives (Section 4.2 and 4.3). The joint objectives of this comprehensive defense are formalized as follows ",
+        "bbox": [
+            519,
+            246,
+            911,
+            300
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "equation",
+        "img_path": "images/16e711e764c350e60c09e6e3211d37998feb203ca87d7fdc0d40e03061923479.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\mathcal { L } _ { t o t a l } = ( \\mathcal { L } _ { I D } , \\mathcal { L } _ { c t x } , \\mathcal { L } _ { s c o r e } , \\mathcal { L } _ { s e m } ) \\Lambda ^ { T } , } \\\\ & { \\qquad \\delta : = \\arg \\operatorname* { m a x } _ { \\delta } \\mathcal { L } _ { t o t a l } , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            583,
+            299,
+            844,
+            340
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "where $\\Lambda = ( \\lambda _ { I D } , \\lambda _ { c t x } , \\lambda _ { s c o r e } , \\lambda _ { s e m } )$ controls the weight factors that balance the relative importance of these defenses. ",
+        "bbox": [
+            519,
+            343,
+            911,
+            383
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "The efficacy of our perturbation optimization is influenced by the choice of diffusion timesteps $T _ { a d v }$ used for gradient computation. Informed by prior work $\\mathrm { Y u }$ et al. (2024) indicating early denoising steps primarily reconstruct lowfrequency overall structural signal, we concentrate the optimization on these initial steps to maximize the disruption of fundamental integrity and reduce computational overhead. ",
+        "bbox": [
+            519,
+            386,
+            911,
+            482
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5 Experiments ",
+        "text_level": 1,
+        "bbox": [
+            647,
+            493,
+            784,
+            510
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "5.1 Experimental Setup ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            512,
+            715,
+            527
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Datasets Experiments are conducted on the LibriTTS Zen et al. (2019) and VCTK Yamagishi, Veaux, and MacDonald (2019) datasets. We selected a gender-balanced audio subsets (479 utterances from LibriTTS, 500 from VCTK) to generate adversarial reference speech set $\\mathcal { D } _ { x _ { a d v } }$ . ",
+        "bbox": [
+            519,
+            530,
+            911,
+            599
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Baseline Methods We compare VoiceCloak against existing voice protection methods. We adopt the following methods for fair comparison: Attack-VC Huang et al. (2021), VoicePrivacy Chen et al. (2024), and VoiceGuard Li et al. (2023). We also include a naive baseline: adding random Gaussian noise to $x _ { r e f }$ . ",
+        "bbox": [
+            519,
+            604,
+            911,
+            689
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "text",
+        "text": "Evaluation Metrics For identity protection, we report the Automatic Speaker Verification (ASV) acceptance rate, where a lower rate for protected outputs signifies more effective obfuscation. We define a comprehensive Defense Success Rate (DSR) to measure the achievement of both our objectives. A defense is considered successful if the protected output both fails speaker verification and exhibits low perceptual quality $\\mathrm { ( D \\bar { S } } = s _ { A S V } < \\tau _ { A S V } \\land \\mathrm { N I S Q A } ( y _ { a d v } ) <$ $\\tau _ { q , \\vec { \\mathbf { \\nabla } } }$ , with thresholds $\\tau _ { A S V } = 0 . 2 5$ and $\\tau _ { q } = 3 . 0$ . Additional metrics include Dynamic Time Warping (DTW) Sakoe and Chiba (1978) and SSIM between $y$ and $y _ { a d v }$ spectrograms. Perturbation imperceptibility on $x _ { a d v }$ versus $x _ { r e f }$ is measured using PESQ Rix et al. (2001), Mel-Cepstral Distortion (MCD) Kubichek (1993) and SNR. ",
+        "bbox": [
+            519,
+            694,
+            911,
+            888
+        ],
+        "page_idx": 4
+    },
+    {
+        "type": "table",
+        "img_path": "images/8ff9145bfba029ecfca813a2f1b10fe2f2d33df87f0869dc87fd5a1a010bcd2a.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "Table 1: Comparison of defense effectiveness and adversarial imperceptibility with SOTA methods. Higher values are better for metrics marked with $\\uparrow$ , and vice versa for those marked with ↓. The best result is marked in BOLD. "
+        ],
+        "table_body": "<table><tr><td rowspan=\"2\">Datasets</td><td rowspan=\"2\">Methods</td><td colspan=\"4\">Defense Effectiveness</td><td colspan=\"4\">Imperceptibility</td></tr><tr><td>DTW↑</td><td>ASV↓</td><td>SSIM↓</td><td>NISQA↓</td><td>DSR↑</td><td>PESQ↑</td><td>MCD↓</td><td>SNR个</td></tr><tr><td rowspan=\"6\">LibriTTS</td><td>Undefended</td><td>=</td><td>76.49%</td><td>1</td><td>3.96</td><td>-</td><td></td><td>-</td><td>1</td></tr><tr><td>Random Noise loo</td><td>2.01</td><td>55.20%</td><td>0.31</td><td>3.72</td><td>16.00%</td><td>3.37</td><td>1.35</td><td>34.80</td></tr><tr><td>Attack-VC</td><td>2.29</td><td>36.20%</td><td>0.31</td><td>3.57</td><td>30.40%</td><td>2.31</td><td>3.71</td><td>5.29</td></tr><tr><td>VoicePrivacy</td><td>2.26</td><td>20.80%</td><td>0.30</td><td>3.60</td><td>26.80%</td><td>2.99</td><td>1.37</td><td>33.25</td></tr><tr><td>VoiceGuard</td><td>2.08</td><td>16.49%</td><td>0.29</td><td>3.63</td><td>43.45%</td><td>2.15</td><td>4.39</td><td>10.58</td></tr><tr><td>Ours</td><td>2.12</td><td>11.40%</td><td>0.27</td><td>2.36</td><td>71.40%</td><td>3.22</td><td>1.29</td><td>33.53</td></tr><tr><td rowspan=\"6\">VCTK</td><td>Undefended</td><td>-</td><td>63.68%</td><td>-</td><td>3.41</td><td>-</td><td>-</td><td>-</td><td>=</td></tr><tr><td>Random Noise loo</td><td>1.68</td><td>58.00%</td><td>0.35</td><td>3.16</td><td>11.38%</td><td>3.25</td><td>1.38</td><td>34.10</td></tr><tr><td>Attack-VC</td><td>2.05</td><td>38.50%</td><td>0.33</td><td>2.82</td><td>26.20%</td><td>2.25</td><td>3.80</td><td>4.50</td></tr><tr><td>VoicePrivacy</td><td>1.88</td><td>30.28%</td><td>0.35</td><td>2.77</td><td>39.06%</td><td>2.87</td><td>1.53</td><td>31.87</td></tr><tr><td>VoiceGuard</td><td>1.87</td><td>31.42%</td><td>0.32</td><td>3.02</td><td>22.11%</td><td>2.05</td><td>4.57</td><td>10.00</td></tr><tr><td> Ours</td><td>1.93</td><td>19.74%</td><td>0.29</td><td>2.51</td><td>63.41%</td><td>3.09</td><td>1.33</td><td>32.41</td></tr></table>",
+        "bbox": [
+            150,
+            65,
+            848,
+            260
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Implementation Details We conduct our experiments mainly using DiffVC Popov et al. (2022) as the target system. We set the number of optimization iterations to 50 and a step size $\\alpha = 4 \\times 1 0 ^ { - 5 }$ . And $\\delta$ is constrained within an $l _ { \\infty }$ -norm ball of $\\epsilon = 0 . 0 0 2$ . We set the adversarial and inference timesteps respectively $T _ { a d v } = 6$ and $T = 1 0 0$ . The loss function combined identity and quality objectives with weights $\\Lambda = ( 1 . 0 , 4 . 5 , 1 0 , 0 . 8 \\dot { 5 } )$ . All experiments are conducted on NVIDIA RTX 3090 GPU with a fixed random seed. ",
+        "bbox": [
+            86,
+            325,
+            477,
+            464
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "5.2 Comparison and Analysis ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            479,
+            325,
+            494
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Comparison with Baselines As shown in Table 1, Voice-Cloak demonstrates exceptional defense efficacy, significantly outperforming all baselines with a Defense Success Rate (DSR) of over $71 \\%$ on LibriTTS and $63 \\%$ on VCTK. This high DSR reflects success in both of our defense objectives: identity obfuscation is achieved by drastically reducing speaker verification acceptance rates to $11 \\%$ , while perceptual quality degradation is confirmed by low NISQA scores indicating unacceptable audio generation quality. This dual ability to effectively cripple both identity mimicry and audio usability distinguishes VoiceCloak from defenses that may struggle with diffusion models or focus primarily on one objective. As expected, the naive Random Noise baseline confirms that unstructured noise provides very limited protection. Regarding imperceptibility, VoiceCloak performs comparably to baselines. This supports our strategy of targeting intrinsic vulnerabilities, rather than simply increasing perturbation magnitude. ",
+        "bbox": [
+            86,
+            502,
+            477,
+            751
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Figure 3 further visualizes disruption result. Applying VoiceCloak protection results markedly different from the undefended one. The $F _ { 0 }$ curve is notably degraded, appearing blurred and unpredictable, accompanied by highly inconsistent intonation changes. ",
+        "bbox": [
+            86,
+            753,
+            477,
+            821
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "Protecting Commercial Systems We also evaluated the effectiveness in protecting commercial speaker verification (SV) APIs (Iflytek, Azure) to simulate real-world antispoofing scenarios. Successful protection aims to minimize the similarity score returned by the API. Figure 4 demonstrated VoiceCloak’s superior ability to decouple the protected audio from the original speaker’s identity. ",
+        "bbox": [
+            84,
+            833,
+            477,
+            888
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "image",
+        "img_path": "images/3cc358768c62af6817de2d351a977847ce23af01d576cffa1b9143ce8f15a5bb.jpg",
+        "image_caption": [
+            "Figure 3: Mel spectrograms with $F _ { 0 }$ pitch contours (green lines), and inferred intonation of the corresponding words. Arrows indicate perceived intonation shifts. (Intonation aligns with the ground truth, which is marked by green arrows, and diverges, which is marked by red arrows.) "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            526,
+            325,
+            901,
+            674
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            519,
+            784,
+            910,
+            825
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "text",
+        "text": "User Study We conducted a user study with 50 participants to assess perceptual impact. Listeners performed comparisons on two criteria: Timbre Dissimilarity and Naturalness Disruption and we aggregated results in Figure 5, where ”Neutral” indicates no perceived difference. Participants consistently rated VoiceCloak’s outputs as having both greater timbre dissimilarity and more severe naturalness disruption, confirming its human-perceived effectiveness. ",
+        "bbox": [
+            519,
+            833,
+            910,
+            888
+        ],
+        "page_idx": 5
+    },
+    {
+        "type": "image",
+        "img_path": "images/8e583d2cb84c24d629dce52761604cd9f2d8f10bec31a140d09723461359698c.jpg",
+        "image_caption": [
+            "Figure 4: Protecting commercial speaker verification APIs (Iflytek, Azure) from spoofing attacks (lower are better). "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            93,
+            65,
+            468,
+            202
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/3fea09e267235dcaef75e942c492cda0283a8f374ab8790b683b9a74d5fe2947.jpg",
+        "image_caption": [
+            "Figure 5: User perceptual study results. (a) Timbre Dissimilarity Preference. (b) Corresponding results for perceived Naturalness Disruption. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            93,
+            255,
+            468,
+            363
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/3a338e9f4c4d4f6e5c489ff5f7bb398461743b0a741f11e58f11a8616be4a0d5.jpg",
+        "table_caption": [
+            "Table 2: Ablation study on the contribution of different settings for Identity Obfuscation. $\\checkmark$ indicates the setting is used, ”w/o” denotes the exclusion of the specified term. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td colspan=\"2\">Setings</td><td colspan=\"5\">Defense Effectiveness</td></tr><tr><td>LID</td><td>Lctx</td><td>DTW个</td><td>ASV↓</td><td>SSIM↓</td><td>NISQA↓</td><td>DSR↑</td></tr><tr><td>1</td><td>1</td><td>1.96</td><td>46.82%</td><td>0.30</td><td>3.66</td><td>22.58%</td></tr><tr><td>√</td><td>1</td><td>2.16</td><td>8.57%</td><td>0.30</td><td>3.57</td><td>27.74%</td></tr><tr><td>w/o Gender</td><td>-</td><td>2.25</td><td>19.92%</td><td>0.30</td><td>3.60</td><td>14.40%</td></tr><tr><td>1</td><td>√</td><td>2.31</td><td>16.20%</td><td>0.27</td><td>2.96</td><td>62.57%</td></tr><tr><td>√</td><td>√</td><td>2.13</td><td>11.00%</td><td>0.27</td><td>2.85</td><td>69.20%</td></tr></table>",
+        "bbox": [
+            99,
+            433,
+            465,
+            516
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/715e9af1fe22ee6d28e5355b21b4b2c47993b8b5570d7167a101ae6a71a3571b.jpg",
+        "table_caption": [
+            "Table 3: Ablation study for Perceptual Fidelity Degradation. Checkmark $( \\checkmark )$ indicates the setting is used,”w/o” denotes the exclusion of the specified loss term. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td colspan=\"2\">Settings</td><td colspan=\"5\">Defense Effectiveness</td></tr><tr><td>Lscore</td><td>Lsem</td><td>DTW↑</td><td>ASV↓</td><td>SSIM↓</td><td>NISQA↓</td><td>DSR↑</td></tr><tr><td>-</td><td>=</td><td>1.99</td><td>45.00%</td><td>0.31</td><td>3.09</td><td>20.20%</td></tr><tr><td>√</td><td>=</td><td>2.42</td><td>31.80%</td><td>0.29</td><td>2.68</td><td>41.20%</td></tr><tr><td>=</td><td>√</td><td>2.23</td><td>23.00%</td><td>0.27</td><td>2.44</td><td>60.60%</td></tr><tr><td></td><td>w/o Sem-free</td><td>2.28</td><td>26.36%</td><td>0.29</td><td>3.30</td><td>26.80%</td></tr><tr><td>√</td><td>√</td><td>2.22</td><td>23.60%</td><td>0.27</td><td>2.10</td><td>57.80%</td></tr></table>",
+        "bbox": [
+            98,
+            583,
+            465,
+            664
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            84,
+            744,
+            477,
+            800
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.3 Ablation Study ",
+        "text_level": 1,
+        "bbox": [
+            86,
+            813,
+            243,
+            828
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Effectiveness of Adversarial Identity Obfuscation We ablate the loss designed for Adversarial Identity Obfuscation, $\\mathcal { L } _ { I D }$ and $\\mathcal { L } _ { c t x }$ , in Table 2. The results show that $\\mathcal { L } _ { I D }$ alone effectively reduces the ASV acceptance rate. This confirms that directly manipulating the representation learning embedding space effectively disrupts recognizable identity features. Removing the opposite-gender guidance from $\\mathcal { L } _ { I D }$ worsens ASV, confirming our psychoacoustically-motivated strategy provides effective direction for identity disruption. Separately, the context divergence loss also contributes significantly, lowering both ASV and NISQA by interfering with the attention mechanism’s condition injection. ",
+        "bbox": [
+            84,
+            833,
+            477,
+            888
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/23f0a21593e0105d92ec3884aba1265f8bd151360a2f585f53d3d70d749cfccb.jpg",
+        "table_caption": [
+            "Table 4: Transferability of the proposed defense method against unseen target models. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Target Models</td><td colspan=\"5\">Defense Effectiveness</td></tr><tr><td>DTW↑</td><td>ASV↓</td><td>SSIM↓</td><td>NISQA↓</td><td>DSR↑</td></tr><tr><td>DiffVC</td><td>2.12</td><td>11.40%</td><td>0.27</td><td>2.36</td><td>71.40%</td></tr><tr><td>DDDM-VC</td><td>1.67</td><td>16.80%</td><td>0.36</td><td>2.79</td><td>54.89%</td></tr><tr><td>DuTa-VC</td><td>2.41</td><td>13.77%</td><td>0.27</td><td>2.14</td><td>73.92%</td></tr></table>",
+        "bbox": [
+            534,
+            65,
+            898,
+            132
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "table",
+        "img_path": "images/9cc4b1beb8ca99711742cf8ad7a03fd3612e93761940340625064677db7bc370.jpg",
+        "table_caption": [
+            "Table 5: Computational overhead analysis. ”Time”: average time to generate one sample. ”Mem.”: peak GPU usage. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td></td><td>Time (s)</td><td>Mem.(GiB)</td></tr><tr><td>Ours</td><td>148.66</td><td>8.97</td></tr></table>",
+        "bbox": [
+            616,
+            185,
+            812,
+            222
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            519,
+            287,
+            911,
+            400
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "Effectiveness of Perceptual Fidelity Degradation Table 3 ablates the perceptual quality degradation losses. The results show that $\\mathcal { L } _ { s c o r e }$ alone is effective, degrading quality (lower NISQA, higher DTW) by forcing the denoising trajectory away from high-fidelity regions. The semantic corruption loss, $\\mathcal { L } _ { s c o r e }$ , demonstrates an even stronger individual impact by directly corrupting internal U-Net features, thereby impairing the model’s reconstruction of coherent, natural-sounding speech details. Critically, the necessity of guiding semantic features towards an incoherent state is evident from the ”w/o Sem-free” variant. ",
+        "bbox": [
+            519,
+            406,
+            911,
+            559
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.4 Transferability ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            571,
+            676,
+            587
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "To demonstrate applicability, we extended our experiments to include two additional open-source diffusion-based VC models: DuTa-VC Wang et al. (2023) and DDDM-VC Choi, Lee, and Lee (2024). As shown in Table 4, VoiceCloak demonstrate favorable transferability to different models, achieving an average DSR of $6 6 . 7 \\%$ . We attribute this transferability to: Targeting Common Vulnerabilities, as our method exploits fundamental mechanisms (e.g. attention, score prediction) that are shared across diffusion VCs. ",
+        "bbox": [
+            519,
+            590,
+            911,
+            715
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.5 Robustness ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            727,
+            648,
+            742
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "We evaluated the robustness of our method against four common distortions, with results presented in Figure 6. The results show consistent defense effectiveness, indicating resilience to real-world transformations and significantly outperforming the undefended baseline. Further details and analysis are available in Appendix. ",
+        "bbox": [
+            519,
+            746,
+            911,
+            830
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "5.6 Efficiency Discussion ",
+        "text_level": 1,
+        "bbox": [
+            521,
+            842,
+            722,
+            857
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "text",
+        "text": "As shown in Table 5, the protection process is a one-time, offline operation, and the required GPU memory is within the ",
+        "bbox": [
+            519,
+            861,
+            911,
+            888
+        ],
+        "page_idx": 6
+    },
+    {
+        "type": "image",
+        "img_path": "images/90e8fb0ee494d73d2744e63f60635c973b365c098b70fda4c90ffc2f3404e243.jpg",
+        "image_caption": [
+            "Figure 6: Resilience of VoiceCloak under more advanced robust scenario. "
+        ],
+        "image_footnote": [],
+        "bbox": [
+            102,
+            65,
+            462,
+            270
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "capacity of consumer-grade hardware, making VoiceCloak a practical defense method. ",
+        "bbox": [
+            84,
+            340,
+            477,
+            368
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "6 Conclusion ",
+        "text_level": 1,
+        "bbox": [
+            218,
+            386,
+            343,
+            401
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "This paper introduced VoiceCloak, a comprehensive defense against unauthorized diffusion-based voice cloning (VC). Our framework achieves superior defense effectiveness by exploiting targeted intrinsic vulnerabilities within the diffusion process. Through strategies designed to disrupt attention-based conditional guidance, steer the denoising trajectory, and corrupt internal semantic representations, VoiceCloak effectively undermines the synthesis process. Extensive experiments validate its efficacy, demonstrating success in simultaneously obfuscating speaker identity and degrading audio quality to mitigate the threats of voice mimicry Extensive experiments validate its ability to significantly hinder voice cloning by simultaneously disrupting identity and degrading audio quality, thereby mitigating the threats of high-quality voice mimicry ",
+        "bbox": [
+            86,
+            409,
+            477,
+            616
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            236,
+            633,
+            328,
+            648
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "Chen, S.; Chen, L.; Zhang, J.; Lee, K.; Ling, Z.; and Dai, L. 2024. Adversarial speech for voice privacy protection from personalized speech generation. In ICASSP 2024-2024 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP), 11411–11415. IEEE.   \nChen, S.; Wang, C.; Chen, Z.; Wu, Y.; Liu, S.; Chen, Z.; Li, J.; Kanda, N.; Yoshioka, T.; Xiao, X.; et al. 2022a. Wavlm: Large-scale self-supervised pre-training for full stack speech processing. IEEE Journal of Selected Topics in Signal Processing, 16(6): 1505–1518.   \nChen, S.; Wu, Y.; Wang, C.; Chen, Z.; Chen, Z.; Liu, S.; Wu, J.; Qian, Y.; Wei, F.; Li, J.; et al. 2022b. Unispeechsat: Universal speech representation learning with speaker aware pre-training. In ICASSP 2022-2022 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP), 6152–6156. IEEE. Choi, H.-Y.; Lee, S.-H.; and Lee, S.-W. 2024. Dddm-vc: Decoupled denoising diffusion models with disentangled representation and prior mixup for verified robust voice conversion. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 38, 17862–17870.   \nDong, S.; Chen, B.; Ma, K.; and Zhao, G. 2024. Active Defense Against Voice Conversion through Generative Adversarial Network. IEEE Signal Processing Letters, 31: 706– 710.   \nHo, J.; Jain, A.; and Abbeel, P. 2020. Denoising diffusion probabilistic models. Advances in Neural Information Processing Systems, 33: 6840–6851.   \nHuang, C.-y.; Lin, Y. Y.; Lee, H.-y.; and Lee, L.-s. 2021. Defending your voice: Adversarial attack on voice conversion. In 2021 IEEE Spoken Language Technology Workshop (SLT), 552–559. IEEE.   \nJeong, M.; Kim, H.; Cheon, S. J.; Choi, B. J.; and Kim, N. S. 2021. Diff-TTS: A Denoising Diffusion Model for Text-to-Speech. In Proc. Interspeech 2021, 3605–3609.   \nJung, J.-w.; Heo, H.-S.; Tak, H.; Shim, H.-j.; Chung, J. S.; Lee, B.-J.; Yu, H.-J.; and Evans, N. 2022. Aasist: Audio antispoofing using integrated spectro-temporal graph attention networks. In ICASSP 2022-2022 IEEE international conference on acoustics, speech and signal processing (ICASSP), 6367–6371. IEEE.   \nKang, M.; Song, D.; and Li, B. 2023. Diffattack: Evasion attacks against diffusion-based adversarial purification. Advances in Neural Information Processing Systems, 36: 73919–73942.   \nKatharopoulos, A.; Vyas, A.; Pappas, N.; and Fleuret, F. 2020. Transformers are rnns: Fast autoregressive transformers with linear attention. In International Conference on Machine Learning, 5156–5165. PMLR.   \nKawar, B.; Zada, S.; Lang, O.; Tov, O.; Chang, H.; Dekel, T.; Mosseri, I.; and Irani, M. 2023. Imagic: Text-based real image editing with diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Cision and Pattern recognition, 6007–6017.   \nKong, Z.; Ping, W.; Huang, J.; Zhao, K.; and Catanzaro, B. 2020. Diffwave: A versatile diffusion model for audio synthesis. arXiv preprint arXiv:2009.09761.   \nKreiman, J.; and Sidtis, D. 2011. Foundations of voice studies: An interdisciplinary approach to voice production and perception. John Wiley & Sons.   \nKubichek, R. 1993. Mel-cepstral distance measure for objective speech quality assessment. In Proceedings of IEEE pacific rim conference on communications computers and signal processing, volume 1, 125–128. IEEE.   \nKullback, S.; and Leibler, R. A. 1951. On information and sufficiency. The annals of mathematical statistics, 22(1): 79–86.   \nLavner, Y.; Gath, I.; and Rosenhouse, J. 2000. The effects of acoustic modifications on the identification of familiar voices speaking isolated vowels. Speech Communication, 30(1): 9–26. Li, J.; Ye, D.; Tang, L.; Chen, C.; and Hu, S. 2023. Voice Guard: Protecting Voice Privacy with Strong and Imperceptible Adversarial Perturbation in the Time Domain. In IJ-CAI, 4812–4820.   \nLiu, H.; Chen, Z.; Yuan, Y.; Mei, X.; Liu, X.; Mandic, D.; Wang, W.; and Plumbley, M. D. 2023. AudioLDM: Text-to-Audio Generation with Latent Diffusion Models. In International Conference on Machine Learning, 21450–21474. PMLR.   \nOh, H.-S.; Lee, S.-H.; and Lee, S.-W. 2024. Diffprosody: Diffusion-based latent prosody generation for expressive speech synthesis with prosody conditional adversarial training. IEEE/ACM Transactions on Audio, Speech, and Language Processing.   \nPopov, V.; Vovk, I.; Gogoryan, V.; Sadekova, T.; and Kudinov, M. 2021. Grad-tts: A diffusion probabilistic model for text-to-speech. In International Conference on Machine Learning, 8599–8608. PMLR.   \nPopov, V.; Vovk, I.; Gogoryan, V.; Sadekova, T.; Kudinov, M. S.; and Wei, J. 2022. Diffusion-Based Voice Conversion with Fast Maximum Likelihood Sampling Scheme. In International Conference on Learning Representations.   \nRix, A. W.; Beerends, J. G.; Hollier, M. P.; and Hekstra, A. P. 2001. Perceptual evaluation of speech quality (PESQ)- a new method for speech quality assessment of telephone networks and codecs. In 2001 IEEE InternationalConference on Acoustics, Speech, and Signal Processing. Proceedings (Cat. No. 01CH37221), volume 2, 749–752. IEEE. Rombach, R.; Blattmann, A.; Lorenz, D.; Esser, P.; and Ommer, B. 2022. High-resolution image synthesis with latent diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern recognition, 10684– 10695.   \nRonneberger, O.; Fischer, P.; and Brox, T. 2015. U-net: Convolutional networks for biomedical image segmentation. In Medical image computing and computer-assisted intervention–MICCAI 2015: 18th international conference, Munich, Germany, October 5-9, 2015, proceedings, part III 18, 234–241. Springer.   \nRuan, L.; Ma, Y.; Yang, H.; He, H.; Liu, B.; Fu, J.; Yuan, N. J.; Jin, Q.; and Guo, B. 2023. Mm-diffusion: Learning multi-modal diffusion models for joint audio and video generation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 10219–10228. Ruiz, N.; Li, Y.; Jampani, V.; Pritch, Y.; Rubinstein, M.; and Aberman, K. 2023. Dreambooth: Fine tuning text-to-image diffusion models for subject-driven generation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 22500–22510.   \nSakoe, H.; and Chiba, S. 1978. Dynamic programming algorithm optimization for spoken word recognition. IEEE transactions on acoustics, speech, and signal processing, 26(1): 43–49.   \nShen, K.; Ju, Z.; Tan, X.; Liu, E.; Leng, Y.; He, L.; Qin, T.; Bian, J.; et al. 2024. NaturalSpeech 2: Latent Diffusion Models are Natural and Zero-Shot Speech and Singing Synthesizers. In The Twelfth International Conference on Learning Representations.   \nSong, J.; Meng, C.; and Ermon, S. 2020. Denoising diffusion implicit models. arXiv preprint arXiv:2010.02502.   \nSong, Y.; Sohl-Dickstein, J.; Kingma, D. P.; Kumar, A.; Ermon, S.; and Poole, B. 2020. Score-based generative modeling through stochastic differential equations. arXiv preprint arXiv:2011.13456.   \nTumanyan, N.; Geyer, M.; Bagon, S.; and Dekel, T. 2023. Plug-and-play diffusion features for text-driven image-toimage translation. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 1921– 1930.   \nWang, F.; Tan, Z.; Wei, T.; Wu, Y.; and Huang, Q. 2024. Simac: A simple anti-customization method for protecting face privacy against text-to-image synthesis of diffusion models. In Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition, 12047–12056. Wang, H.; Thebaud, T.; Villalba, J.; Sydnor, M.; Lammers, B.; Dehak, N.; and Moro-Velazquez, L. 2023. DuTa-VC: A Duration-aware Typical-to-atypical Voice Conversion Approach with Diffusion Probabilistic Model. In Proc. Interspeech 2023, 1548–1552.   \nWu, J.; Lu, W.; Luo, X.; Yang, R.; Wang, Q.; and Cao, X. 2024. Coarse-to-fine proposal refinement framework for audio temporal forgery detection and localization. In Proceedings of the 32nd ACM International Conference on Multimedia, 7395–7403.   \nYamagishi, J.; Veaux, C.; and MacDonald, K. 2019. CSTR VCTK Corpus: English Multi-speaker Corpus for CSTR Voice Cloning Toolkit (version 0.92).   \nYu, H.; Chen, J.; Ding, X.; Zhang, Y.; Tang, T.; and Ma, H. 2024. Step vulnerability guided mean fluctuation adversarial attack against conditional diffusion models. In Proceedings of the AAAI Conference on Artificial Intelligence, volume 38, 6791–6799.   \nYu, Z.; Zhai, S.; and Zhang, N. 2023. Antifake: Using adversarial audio to prevent unauthorized speech synthesis. In Proceedings of the 2023 ACM SIGSAC Conference on Computer and Communications Security, 460–474.   \nZen, H.; Dang, V.; Clark, R.; Zhang, Y.; Weiss, R. J.; Jia, Y.; Chen, Z.; and Wu, Y. 2019. Libritts: A corpus derived from librispeech for text-to-speech. arXiv preprint arXiv:1904.02882.   \nZhou, Y.; and Lim, S.-N. 2021. Joint audio-visual deepfake detection. In Proceedings of the IEEE/CVF International Conference on Computer Cision, 14800–14809. ",
+        "bbox": [
+            84,
+            655,
+            478,
+            888
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            519,
+            46,
+            913,
+            896
+        ],
+        "page_idx": 7
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            84,
+            34,
+            478,
+            895
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            519,
+            70,
+            911,
+            753
+        ],
+        "page_idx": 8
+    },
+    {
+        "type": "text",
+        "text": "Technical Appendix ",
+        "text_level": 1,
+        "bbox": [
+            199,
+            68,
+            366,
+            83
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "A Additional Explanation on Our Strategy ",
+        "text_level": 1,
+        "bbox": [
+            93,
+            88,
+            468,
+            104
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Algorithm. The full procedure of our multi-dimensional defense is detailed in Algorithm 1 ",
+        "bbox": [
+            86,
+            107,
+            477,
+            135
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Speaker Embedding: This strategy targets a pre-trained d-vector as speaker encoder. ",
+        "bbox": [
+            539,
+            69,
+            911,
+            97
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "• VoicePrivacy Chen et al. (2024): For this baseline, we strictly follow the original implementation from the original paper. Notably, this setup differs from the primary configuration used for our main experiments. Specifically, adversarial perturbations are generated using the Fast Gradient Sign Method (FGSM) with a prescribed budget of $\\epsilon \\ : = \\ : 0 . 0 2$ . The targeted speaker encoder, as specified in their work, is the pre-trained ECAPA-TDNN model provided with YourTTS. And the optimization objective is to maximize the corresponding cosine similarity between extracted embeddings. ",
+        "bbox": [
+            526,
+            101,
+            911,
+            253
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "• VoiceGuard Li et al. (2023): VoiceGuard optimizes timedomain perturbations and uniquely constrains their magnitude using a psychoacoustic model rather than a fixed $l _ { p }$ -norm budget. Given this distinct constraint mechanism, a direct budget comparison is not applicable. Therefore, for a fair evaluation consistent with its design, we employed the default hyperparameter settings provided in the official codebase. ",
+        "bbox": [
+            526,
+            257,
+            911,
+            368
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "img_path": "images/447f3b466f788652aaec86d15e2cadc50ca8044a575416d41d0157d259813bb8.jpg",
+        "text": "$$\ns c o r e \\gets s _ { \\theta } \\big ( \\mathbf { x } _ { r e f } , \\mathbf { x } _ { a d v } , T _ { a d v } \\big )\n$$",
+        "text_format": "latex",
+        "bbox": [
+            137,
+            390,
+            336,
+            406
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "img_path": "images/6e1333e87e83c9d997b61c1c6ea4382b501965847e675736d2b044d5bc02fede.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\mathcal { L } _ { I D } ^ { ' } \\gets 1 - \\mathsf { S I M } ( \\mathbf { e } _ { a d v } , \\mathbf { e } _ { r e f } ) + \\mathsf { S I M } ( \\mathbf { e } _ { a d v } , \\mathbf { C } _ { o p p } ) } \\\\ & { P _ { r e f } \\gets \\mathsf { S o f t m a x } ( \\mathcal { H } _ { c t x } ( \\mathbf { x } _ { r e f } ) ) } \\\\ & { P _ { a d v } \\gets \\mathrm { S o f t m a x } ( \\mathcal { H } _ { c t x } ( \\mathbf { x } _ { a d v } ) ) } \\\\ & { \\mathcal { L } _ { c t x } \\gets D _ { K L } ( P _ { r e f } \\parallel P _ { a d v } ) } \\\\ & { \\mathcal { L } _ { s c o r e } \\gets | | s c o r e | | _ { 2 } } \\\\ & { \\mathcal { L } _ { s e m } \\gets ( 1 - \\cos ( \\mathbf { f } _ { a d v } , \\mathbf { f } _ { r e f } ) ) + \\cos ( \\mathbf { f } _ { a d v } , \\mathbf { f } _ { n o i s e } ) } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            135,
+            415,
+            470,
+            503
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "equation",
+        "img_path": "images/23ded1ea5115fd8b4a91f89eb8a296af45d7231d947f4ffe37a73a49c985a3a0.jpg",
+        "text": "$$\n\\begin{array} { r l } & { \\quad \\bar { \\mathcal { L } } _ { t o t a l }  \\lambda _ { I D } \\mathcal { L } _ { I D } + \\bar { \\lambda _ { c t x } } \\mathcal { L } _ { c t x } + \\lambda _ { s c o r e } \\mathcal { L } _ { s c o r e } + } \\\\ & { s e m \\mathcal { L } _ { s e m } } \\\\ & { \\quad { \\bf x } _ { a d v }  { \\bf x } _ { a d v } + \\alpha \\cdot \\mathrm { s i g n } ( \\nabla _ { { \\bf x } _ { \\bf a d v } } \\mathcal { L } _ { { \\bf t o t a l } } ) } \\\\ & { \\quad { \\bf x } _ { a d v }  { \\bf x } _ { r e f } + \\mathrm { c l a m p } ( { \\bf x } _ { a d v } - { \\bf x } _ { r e f } , - \\epsilon , \\epsilon ) } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            125,
+            513,
+            478,
+            573
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "B.2 Evaluation Metrics ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            381,
+            710,
+            396
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "To provide a comprehensive and multi-faceted evaluation of VoiceCloak, we employ a suite of objective metrics assessing three key aspects: identity obfuscation, perceptual quality degradation, and perturbation imperceptibility. Let $y$ denote the audio synthesized using the original reference $x _ { r e f }$ , and $y _ { a d v }$ denote the audio synthesized using the protected reference $x _ { a d v }$ . ",
+        "bbox": [
+            519,
+            402,
+            911,
+            500
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "B Experimental Details ",
+        "text_level": 1,
+        "bbox": [
+            176,
+            621,
+            387,
+            638
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "B.1 Baseline Methods ",
+        "text_level": 1,
+        "bbox": [
+            86,
+            641,
+            266,
+            656
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "To ensure a fair comparison, all baseline methods were configured in a white-box setting. For methods with official implementations (e.g., Attack-VC, VoiceGuard), we adapted their public code for our experimental pipeline. Perturbation budgets and key parameters for each baseline were carefully set, adhering to their original papers where possible. ",
+        "bbox": [
+            86,
+            660,
+            477,
+            742
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "• Random Noise: A naive baseline where Gaussian noise $( x \\sim \\mathcal { N } ( 0 , I ) )$ is added to the reference audio. The noise is clipped to the same $l _ { \\infty }$ -norm budget as our method for a direct comparison of structured vs. unstructured noise. • Attack-VC Huang et al. (2021): Following their paper, we combined two of their primary strategies: End-to-End (e2e): This defense directly maximizes the Melspectrogram $l _ { 2 }$ distance between the VC outputs generated with the original and perturbed references which backpropagated through the entire Diffusion model. ",
+        "bbox": [
+            93,
+            747,
+            478,
+            888
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Automatic Speaker Verification (ASV): This metric quantifies the core goal of identity obfuscation. We utilize a pre-trained, state-of-the-art ECAPA-TDNN Desplanques, Thienpondt, and Demuynck (2020) model as our speaker verification system. For each target speaker, we first compute an average enrollment embedding from set of their clean, original utterances. Then, for each defended output $y _ { a d v }$ , we extract its embedding and compute a cosine similarity score against the corresponding target speaker’s enrollment embedding. The ASV Acceptance Rate is samples whose similarity score exceeds a pre-defined threshold, which can be formulated as: $S i m ( \\bar { y _ { a d v } } , a v g ( X _ { r e f } ) ) \\geq$ $\\tau _ { A S V }$ . ",
+        "bbox": [
+            519,
+            500,
+            911,
+            679
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "NISQA: NISQA Mittag and Moller (2021) is a neural ¨ network-based model for objective audio quality assessment. It is trained to predict the subjective Mean Opinion Score (MOS) that a human listener would assign, evaluating the overall quality and naturalness of speech on a scale of 1 to 5. By leveraging a deep model trained on human perception data, NISQA provides a robust and objective proxy for subjective listening tests. ",
+        "bbox": [
+            519,
+            680,
+            911,
+            791
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Dynamic Time Warping: DTW Sakoe and Chiba (1978) measures the distance between the temporal structures of two audio signals. Based on our implementation, we first extract the Mel spectrograms of the undefended $y$ and defended $y _ { a d v }$ audio outputs. We then compute the cityblock distance between these two spectrograms using the fastdtw algorithm to find the optimal alignment path. ",
+        "bbox": [
+            519,
+            791,
+            911,
+            888
+        ],
+        "page_idx": 9
+    },
+    {
+        "type": "text",
+        "text": "Structural Similarity (SSIM): Originally an image quality metric, we adapt SSIM Wang et al. (2004) to measure the perceptual similarity between the spectrograms of $y$ and $y _ { a d v }$ . We first compute the Short-Time Fourier Transform (STFT) of both audio signals and convert the resulting magnitudes to a log-dB scale. These log-magnitude spectrograms are then normalized to a range of [0, 1]. The SSIM score is calculated between these normalized spectrograms. The SSIM index between two spectrograms is calculated as: ",
+        "bbox": [
+            86,
+            68,
+            477,
+            194
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "img_path": "images/7c05f5b260484185c2bc084bacad5f9537880e7de6595e5671df7bef11cdee9c.jpg",
+        "text": "$$\n\\mathrm { S S I M } ( u , v ) = \\frac { ( 2 \\mu _ { u } \\mu _ { v } + C _ { 1 } ) ( 2 \\sigma _ { u v } + C _ { 2 } ) } { ( \\mu _ { u } ^ { 2 } + \\mu _ { v } ^ { 2 } + C _ { 1 } ) ( \\sigma _ { u } ^ { 2 } + \\sigma _ { v } ^ { 2 } + C _ { 2 } ) } ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            104,
+            203,
+            429,
+            238
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "where $\\mu$ and $\\sigma$ represent the mean and standard deviation, respectively, $\\sigma _ { u v }$ is the covariance, and $C _ { 1 } , C _ { 2 }$ are stabilizing constants. A lower SSIM score (closer to 0) indicates less structural similarity and thus a greater defensive effect. ",
+        "bbox": [
+            84,
+            247,
+            477,
+            303
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Defense Success Rate (DSR): DSR is our primary comprehensive metric, designed to holistically evaluate the achievement of our two defense objectives. A defense instance is deemed successful only if the resulting audio $y _ { a d v }$ simultaneously meets two conditions: (1) it fails the speaker verification test (i.e., ASV score $\\le \\tau _ { A S V }$ ), and (2) it exhibits low perceptual quality. Eventually, a successful defense is formally defined as: ",
+        "bbox": [
+            86,
+            304,
+            478,
+            415
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "img_path": "images/0505ca17c470cb248cdae1764c70d7ddcf82df6d656eb53b5b9d4179a3e3652c.jpg",
+        "text": "$$\n\\mathrm { S u c c e s s } = ( \\mathrm { A S V } ( y _ { a d v } ) < \\tau _ { A S V } ) \\wedge ( \\mathrm { N I S Q A } ( y _ { a d v } ) < \\tau _ { q } ) ,\n$$",
+        "text_format": "latex",
+        "bbox": [
+            88,
+            425,
+            473,
+            443
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "where we set the quality threshold $\\tau _ { q } ~ = ~ 0 . 3 0$ and identity threshold $\\tau _ { A S V } ~ = ~ 0 . 2 5$ . The thresholds were chosen to reflect reasonable boundaries for identity verification and quality assessment. And these choices align with prior work or related paper, providing a consistent standard and quantifiable success defense. ",
+        "bbox": [
+            86,
+            452,
+            477,
+            536
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "The following metrics evaluate the quality of the adversarial reference audio $x _ { a d v }$ itself, by comparing it to the original $x _ { r e f }$ . ",
+        "bbox": [
+            84,
+            537,
+            477,
+            579
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Perceptual Evaluation of Speech Quality (PESQ): PESQ Rix et al. (2001) is a classic objective metric that predicts the subjective quality of speech. We use it to measure the degradation introduced by the perturbation. Scores range from -0.5 to 4.5, with higher scores indicating better quality (i.e., a more imperceptible perturbation). ",
+        "bbox": [
+            86,
+            580,
+            477,
+            664
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Mel-Cepstral Distortion (MCD): This calculates the Euclidean distance between the Mel-frequency cepstral coefficients (MFCCs) of $x _ { r e f }$ and $x _ { a d v }$ . It is a standard metric for measuring spectral distortion in speech. A lower MCD value indicates less spectral distortion and thus a more imperceptible perturbation. ",
+        "bbox": [
+            86,
+            665,
+            477,
+            748
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Signal-to-Noise Ratio: SNR measures the ratio of the power of the original signal $x _ { r e f }$ to the power of the perturbation noise $\\delta$ . It is calculated in decibels (dB) as: ",
+        "bbox": [
+            84,
+            751,
+            477,
+            792
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "equation",
+        "img_path": "images/162f740c97972a530899922df9b13367ccf7b09df2584e0ae9941fd817e47e3d.jpg",
+        "text": "$$\n\\mathrm { S N R _ { d B } } = 1 0 \\log 1 0 \\left( \\frac { \\sum _ { n } x _ { r e f } ( n ) ^ { 2 } } { \\sum _ { n } \\delta ( n ) ^ { 2 } } \\right)\n$$",
+        "text_format": "latex",
+        "bbox": [
+            156,
+            801,
+            406,
+            838
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "where the sums are over all samples in the signal. A higher SNR value indicates a weaker perturbation relative to the signal. ",
+        "bbox": [
+            84,
+            847,
+            478,
+            888
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "table",
+        "img_path": "images/e892d63d5442131e7ba2359ca9ff2c5f322057ac391446cee32c024a2c847894.jpg",
+        "table_caption": [
+            "Table 6: Hyperparameters used for the PGD. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Norm</td><td>E</td><td> step size α</td><td> optimization iterations</td></tr><tr><td>l8</td><td>0.002</td><td>4×10-5</td><td>50</td></tr></table>",
+        "bbox": [
+            532,
+            66,
+            898,
+            109
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "B.3 Implementation Details ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            167,
+            743,
+            184
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Hyperparameter Setup All audio data was uniformly resampled to $2 2 0 5 0 ~ \\mathrm { H z }$ and normalized to the range [-1, 1]. To generate the set of protected audio samples $x _ { a d v }$ , we selected a diverse and gender-balanced subset of reference utterances. Specifically, from LibriTTS, we used 479 utterances, and from VCTK, we used 500 utterances. In both cases, the selection ensures an approximate $50 \\%$ male and $50 \\%$ female speaker distribution. For the voice cloning synthesis process, all voice cloning evaluations were conducted as gender-matched conversions (i.e., male source to male target, female source to female target), as this setup typically yields the highest baseline voice conversion quality, to ensure a consistent and challenging evaluation scenario. ",
+        "bbox": [
+            519,
+            200,
+            911,
+            381
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "table",
+        "img_path": "images/0bca451be85bfb7fa11b663006e7176ecf4d3838d960c8a120375aa682621543.jpg",
+        "table_caption": [
+            "Table 7: Hyperparameters used for diffusion process. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>mel bins</td><td>hidden dims</td><td>denoise timesteps</td><td> Adv. timesteps</td></tr><tr><td>80</td><td>256</td><td>100</td><td>6</td></tr></table>",
+        "bbox": [
+            531,
+            402,
+            898,
+            440
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "In this paper, our adversarial perturbations are generated using the Projected Gradient Descent (PGD) algorithm. The optimization process is configured with the hyperparameters detailed in Table 6. For the diffusion process itself, we set the configuration with the hyperparameters, as shown in Table 7. ",
+        "bbox": [
+            519,
+            494,
+            911,
+            564
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "text",
+        "text": "Human Evaluation We conducted a subjective human evaluation study to assess the real-world perceptual impact of VoiceCloak compared to baseline methods. We recruited 50 participants for the study. A total of 100 distinct audio clips were used for evaluation, comprising samples synthesized using references protected by our method and the primary baseline methods. All participants were asked to use headphones in a quiet environment to ensure a consistent and high-quality listening experience. Participants were then asked to make a comparative judgment in response to the following two questions: (1) ”Which of the two synthesized voices sounds less similar to the original speaker’s voice?” This question directly measures the perceived effectiveness of identity obfuscation. (2) ”Which of the two synthesized voices sounds less natural or more distorted?” This question evaluates the perceived degree of perceptual quality degradation. For each question, participants could choose one of the two synthesized audio clips or select ”Neutral” if they perceived no significant difference. To mitigate ordering bias, the positions of the two synthesized samples were randomly shuffled for each question and each participant. ",
+        "bbox": [
+            519,
+            597,
+            911,
+            888
+        ],
+        "page_idx": 10
+    },
+    {
+        "type": "table",
+        "img_path": "images/5e9bdb034154be7c5c73efcea2d121419f3b0e3a47928370a2c33b39d5f1ea93.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "Table 8: Overall robustness of our defense method against various lossy post-processing operations. Lower values for “Level” indicate more severe operations. "
+        ],
+        "table_body": "<table><tr><td rowspan=\"2\">Lossy Type</td><td rowspan=\"2\">Level(↑)</td><td colspan=\"4\">Defense Effectiveness</td></tr><tr><td>DTW(↓)</td><td>ASV(↓)</td><td>NISQA(↓)</td><td>DSR(↑)</td></tr><tr><td rowspan=\"5\">AAC Compression</td><td>128</td><td>2.33</td><td>16.70%</td><td>2.46</td><td>65.01%</td></tr><tr><td>96</td><td>2.33</td><td>14.08%</td><td>2.40</td><td>70.65%</td></tr><tr><td>64</td><td>2.31</td><td>15.49%</td><td>2.52</td><td>62.40%</td></tr><tr><td>48</td><td>2.30</td><td>19.92%</td><td>2.57</td><td>60.59%</td></tr><tr><td>32</td><td>2.32</td><td>14.08%</td><td>2.71</td><td>55.76%</td></tr><tr><td rowspan=\"5\">MP3 Compression</td><td>128</td><td>2.33</td><td>17.71%</td><td>2.42</td><td>66.42%</td></tr><tr><td>96</td><td>2.33</td><td>13.48%</td><td>2.41</td><td>69.84%</td></tr><tr><td>64</td><td>2.33</td><td>15.29%</td><td>2.45</td><td>67.03%</td></tr><tr><td>48</td><td>2.31</td><td>17.91%</td><td>2.57</td><td>59.38%</td></tr><tr><td>32</td><td>2.34</td><td>15.29%</td><td>3.19</td><td>29.40%</td></tr><tr><td rowspan=\"4\">Gaussian Noise</td><td>30 25</td><td>2.34 2.35</td><td>19.72%</td><td>2.68</td><td>52.74%</td></tr><tr><td></td><td></td><td>18.51%</td><td>2.76</td><td>50.93%</td></tr><tr><td>20</td><td>2.37</td><td>16.50%</td><td>2.79</td><td>52.94%</td></tr><tr><td>15 10</td><td>2.39 2.47</td><td>12.88% 10.66%</td><td>2.79 2.79</td><td>53.14%</td></tr><tr><td rowspan=\"5\">Lowpass</td><td>7000</td><td>2.32</td><td>13.88%</td><td>2.22</td><td>56.76% 77.89%</td></tr><tr><td>6000</td><td>2.40</td><td>17.30%</td><td>2.66</td><td>62.60%</td></tr><tr><td>5000</td><td>2.39</td><td>21.13%</td><td>2.40</td><td>67.43%</td></tr><tr><td>4000</td><td>2.39</td><td>22.33%</td><td>2.40</td><td>63.81%</td></tr><tr><td>3000</td><td>2.44</td><td>17.91%</td><td>2.56</td><td>65.62%</td></tr></table>",
+        "bbox": [
+            220,
+            65,
+            776,
+            402
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "C Additional Experiments ",
+        "text_level": 1,
+        "bbox": [
+            165,
+            465,
+            400,
+            483
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "C.1 Robustness Evaluation ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            487,
+            305,
+            502
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "We evaluated the robustness of our adversarial perturbations against common audio distortions encountered during digital transmission and storage. We subjected the protected reference audio $x _ { a d v }$ to four types of transformations with varying levels of severity: ",
+        "bbox": [
+            86,
+            507,
+            478,
+            578
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "• AAC and MP3 Compression: These are widely used   \nlossy audio codecs that reduce file size by discarding less   \nperceptible acoustic information. We tested a range of bi  \ntrates from 128kbps (high quality) down to 32kbps (low   \nquality).   \n• Gaussian Noise: This involves adding white Gaussian noise to the audio signal, a common way to simulate   \nchannel noise or environmental interference. We evaluated across Signal-to-Noise Ratios (SNR) from 30dB   \n(low noise) to 10dB (high noise).   \n• Low-pass Filtering: This process removes high  \nfrequency components from the signal, which can oc  \ncur during resampling or transmission over band-limited   \nchannels. We tested cutoff frequencies from 7kHz down to 3kHz. ",
+        "bbox": [
+            93,
+            583,
+            478,
+            797
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "The defense performance under these conditions is detailed in Table 8. Even under moderate degradation, the core defensive properties of the perturbation are well-preserved. ",
+        "bbox": [
+            84,
+            805,
+            478,
+            847
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "A notable phenomenon occurs under severe distortion (e.g., 32kbps MP3 compression), where defense metrics paradoxically appear to improve. We attribute this not to an enhanced perturbation, but to the degradation of the reference audio’s fundamental signal integrity. At such high distortion levels, essential acoustic features of the speaker are damaged alongside the perturbation. Consequently, the voice cloning model itself is inherently compromised by the poor input quality, struggling to synthesize a coherent, identity-consistent output. In these extreme cases, the high DSR reflects not only our method’s robustness but also the diffusion model’s own limitation when presented with severely degraded inputs. ",
+        "bbox": [
+            84,
+            848,
+            478,
+            888
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "text",
+        "text": "",
+        "bbox": [
+            519,
+            468,
+            911,
+            607
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "table",
+        "img_path": "images/0d4afc42429bef49b8981ba5a8d793b5bc9b9826bbca7b1cf691b9ba34b345e7.jpg",
+        "table_caption": [
+            "Table 9: Comparison with prior defense methods under the most severe lossy post-processing conditions. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Lossy Type</td><td rowspan=\"2\">Methods</td><td colspan=\"3\">Defense Effectiveness</td></tr><tr><td>ASV(↓)</td><td>NISQA(↓)</td><td>DSR(↑)</td></tr><tr><td rowspan=\"3\">AAC-32</td><td>Attack-VC</td><td>23.54%</td><td>3.30</td><td>25.35%</td></tr><tr><td>VoicePrivacy</td><td>22.74%</td><td>3.28</td><td>24.35%</td></tr><tr><td>Ours</td><td>14.08%</td><td>2.71</td><td>55.76%</td></tr><tr><td rowspan=\"3\">MP3-32</td><td>Attack-VC VoicePrivacy</td><td>21.73%</td><td>3.60</td><td>12.07%</td></tr><tr><td></td><td>19.52%</td><td>3.66</td><td>11.47%</td></tr><tr><td>Ours</td><td>15.29%</td><td>3.19</td><td>29.40%</td></tr><tr><td rowspan=\"3\">Gaussian-10</td><td>Attack-VC VoicePrivacy</td><td>16.50%</td><td>2.79</td><td>56.14%</td></tr><tr><td>Ours</td><td>16.90%</td><td>2.77</td><td>57.14%</td></tr><tr><td></td><td>10.66%</td><td>2.79</td><td>56.76%</td></tr><tr><td rowspan=\"3\">Lowpass-3k</td><td>Attack-VC</td><td>25.15%</td><td>2.87</td><td>43.69%</td></tr><tr><td>VoicePrivacy</td><td>23.94%</td><td>2.89</td><td>47.89%</td></tr><tr><td>Ours</td><td>17.91%</td><td>2.56</td><td>65.62%</td></tr></table>",
+        "bbox": [
+            519,
+            622,
+            910,
+            829
+        ],
+        "page_idx": 11
+    },
+    {
+        "type": "table",
+        "img_path": "images/dd55ab77c84c899485c72b6f60de9ccb71172b5c27064a3d27c3abe5d4f0ba1a.jpg",
+        "table_caption": [
+            "Table 10: Comparison of computational overhead for our method and baseline. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>Methods</td><td>Time (seconds/audio)</td><td>Peak Memory (GB)</td></tr><tr><td>Attack-VC</td><td>181.35</td><td>9.80</td></tr><tr><td>VoicePrivacy</td><td>16.12</td><td>0.61</td></tr><tr><td>VoiceGuard</td><td>248.91</td><td>14.36</td></tr><tr><td>Ours</td><td>148.66</td><td>9.19</td></tr></table>",
+        "bbox": [
+            279,
+            65,
+            715,
+            147
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Furthermore, Table 9 compares the robustness of Voice-Cloak against baseline methods under the most severe distortion conditions. The results show that VoiceCloak consistently demonstrates superior defense effectiveness. Notably, VoiceCloak also achieves the lowest ASV acceptance rate in all scenarios, indicating that the identity obfuscation component of our perturbation is particularly resilient to these transformations. This superior robustness is likely attributed to our multi-dimensional defense strategy. While simple post-processing might partially neutralize attacks targeting a single vulnerability (e.g., only the embedding space), Voice-Cloak’s approach of simultaneously corrupting conditional guidance, the denoising trajectory, and internal semantic features creates a more resilient and multifaceted defense that is harder to fully compromise. ",
+        "bbox": [
+            86,
+            199,
+            477,
+            406
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "C.2 Computational Costs ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            426,
+            294,
+            443
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "The practical utility of a proactive defense method is closely tied to its computational cost. For a tool like VoiceCloak to be accessible to individual users, it must be both timeefficient enough for practical use and memory-efficient enough to run on common consumer-grade hardware. In this section, we analyze the computational overhead of our method and compare it against the baselines. ",
+        "bbox": [
+            86,
+            454,
+            477,
+            551
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Analysis of the Computational Cost in VoiceCloak Time Cost. In each of the 50 iterations, the primary operations are: (1) a forward pass through the diffusion model to compute the intermediate features and the score prediction $s _ { \\theta }$ , which is necessary for all our loss components; and (2) a backward pass to compute the gradient of the total loss $\\mathcal { L } _ { t o t a l }$ with respect to the input audio $x _ { a d v }$ . We set the adversarial optimization iterations to be 50 and the gradient repeats to be 5 for an average gradient. Therefore, we run $5 0 \\times 5 = 2 5 0$ steps for one input optimization. As we select the early stage of diffusion steps, it would be time-efficient for backward propagation. ",
+        "bbox": [
+            86,
+            568,
+            477,
+            733
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Memory Cost. The peak GPU memory usage during this process consists of three main components: (1) the model weights of the DiffVC model and any auxiliary models (like WavLM), which must be loaded into VRAM; (2) the computation graph and intermediate activations stored during the forward pass, which are necessary for gradient computation in the backward pass; and (3) a smaller amount of memory for the input audio tensors and the calculated gradients themselves. The dominant factor for memory is the size of the computation graph, which is directly related to the depth and complexity of the DiffVC U-Net. ",
+        "bbox": [
+            86,
+            736,
+            477,
+            888
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Evaluation on Costs Table 10 presents a comparison of the average time required to process a single audio sample (approximately 7 seconds in length) for our method and the baselines on an NVIDIA RTX 3090 GPU. VoiceCloak requires approximately 148.7 seconds per sample. This is significantly faster than VoiceGuard (248.9s) and Attack-VC (181.4s). While methods like VoicePrivacy (16.1s) are faster, they often target simpler objectives and may not provide the same level of multi-faceted defense. Crucially, as this is a one-time, offline pre-processing step, we argue that this time cost is a reasonable and practical investment for users seeking to permanently protect their audio data before dissemination. ",
+        "bbox": [
+            519,
+            199,
+            911,
+            378
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "The peak GPU memory usage is another critical factor for accessibility. The memory cost of VoiceCloak is primarily determined by the storage of the DiffVC model weights and the computation graph required for backpropagation. A key design choice that significantly enhances our memory efficiency is the targeted computation over early denoising timesteps. Unlike a hypothetical, fully end-to-end attack that would need to backpropagate through the entire multi-step denoising trajectory—a process requiring prohibitively large memory to store dozens of U-Net computation graphs (at least $8 \\times$ Nvidia A100 with 40GB memory). By concentrating gradient computations on only a few initial steps $T _ { a d v } = 6 )$ ), VoiceCloak only needs to store a much shallower computation graph, dramatically reducing the memory footprint. As shown in Table 10, the peak memory usage of VoiceCloak is approximately 9.19 GB. This is lower than both Attack-VC (9.80 GB) and Voice-Guard (14.36 GB), which require larger memory footprints. A memory requirement of $9 . 2 \\ : \\mathrm { G B }$ ensures that VoiceCloak is well within the capacity of most modern consumer-grade GPUs (e.g., those with 10GB, 12GB, or more VRAM), making it a highly accessible tool for individual users and nonspecialists. This practical memory efficiency is a key advantage for real-world deployment. ",
+        "bbox": [
+            519,
+            381,
+            911,
+            712
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "C.3 Additional Ablation Studies ",
+        "text_level": 1,
+        "bbox": [
+            521,
+            728,
+            777,
+            743
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "text",
+        "text": "Perturbation budgets We investigated the influence of the perturbation budget $\\epsilon$ on both defense effectiveness and adversarial imperceptibility, with results summarized in Table 11. The findings reveal a clear trade-off: increasing e directly enhances defense effectiveness but conversely degrades audio imperceptibility. The excessive distortion compromises the usability of $x _ { a d v }$ for legitimate purposes. We determined $\\epsilon = 0 . 0 0 2 0$ to be a suitable default budget, providing strong protection while preserving acceptable adversarial quality. ",
+        "bbox": [
+            519,
+            750,
+            911,
+            888
+        ],
+        "page_idx": 12
+    },
+    {
+        "type": "table",
+        "img_path": "images/fc0c6c402c1292682bf676c3adde8b0b500b84d72dc60034a792b6b73211055e.jpg",
+        "table_caption": [],
+        "table_footnote": [
+            "Table 11: Performance of VoiceCloak under different perturbation budgets. ”Undefended” denotes voice conversion without VoiceCloak. "
+        ],
+        "table_body": "<table><tr><td rowspan=\"2\">Budgets (e)</td><td colspan=\"5\">Defense Effectiveness</td><td colspan=\"3\">Imperceptibility</td></tr><tr><td>DTW(↑)</td><td>ASV(↓)</td><td>SSIM(↓)</td><td>NISQA(↓)</td><td>DSR(↑)</td><td>PESQ(↑)</td><td>MCD(↓)</td><td>SNR(↑)</td></tr><tr><td>Undefended</td><td>-</td><td>76.49%</td><td>1</td><td>3.96</td><td>=</td><td>1</td><td>1</td><td>1</td></tr><tr><td>0.0005</td><td>2.01</td><td>22.00%</td><td>0.29</td><td>2.86</td><td>41.20%</td><td>4.25</td><td>0.48</td><td>45.03</td></tr><tr><td>0.0010</td><td>2.05</td><td>16.60%</td><td>0.28</td><td>2.65</td><td>57.00%</td><td>3.81</td><td>0.79</td><td>39.26</td></tr><tr><td>0.0020</td><td>2.12</td><td>11.40%</td><td>0.27</td><td>2.36</td><td>71.20%</td><td>3.21</td><td>1.29</td><td>33.53</td></tr><tr><td>0.0050</td><td>2.23</td><td>6.20%</td><td>0.25</td><td>1.95</td><td>84.00%</td><td>2.34</td><td>2.34</td><td>25.94</td></tr><tr><td>0.0100</td><td>2.32</td><td>1.20%</td><td>0.24</td><td>1.75</td><td>90.80%</td><td>1.74</td><td>3.40</td><td>20.18</td></tr></table>",
+        "bbox": [
+            147,
+            65,
+            849,
+            190
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Robust to Inference Steps In a practical defense scenario, the defender cannot know the specific number of inference steps $( T )$ an attacker will use for the voice cloning synthesis. To evaluate the robustness of VoiceCloak against this uncertainty, we conducted an ablation study where the attacker’s total number of inference timesteps was varied. For this experiment, the gradient-based loss components for perturbation were computed only within the early diffusion timesteps $T _ { a d v } = 6 )$ ). We then evaluated the effectiveness of this single, fixed perturbation when the diffusion model used it to synthesize audio over different inference path lengths, from a very short $T = 6$ to $T = 2 0 0$ . The results are presented in Table 12. ",
+        "bbox": [
+            86,
+            256,
+            477,
+            435
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/360687230990c05f225b16f1e7ba175acc973b06df6dedbe64bc26f5d5f099c8.jpg",
+        "table_caption": [
+            "Table 12: Ablation study on the effect of different diffusion inference steps $T$ . ”Avg. RT” indicates the average runtime per generated sample. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td rowspan=\"2\">Infer. Steps T|</td><td colspan=\"4\">Defense Effectiveness</td><td rowspan=\"2\">Avg.RT (s)</td></tr><tr><td>DTW(↑)</td><td>ASV(↓)</td><td>NISQA(↓)</td><td>DSR(↑)</td></tr><tr><td>6</td><td>1.72</td><td>11.80%</td><td>1.83</td><td>84.20%</td><td>0.32</td></tr><tr><td>18</td><td>1.94</td><td>10.40%</td><td>2.08</td><td>81.80%</td><td>0.71</td></tr><tr><td>30</td><td>2.03</td><td>11.40%</td><td>2.13</td><td>78.80%</td><td>1.09</td></tr><tr><td>100</td><td>2.13</td><td>11.00%</td><td>2.37</td><td>71.80%</td><td>3.28</td></tr><tr><td>200</td><td>2.15</td><td>13.40%</td><td>2.37</td><td>69.20%</td><td>6.57</td></tr></table>",
+        "bbox": [
+            88,
+            445,
+            475,
+            535
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "The results demonstrate that VoiceCloak exhibits remarkable stability, maintaining high defense effectiveness across a wide range of attacker inference steps. While minor fluctuations exist, key metrics like DSR and ASV remain consistently strong, indicating that the core defense is not compromised by the length of the synthesis process. This stability stems directly from our design choice to concentrate adversarial optimization on the initial denoising timesteps $( T _ { a d v } = 6 )$ ) that early steps are critical for reconstructing the fundamental low-frequency and coarse structural components of the audio signal. By introducing potent disruptions at this foundational stage, the errors are irrevocably embedded into the generation process. Consequently, any subsequent refinement steps operate on an already corrupted foundation. This is evidenced by the trend in the DTW score, which increases with $T$ . This suggests that as the model performs more refinement steps, the initial error is not corrected but rather cumulatively amplified. ",
+        "bbox": [
+            86,
+            606,
+            477,
+            854
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "Ablation on PGD Iterations We conducted an ablation study to analyze the impact of the number of PGD optimiza-",
+        "bbox": [
+            84,
+            861,
+            477,
+            888
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "table",
+        "img_path": "images/531cb9a4751454d9d3a9b6f1f5d044e83688155c5a51ff77853ccd83c6ec6fd1.jpg",
+        "table_caption": [
+            "tion iterations on both defense effectiveness and computational efficiency. Table 13 presents the results as we vary the number of iterations from 5 to 100. ",
+            "Table 13: Ablation study on the number of adversarial attack iterations. Avg Time is measured in seconds per sample. "
+        ],
+        "table_footnote": [],
+        "table_body": "<table><tr><td>PGD Iters</td><td>Avg Time/sample(s)</td><td>ASV(↓)</td><td>NISQA(↓)</td><td>DSR(↑)</td></tr><tr><td>5</td><td>15.02</td><td>0.178</td><td>2.63</td><td>0.564</td></tr><tr><td>10</td><td>29.81</td><td>0.142</td><td>2.46</td><td>0.636</td></tr><tr><td>25</td><td>74.94</td><td>0.110</td><td>2.32</td><td>0.734</td></tr><tr><td>50</td><td>148.66</td><td>0.128</td><td>2.33</td><td>0.716</td></tr><tr><td>100</td><td>295.80</td><td>0.100</td><td>2.26</td><td>0.720</td></tr></table>",
+        "bbox": [
+            522,
+            309,
+            906,
+            383
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "The results reveal a clear relationship between the number of iterations and the performance. As expected, the average time cost increases linearly with the number of PGD iterations. In terms of defense effectiveness, we observe that performance, particularly the Defense Success Rate (DSR), generally improves as the number of iterations increases from 5 to 25. However, a notable point of diminishing returns is observed beyond this. The DSR peaks at $7 3 . 4 \\%$ with 25 iterations and then slightly plateaus or fluctuates around a similar level for 50 and 100 iterations $7 1 . 6 \\%$ and $7 2 . 0 \\%$ respectively). This indicates that while the time cost continues to grow linearly, the defense performance reaches a bottleneck after approximately 25-50 iterations. This analysis highlights the flexibility of VoiceCloak and informs the optimal choice of parameters based on different application needs: ",
+        "bbox": [
+            519,
+            441,
+            911,
+            662
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "• For security-critical scenarios where maximizing defense is paramount, setting the iteration count to 50 provides a near-optimal level of protection, as further increases yield minimal performance gains at a significant additional time cost.   \n• For efficiency-critical scenarios where faster processing is required, setting the iteration count to 25 offers an excellent trade-off, providing strong defense effectiveness at roughly 1min. ",
+        "bbox": [
+            526,
+            667,
+            911,
+            795
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "D Additional Related Work ",
+        "text_level": 1,
+        "bbox": [
+            591,
+            808,
+            839,
+            824
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "D.1 Adversarial Examples for Classifiers ",
+        "text_level": 1,
+        "bbox": [
+            519,
+            828,
+            843,
+            843
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "The paradigm of adversarial examples was first established in the domain of image classification Goodfellow et al. (2014); Madry et al. (2017a); Carlini and Wagner (2017). ",
+        "bbox": [
+            519,
+            847,
+            911,
+            888
+        ],
+        "page_idx": 13
+    },
+    {
+        "type": "text",
+        "text": "The core objective is to generate an input, $x ^ { \\prime }$ , that is perceptually similar to a benign input $x$ but causes a trained classifier, $f ( \\cdot )$ , to produce an incorrect prediction. Formally, an adversarial example $x ^ { \\prime }$ is defined by two primary properties: 1. Imperceptibility: The perturbation between $x$ and $x ^ { \\prime }$ is minimal, such that $\\mathcal { D } ( x , x ^ { \\prime } ) \\leq \\epsilon$ for a given distance metric $\\mathcal { D }$ and a small buget $\\epsilon$ . Consistent with prior work, the $l _ { \\infty }$ -norm is a prevalent metric for this constraint. 2. Effectiveness: The model’s prediction for the adversarial example is incorrect, i.e., $f ( x ^ { \\prime } ) \\neq y$ , where $y$ is the ground-truth label for $x$ . ",
+        "bbox": [
+            86,
+            68,
+            478,
+            220
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "This is typically framed as a constrained optimization problem, where the goal is to find a perturbation $\\delta$ that maximizes a loss function $\\mathcal { L }$ encouraging misclassification, subject to the imperceptibility constraint: ",
+        "bbox": [
+            84,
+            223,
+            477,
+            280
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "img_path": "images/573367c305cd7bb0156df4f11cefa2c6516f1887fdf27abe8e9fb07db8254188.jpg",
+        "text": "$$\n\\delta _ { a d v } = \\arg \\operatorname* { m a x } _ { | | \\delta | | _ { p } \\leq \\epsilon } \\mathcal { L } ( f ( x + \\delta ) , y ) .\n$$",
+        "text_format": "latex",
+        "bbox": [
+            166,
+            290,
+            398,
+            318
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "This problem is commonly solved using iterative methods, with Projected Gradient Descent (PGD) Madry et al. (2017b) being a standard and robust algorithm. PGD iteratively updates the adversarial example by taking a small step in the direction of the loss gradient and then projecting the result back onto the $\\epsilon$ -ball to satisfy the constraint: ",
+        "bbox": [
+            86,
+            329,
+            478,
+            412
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "equation",
+        "img_path": "images/06b650cf3c927bc8ea643336bb79dea4ac17aabe93e31c33d7768af5a1df27a6.jpg",
+        "text": "$$\n\\begin{array} { r } { x _ { r + 1 } = \\Pi _ { \\mathbf { x } , \\epsilon } ( \\mathbf { x } _ { r } + \\alpha \\cdot \\mathrm { s i g n } ( \\nabla _ { \\mathbf { x } } \\mathcal { L } ( ( f ( \\mathbf { x } _ { r } ) , y ) ) ) , } \\end{array}\n$$",
+        "text_format": "latex",
+        "bbox": [
+            111,
+            424,
+            423,
+            443
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "where $r$ denotes the iteration, $\\alpha$ is the projection operator ensuring that the updated example ${ \\bf x } _ { r + 1 }$ remains within the $\\epsilon$ -ball around the original input $\\mathbf { x }$ . ",
+        "bbox": [
+            84,
+            454,
+            478,
+            497
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "D.2 Adversarial Attack for Deepfake ",
+        "text_level": 1,
+        "bbox": [
+            88,
+            515,
+            380,
+            531
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "The principles of adversarial examples have been extended from classifiers to generative models, such as those used for Deepfake synthesis. In this domain, the attack objective shifts from causing misclassification to degrading the quality of the generated output or disrupting the synthesis process entirely. One primary strategy involves attacking ancillary components within the generation pipeline, such as facial landmark detectors or feature extractors, which are often essential pre-processing steps for deepfake models. By corrupting the inputs to these upstream modules, the final output of the core generative model is consequently compromised. This approach is analogous to early proactive audio defenses that targeted speaker encoders Huang et al. (2021). Another more direct strategy targets the core generative model itself. While initial efforts focused on exploiting architectural properties of GANs to degrade image quality, these methods are often ineffective against the distinct mechanisms of Diffusion Models (DMs). For DMs, an effective adversarial example is one that the model considers ”out-of-distribution”, thereby hindering its superior reconstruction capabilities. Our work builds upon this more direct approach. However, it is specifically tailored to the unique vulnerabilities of DMs (e.g., attention, score function, U-Net features), addressing the limitations of defenses designed for prior generative paradigms. ",
+        "bbox": [
+            86,
+            542,
+            477,
+            888
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "References ",
+        "text_level": 1,
+        "bbox": [
+            669,
+            68,
+            761,
+            83
+        ],
+        "page_idx": 14
+    },
+    {
+        "type": "text",
+        "text": "Carlini, N.; and Wagner, D. 2017. Towards evaluating the robustness of neural networks. In 2017 ieee symposium on security and privacy (sp), 39–57. Ieee.   \nChen, S.; Chen, L.; Zhang, J.; Lee, K.; Ling, Z.; and Dai, L. 2024. Adversarial speech for voice privacy protection from personalized speech generation. In ICASSP 2024-2024 IEEE International Conference on Acoustics, Speech and Signal Processing (ICASSP), 11411–11415. IEEE.   \nDesplanques, B.; Thienpondt, J.; and Demuynck, K. 2020. Ecapa-tdnn: Emphasized channel attention, propagation and aggregation in tdnn based speaker verification. arXiv preprint arXiv:2005.07143.   \nGoodfellow, I. J.; Pouget-Abadie, J.; Mirza, M.; Xu, B.; Warde-Farley, D.; Ozair, S.; Courville, A.; and Bengio, Y. 2014. Generative adversarial nets. Advances in neural information processing systems, 27.   \nHuang, C.-y.; Lin, Y. Y.; Lee, H.-y.; and Lee, L.-s. 2021. Defending your voice: Adversarial attack on voice conversion. In 2021 IEEE Spoken Language Technology Workshop (SLT), 552–559. IEEE.   \nLi, J.; Ye, D.; Tang, L.; Chen, C.; and Hu, S. 2023. Voice Guard: Protecting Voice Privacy with Strong and Imperceptible Adversarial Perturbation in the Time Domain. In IJ-CAI, 4812–4820.   \nMadry, A.; Makelov, A.; Schmidt, L.; Tsipras, D.; and Vladu, A. 2017a. Towards deep learning models resistant to adversarial attacks. arXiv preprint arXiv:1706.06083. Madry, A.; Makelov, A.; Schmidt, L.; Tsipras, D.; and Vladu, A. 2017b. Towards deep learning models resistant to adversarial attacks. arXiv preprint arXiv:1706.06083. Mittag, G.; and Moller, S. 2021. Deep learning based as- ¨ sessment of synthetic speech naturalness. arXiv preprint arXiv:2104.11673.   \nRix, A. W.; Beerends, J. G.; Hollier, M. P.; and Hekstra, A. P. 2001. Perceptual evaluation of speech quality (PESQ)- a new method for speech quality assessment of telephone networks and codecs. In 2001 IEEE InternationalConference on Acoustics, Speech, and Signal Processing. Proceedings (Cat. No. 01CH37221), volume 2, 749–752. IEEE. Sakoe, H.; and Chiba, S. 1978. Dynamic programming algorithm optimization for spoken word recognition. IEEE transactions on acoustics, speech, and signal processing, 26(1): 43–49.   \nWang, Z.; Bovik, A. C.; Sheikh, H. R.; and Simoncelli, E. P. 2004. Image quality assessment: from error visibility to structural similarity. IEEE transactions on image processing, 13(4): 600–612. ",
+        "bbox": [
+            517,
+            80,
+            913,
+            773
+        ],
+        "page_idx": 14
+    }
+]
