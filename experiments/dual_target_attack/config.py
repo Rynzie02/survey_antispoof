@@ -36,7 +36,7 @@ class Config:
     _tts_related_root = _find_tts_related_root(_base_dir)
 
     # Device
-    gpu_id = 5
+    gpu_id = 4
     device = torch.device(
         f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
     )
