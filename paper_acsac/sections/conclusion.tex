@@ -1,0 +1,14 @@
+﻿\section{Conclusion}
+\label{sec:conclusion}
+
+\method reframes voice anti-cloning as a purification-aware protection problem. 
+Instead of assuming that a protected waveform is fed directly into a cloning system, we model the stronger and increasingly realistic attacker who first removes perturbations with a diffusion purifier. 
+Under this threat model, protection must survive not only direct speaker extraction but also the attacker's reverse denoising path.
+
+\method addresses this gap by combining post-purification speaker disruption with trajectory-level deviation inside the purifier, and by providing a benchmark protocol with clean-purification controls and calibrated evaluator thresholds. 
+Our analysis shows that trajectory supervision is a necessary complement to identity-only optimization: output-level gradients alone are insufficient when the purifier's stochastic path can route around the perturbation.
+
+Several directions remain open. 
+First, the current framework assumes white-box access to a surrogate purifier; extending to black-box or ensemble-purifier settings is an important practical step. 
+Second, psychoacoustic masking and over-the-air robustness constraints should be incorporated to tighten the perceptual budget. Third, the arms race between purification and protection is ongoing: as bridge-diffusion purifiers such as VocalBridge become stronger, protection methods will need to track the evolving attack surface. 
+We release our implementation and evaluation protocol to support reproducible progress on this problem.

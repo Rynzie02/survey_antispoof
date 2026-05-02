@@ -1,0 +1,51 @@
+﻿\section{Related Work}
+
+\subsection{Proactive Voice Protection}
+
+Proactive voice protection aims to modify speech before release so that unauthorized synthesis systems cannot reuse the speaker identity. 
+AttackVC perturbs source speech to disrupt voice conversion \cite{huang2021attackvc}, 
+VoiceGuard improves imperceptibility with time-domain constraints \cite{li2023voiceguard}, 
+and AntiFake improves transferability by attacking speaker representations used by cloning systems \cite{yu2023antifake}. 
+SafeSpeech expands the scenario to training-time malicious synthesis and emphasizes robust, universal perturbations \cite{zhang2025safespeech}. 
+E2E-VGuard further considers end-to-end and LLM-based synthesis pipelines, where automatic transcription and timbre extraction jointly affect cloning quality \cite{zhang2025e2evguard}. 
+These systems motivate our goal but share a common limitation: they optimize against the cloning or synthesis pipeline directly, 
+and do not account for an attacker who first removes the perturbation with a diffusion purifier. 
+\method addresses this gap by treating purification as a first-class component of the optimization target.
+
+\subsection{Purification as an Adaptive Attacker}
+
+Adversarial purification removes perturbations from the input before the downstream model consumes it. 
+AudioPure shows that DiffWave-style forward noising followed by reverse denoising can defend audio recognition models against adversarial examples \cite{wu2023audiopure}. 
+Later systems improve purification in different ways, including hierarchical diffusion \cite{guo2024wavepurifier}, efficient dual-domain purification \cite{tan2024dualpure}, 
+and speaker-verification-oriented diffusion reconstruction \cite{bai2024dap}. 
+These methods are valuable to an attacker in the voice anti-cloning setting because they can be used as a preprocessing step before synthesis.
+
+De-AntiFake directly evaluates this risk for voice cloning and shows that purification can bypass several protective perturbation defenses \cite{fan2024deantifake}. 
+VocalBridge strengthens this line by moving purification into a latent diffusion-bridge formulation that aims to recover clean, 
+speaker-discriminative speech while avoiding transcript dependence \cite{abbasihafshejani2026vocalbridge}. 
+These works expose the fragility of current protection methods under adaptive attackers. 
+\method takes the complementary defender perspective: rather than building a stronger purifier, 
+it generates perturbations that are optimized to resist purification, closing the loop between attack and defense.
+
+\begin{figure*}[!t]
+\centering
+\includegraphics[width=\textwidth]{purguard-framework.png}
+\caption{\method{} framework. The defender optimizes a bounded protective perturbation through a surrogate diffusion purifier, combining post-purification speaker-identity disruption with reverse-trajectory deviation so that purified protected speech remains unreliable for downstream cloning.}
+\label{fig:purguard-framework}
+\end{figure*}
+
+\subsection{Adaptive Attacks on Diffusion Purification}
+
+The conceptual foundation of \method is related to adaptive attacks on diffusion purification. 
+DiffAttack shows that output-only supervision can be weak and proposes intermediate-step supervision over the diffusion trajectory \cite{kang2024diffattack}. 
+DiffBreak further questions the apparent robustness of diffusion purification under stochastic and adaptive evaluation \cite{kang2024diffbreak}. 
+These studies suggest two lessons for voice protection: the purifier's internal trajectory is an attack surface, and single-pass output evaluation can misrepresent robustness.
+
+The closest naming and high-level conceptual overlap is AntiPure, which studies protective perturbations against diffusion-based purification for image customization \cite{yang2025antipure}. 
+\method differs in domain and security objective: it protects released speech from post-purification voice cloning, measures failure in continuous speaker-embedding space, and must preserve perceptual audio quality while transferring across purifier, encoder, and cloning backends.
+
+However, prior adaptive purification attacks differ from \method in three fundamental ways.
+First, the \emph{optimization direction} is reversed: DiffAttack is an attacker's tool that causes a purified input to be misclassified, whereas \method is a defender's tool that causes a purified input to lose speaker identity before cloning.
+Second, the \emph{perturbation constraint} is stricter in the voice setting: image perturbations need only be visually imperceptible, while voice perturbations must additionally satisfy perceptual audio quality bounds (PESQ, STOI) because the protected waveform is intended for public release and human listening.
+Third, the \emph{success metric} is continuous rather than discrete: image robustness is measured by classification accuracy over a finite label set, whereas voice protection is measured by cosine similarity in a continuous speaker-embedding space, which produces denser gradient signals but requires the perturbation to suppress identity information across multiple independent encoder architectures.
+These differences motivate a purpose-built trajectory-deviation objective for the voice domain, rather than a direct transfer of image-classification attack techniques.

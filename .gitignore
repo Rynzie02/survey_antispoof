@@ -94,3 +94,7 @@ desktop.ini
 *.swp
 *.swo
 *.pth
+
+GEMINI.md
+.agents/*
+paper_acsac/build_check/*

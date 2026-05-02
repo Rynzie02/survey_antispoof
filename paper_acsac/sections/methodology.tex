@@ -1,0 +1,101 @@
+\section{Method}
+
+\subsection{Threat Model and Security Goal}
+
+Figure~\ref{fig:purguard-framework} gives an overview of the \method{} framework. We study a proactive defense for public speech release. Let $x \in [-1,1]^T$ be a clean waveform from a protected speaker. The defender releases
+\begin{equation}
+    x_p = \mathrm{clip}_{[-1,1]}(x + \delta), \qquad \|\delta\|_{\infty} \leq \epsilon,
+\end{equation}
+where the perturbation budget keeps $x_p$ close to the original audio. The attacker wants to use the released audio as a reference for voice cloning, but first applies a diffusion-based purifier $\purifier$ to remove protective perturbations. The effective attack chain is therefore
+\begin{equation}
+    x_p \rightarrow \hat{x}=\purifier(x_p) \rightarrow \mathcal{C}(\hat{x}),
+\end{equation}
+where $\mathcal{C}$ is a downstream cloning or voice-conversion system.
+
+The defender's goal is stronger than direct anti-cloning. A protected waveform should remain non-cloneable after the attacker purifies it. We call this property \emph{purification-resilient protection}: the purified protected reference $\purifier(x_p)$ should not preserve enough source-speaker information for successful cloning, while the protected waveform remains intelligible to human listeners.
+
+We assume a strong white-box defender during perturbation generation. The defender has access to a surrogate purifier and can differentiate through its denoising process. This setting is not meant to assume that every deployed defender knows the attacker's exact purifier. Instead, it provides a worst-case design target: if a defense cannot survive a known purifier during optimization and evaluation, it is unlikely to survive adaptive purification attacks in practice.
+
+In practice, the defender may not know which purifier the attacker will use. We address this in two ways. First, we evaluate transfer to held-out purifiers (AudioPure, DualPure, WavePurifier) that were not used during optimization, measuring how much protection degrades when the surrogate does not match the attacker's purifier. Second, the trajectory-deviation objective targets the structural behavior of diffusion reverse processes rather than the specific weights of one model, which we hypothesize improves cross-purifier transfer compared to output-only optimization. A fully black-box setting—where the defender has no access to any purifier during optimization—remains an open problem and is discussed in Section~\ref{sec:conclusion}.
+
+\subsection{Design Rationale}
+
+Existing voice protection methods typically optimize the released waveform against a cloning model or a speaker encoder. This direct objective can be effective when the attacker uses $x_p$ immediately. It becomes incomplete when the attacker first runs a purifier. In that setting, the important object is not only $x_p$, but the cleaned reference $\purifier(x_p)$ that the cloning system actually sees.
+
+\method changes the defense target from the final cloning model to the full purification attack chain. The defense has two requirements. First, the purified audio should lose source-speaker identity according to speaker encoders that approximate cloning-relevant identity extraction. Second, the perturbation should interfere with the purifier's denoising process rather than behave like ordinary noise that the purifier can remove. These requirements lead to two complementary objectives: post-purification identity disruption and reverse-trajectory deviation.
+
+\subsection{Purification-Aware Objective}
+
+\method optimizes a bounded perturbation by solving
+\begin{equation}
+    \delta^{\star}
+    = \arg\max_{\|\delta\|_{\infty}\leq\epsilon}
+    \alpha \mathcal{L}_{\text{id}}(x_p;\purifier,\encoder)
+    + \beta \mathcal{L}_{\text{traj}}(x_p;\purifier),
+    \label{eq:overall_objective}
+\end{equation}
+where $\encoder=\{f_k\}_{k=1}^{K}$ is an ensemble of differentiable speaker encoders. The weights $\alpha$ and $\beta$ control the balance between identity disruption and purification resistance. Eq.~\eqref{eq:overall_objective} is the central methodological choice: purification is modeled as part of the adversary, not as a post-hoc evaluation step.
+
+\subsection{Post-Purification Identity Disruption}
+
+For each encoder $f_k$, let $e_k=f_k(x)$ be the source speaker embedding. In the untargeted setting, \method reduces source-speaker similarity after purification:
+\begin{equation}
+    \mathcal{L}_{\text{id}}
+    =
+    -\frac{1}{K}\sum_{k=1}^{K}
+    \cos\!\left(f_k(\purifier(x_p)), e_k\right).
+    \label{eq:identity_loss}
+\end{equation}
+This objective directly matches the attacker's use case. The attacker does not clone from the raw protected waveform; the attacker clones from the recovered reference $\purifier(x_p)$. Therefore, the identity objective is evaluated after purification.
+
+The encoder ensemble reduces overfitting to one identity extractor. A single encoder can produce perturbations that exploit that encoder while transferring poorly to other cloning systems. Averaging over multiple encoders encourages perturbations that disrupt speaker information shared across common identity representations. Evaluation still uses held-out encoders, so success cannot be explained only by white-box access to the optimization ensemble.
+
+\subsection{Reverse-Trajectory Deviation}
+
+Optimizing only Eq.~\eqref{eq:identity_loss} can be weak because the gradient must pass through stochastic noising, multiple denoising steps, and a speaker encoder. More importantly, a final-output objective gives the purifier many opportunities to remove the perturbation before the identity loss is measured. \method therefore also constrains intermediate denoising behavior.
+
+For a timestep $t$, define the paired forward noising state
+\begin{equation}
+    \begin{aligned}
+    x_t^{+}
+    &=
+    \sqrt{\bar{\alpha}_t}x_p
+    +
+    \sqrt{1-\bar{\alpha}_t}z,\\
+    z&\sim\mathcal{N}(0,I).
+    \end{aligned}
+\end{equation}
+Starting from the terminal noisy state, the purifier produces reverse states $x_t^{-}$ along its denoising path. For captured timesteps $\mathcal{T}$, \method maximizes
+\begin{equation}
+    \mathcal{L}_{\text{traj}}
+    =
+    \frac{1}{|\mathcal{T}|}
+    \sum_{t\in\mathcal{T}}
+    \left\|x_t^{-}-x_t^{+}\right\|_2^2 .
+    \label{eq:traj_loss}
+\end{equation}
+
+The role of Eq.~\eqref{eq:traj_loss} is not to make the waveform noisy. Its role is to make the purifier's intermediate reconstruction states disagree with the protected input's paired noising path. A purifier succeeds when its reverse process removes the perturbation while preserving the speaker cues needed for cloning. \method makes this process less reliable by pushing intermediate states away from the identity-preserving reconstruction path. This gives the perturbation a target inside the purifier, rather than relying only on the final purified waveform.
+
+\subsection{Practical Optimization}
+
+We use projected gradient ascent only as a solver for Eq.~\eqref{eq:overall_objective}. At iteration $i$,
+\begin{equation}
+    \begin{aligned}
+    \tilde{x}_p^{(i+1)}
+    &=
+    \mathrm{clip}_{[-1,1]}
+    \left(x_p^{(i)}+\eta\,\mathrm{sign}(\nabla_{x_p}\mathcal{L})\right),\\
+    x_p^{(i+1)}
+    &=\Pi_{x,\epsilon}\left(\tilde{x}_p^{(i+1)}\right),
+    \end{aligned}
+\end{equation}
+where $\Pi_{x,\epsilon}$ projects to the $\ell_{\infty}$ ball around $x$. The algorithmic contribution is the purification-aware objective, not the use of projected gradient ascent.
+
+The implementation differentiates through reverse steps separately and accumulates gradients, which avoids storing the full diffusion graph. The default pilot setting uses 16\,kHz mono audio, a 3\,s crop, $\epsilon=0.04$, $N=200$ optimization steps, $\eta=2\epsilon/N$, $\alpha=0.1$, and $\beta=0.9$. A staged schedule first optimizes direct identity disruption and then enables the purifier trajectory term. The current purifier is De-AntiFake's first-stage DiffWave model \cite{fan2024deantifake} with reverse timestep 5 and capture stride 1.
+
+\subsection{Adaptive Adversary Discussion}
+
+An adaptive attacker may change purification steps, random seeds, purifier architecture, or the downstream cloning backend. \method is designed to make this adaptation harder in three ways. First, the identity loss is measured after purification, so the defense targets the attacker's recovered reference rather than the raw protected audio. Second, the trajectory loss supervises intermediate states, which reduces dependence on a single final-output gradient. Third, the encoder ensemble and held-out evaluation separate the optimization models from the models used to judge cloning risk.
+
+These choices do not make purification-resistant protection absolute. A sufficiently strong attacker could train a purifier against \method-generated examples, combine multiple purifiers, or use human-in-the-loop editing. We therefore evaluate \method as a robustness improvement under a stronger attack chain, not as a complete solution to voice impersonation. This framing matches the security goal of reducing the reliability of unauthorized cloning from public audio under realistic adaptive pressure.

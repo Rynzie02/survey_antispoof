@@ -1,0 +1,55 @@
+\documentclass[conference,compsoc]{IEEEtran}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{xcolor}
+\usepackage{multirow}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{colortbl}
+\usepackage{cite}
+\usepackage{url}
+
+\newcommand{\method}{\textsc{PurGuard}}
+\newcommand{\purifier}{\mathcal{P}}
+\newcommand{\encoder}{\mathcal{F}}
+
+\definecolor{metricpink}{RGB}{248,206,204}
+\definecolor{metricblue}{RGB}{217,225,242}
+\definecolor{avggray}{RGB}{235,235,235}
+
+\title{\method: Purification-Aware Voice Protection Against Diffusion-Based Removal Attacks}
+
+\author{\IEEEauthorblockN{Anonymous Authors}}
+
+\begin{document}
+\maketitle
+
+\input{sections/abstract}
+
+\begin{IEEEkeywords}
+voice cloning, protective perturbations, diffusion purification, adversarial robustness, speaker identity
+\end{IEEEkeywords}
+
+\input{sections/introduction}
+\input{sections/related_work}
+\input{sections/methodology}
+\input{sections/experiments}
+\input{sections/conclusion}
+
+\section{Limitations}
+\method currently studies a white-box, purifier-aware defender that can differentiate through a surrogate diffusion purifier. This is an intentionally strong stress test for protective perturbation, but it does not fully cover unknown black-box purifiers, learned purifier ensembles, or attackers who jointly adapt purification and synthesis. The current implementation also focuses on waveform-domain perturbations with bounded amplitude; future work should add psychoacoustic masking, over-the-air transformations, and human listening studies. Finally, the large-scale benchmark must be populated with repeated stochastic purification trials before making final claims about superiority across all purifiers and cloning backends.
+
+\section{Ethical Considerations}
+This work studies defenses against unauthorized voice cloning and therefore involves dual-use capabilities. The intended use of \method is to help speakers publish audio with reduced risk of impersonation after purification-based removal attacks. The evaluation should use public or consented speech datasets, report aggregate metrics, and avoid releasing cloned examples that could be misused for impersonation. We do not claim that perturbation-based protection replaces policy, watermarking, authentication, or platform-side abuse detection; rather, it provides a data-source defense that can be combined with these safeguards.
+
+\section{LLM Usage Statement}
+Large language models were used as writing assistants for organization, editing, and wording suggestions. All technical claims, citations, experiments, and final text remain the responsibility of the authors.
+
+\bibliographystyle{IEEEtran}
+\bibliography{custom}
+
+\end{document}
