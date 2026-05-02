@@ -36,7 +36,7 @@ class Config:
     _tts_related_root = _find_tts_related_root(_base_dir)
 
     # Device
-    gpu_id = 4
+    gpu_id = 1
     device = torch.device(
         f"cuda:{gpu_id}" if torch.cuda.is_available() else "cpu"
     )
@@ -44,10 +44,10 @@ class Config:
     # Data
     # Set your dataset path here. `run_diffattack.sh` will use this value directly.
     # data_root = "/mnt/wht/tts_related/antipurify/voxceleb1/samples_1000"
-    data_root = "/mnt/wht/tts_related/antipurify/voxceleb1/test_800"
+    data_root = "/mnt/data/wht/voxceleb1/test_800"
     num_samples = 64  # Number of test samples
     sample_rate = 16000
-    audio_length = 3.0  # seconds
+    audio_length = 3.0  # seconds 
 
     # Speaker Model for attack optimization: "ecapa" or "tortoise"
     speaker_model_type = "vits+tortoise+wavlm+ecapa"
@@ -101,7 +101,7 @@ class Config:
     resemblyzer_sva_threshold = 0.7235
 
     # Training/Experiment
-    batch_size = 8
+    batch_size = 2
     use_targeted = (
         False  # True: pull toward target speaker; False: push away from source
     )
@@ -114,7 +114,7 @@ class Config:
     log_dir = str(_base_dir / "results" / "logs")
     checkpoint_dir = str(_base_dir / "results" / "checkpoints")
     figure_dir = str(_base_dir / "results" / "figures")
-    audio_output_dir = str(_base_dir / "results" / "audio")
+    audio_output_dir = "/mnt/data/wht/antispoof/audio_fulltrace"
     log_interval = 4
 
     def __init__(self):
