@@ -9,6 +9,6 @@ Under this threat model, protection must survive not only direct speaker extract
 Our analysis shows that trajectory supervision is a necessary complement to identity-only optimization: output-level gradients alone are insufficient when the purifier's stochastic path can route around the perturbation.
 
 Several directions remain open. 
-First, the current framework assumes white-box access to a surrogate purifier; extending to black-box or ensemble-purifier settings is an important practical step. 
+First, the current framework uses a differentiable surrogate purifier during optimization and evaluates transfer to black-box target purifiers; extending beyond this to no-surrogate or stronger ensemble-purifier settings is an important practical step. 
 Second, psychoacoustic masking and over-the-air robustness constraints should be incorporated to tighten the perceptual budget. Third, the arms race between purification and protection is ongoing: as bridge-diffusion purifiers such as VocalBridge become stronger, protection methods will need to track the evolving attack surface. 
 We release our implementation and evaluation protocol to support reproducible progress on this problem.

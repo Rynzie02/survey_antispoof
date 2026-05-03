@@ -8,21 +8,24 @@ The evaluation is organized around four questions.
 \textbf{RQ3:} Does protection transfer across purifiers and independent speaker evaluators, rather than overfitting to one surrogate encoder?
 \textbf{RQ4:} Does purification resistance come at an unacceptable perceptual-quality cost?
 
-We evaluate on VoxCeleb1 \cite{nagrani2017voxceleb} using 800 held-out utterances. All metrics are averaged over three independent purification seeds to account for diffusion stochasticity \cite{kang2024diffbreak}.
+We evaluate on VoxCeleb1 \cite{nagrani2017voxceleb} using 800 held-out utterances. Following DiffBreak's finding that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, 
+all metrics are averaged over three independent purification seeds \cite{kang2024diffbreak}.
 
 \subsection{Compared Systems and Attack Chain}
 
 \paragraph{Protection methods.}
 The benchmark is designed to compare \textbf{AttackVC} \cite{huang2021attackvc}, \textbf{VoiceGuard} \cite{li2023voiceguard}, \textbf{AntiFake} \cite{yu2023antifake}, \textbf{SafeSpeech} \cite{zhang2025safespeech}, \textbf{E2E-VGuard} \cite{zhang2025e2evguard}, and \method. 
-We treat all of them as proactive protection methods and evaluate how much source-speaker information remains after the attacker purifies and clones the protected reference. Internal variants of \method, including speaker-only, trajectory-only, and staged joint optimization, are used for ablation.
+We treat all of them as proactive protection methods and evaluate how much source-speaker information remains after the attacker purifies and clones the protected reference. 
+Internal variants of \method, including speaker-only, trajectory-only, and staged joint optimization, are used for ablation.
 
-\paragraph{Purification front ends.}
-The primary white-box purifier is the first-stage DiffWave model from \textbf{De-AntiFake} \cite{fan2024deantifake}. 
-The full benchmark should also include \textbf{VocalBridge} \cite{abbasihafshejani2026vocalbridge}, \textbf{WavePurifier} \cite{guo2024wavepurifier}, \textbf{AudioPure} \cite{wu2023audiopure}, and \textbf{DualPure} \cite{tan2024dualpure}. 
-These purifiers differ in representation, diffusion design, and reconstruction assumptions, making them useful stress tests for purification-aware protection.
+\paragraph{Diffusion purifiers.}
+The surrogate purifier used for optimization is the first-stage DiffWave model from \textbf{De-AntiFake} \cite{fan2024deantifake}. 
+At evaluation time, we treat the attacker's target purifier as black-box to the defender and test transfer to \textbf{VocalBridge} \cite{abbasihafshejani2026vocalbridge}, \textbf{WavePurifier} \cite{guo2024wavepurifier}, \textbf{AudioPure} \cite{wu2023audiopure}, and \textbf{DualPure} \cite{tan2024dualpure}. 
+These purifiers differ in representation, diffusion design, and reconstruction assumptions, making them useful black-box transfer tests for purification-aware protection.
 
 \paragraph{Cloning backends and evaluators.}
-After purification, the attacker uses the recovered reference in representative synthesis backends such as StyleTTS2, Tortoise-TTS, and VALL-E-X. Speaker similarity is measured by independent evaluators, including ECAPA-TDNN \cite{desplanques2020ecapa}, x-vector, and Resemblyzer/d-vector style encoders. 
+After purification, the attacker uses the recovered reference in representative synthesis backends: CosyVoice, F5-TTS, and Chatterbox. 
+Speaker similarity is measured by independent evaluators, including ECAPA-TDNN \cite{desplanques2020ecapa}, x-vector, and Resemblyzer/d-vector style encoders. 
 This design separates the encoder used to optimize \method from the encoders used to evaluate protection.
 
 \subsection{Metrics and Controls}
@@ -34,6 +37,19 @@ The primary continuous metric is source-to-output speaker similarity:
     \cos\!\left(g(x), g(\mathcal{C}_m(\purifier(x_p)))\right),
 \end{equation}
 where lower values indicate stronger retained protection. We also report speaker verification acceptance (SVA), attack success rate (ASR), post-purification protection rate (PPR), and quality metrics including SNR, PESQ, and STOI. 
+Following De-AntiFake \cite{fan2024deantifake}, SVA is the average binary speaker-verification acceptance rate over cloned outputs:
+\begin{equation}
+    \mathrm{SVA}_{g,m,p}
+    =
+    \frac{1}{N}\sum_{i=1}^{N}
+    \mathbb{I}\!\left[
+        \cos\!\left(g(x_i), g(\mathcal{C}_m(p(x_{p,i})))\right)
+        \ge \tau_g
+    \right],
+\end{equation}
+where $g$ is the verification evaluator, $m$ is the cloning backend, $p$ is the purification setting, and $\tau_g$ is the calibrated acceptance threshold. 
+We report \textbf{xSVA} when $g$ is an x-vector verifier and \textbf{dSVA} when $g$ is a d-vector-style verifier. 
+Higher xSVA/dSVA means the attacker more often produces speech accepted as the source speaker; lower xSVA/dSVA means stronger retained protection.
 The most important controls are: clean reference, protected reference without purification, purified clean reference, and purified protected reference. 
 The purified-clean control is essential because it verifies that a purifier preserves identity for benign inputs.
 
@@ -62,7 +78,8 @@ Thresholds are applied per evaluator when computing SVA and PPR.}
 
 \subsection{Main Reporting Template}
 
-Table~\ref{tab:main_reporting_template} uses the same grouped layout commonly adopted in purification papers: each protection method is expanded by cloning backend, the \textbf{Protected} columns report the no-purification control, and the remaining groups report post-purification xSVA/dSVA under four diffusion-based removal attacks. Numerical cells are intentionally left as run outputs rather than hand-written claims, so the table can be populated directly from experiment logs.
+Table~\ref{tab:main_reporting_template} uses the same grouped layout commonly adopted in purification papers: each protection method is expanded by cloning backend, the \textbf{Protected} columns report the no-purification control, 
+and the remaining groups report post-purification xSVA/dSVA under four diffusion-based removal attacks. Numerical cells are intentionally left as run outputs rather than hand-written claims, so the table can be populated directly from experiment logs.
 
 \begin{table*}[t]
 \centering
@@ -134,20 +151,30 @@ Table~\ref{tab:main_reporting_template} uses the same grouped layout commonly ad
 \rowcolor{avggray}
 & \textbf{Avg.} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 \midrule
+\multirow{4}{*}{\method}
+& CosyVoice   & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+& F5-TTS      & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+& Chatterbox  & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+\rowcolor{avggray}
+& \textbf{Avg.} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+\midrule
 \rowcolor{avggray}
 \textbf{Total} & \textbf{Avg.}
               & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
-\caption{Main purification-aware benchmark in the grouped format used by prior purification work. Each cell reports xSVA/dSVA after cloning from the protected reference or the purified protected reference. Lower values indicate stronger retained protection from the defender's perspective. Results are to be populated from experiment logs for the five protected baselines listed at left.}
+\caption{Main purification-aware benchmark in the grouped format used by prior purification work. Each cell reports xSVA/dSVA after cloning from the protected reference or the purified protected reference. Lower values indicate stronger retained protection from the defender's perspective. 
+Results are to be populated from experiment logs for the protection methods listed at left, including \method.}
 \label{tab:main_reporting_template}
 \end{table*}
 
 \subsection{Adaptive and Transfer Settings}
 
-ACSAC reviewers should be able to distinguish robustness against a fixed purifier from robustness against an adaptive attack chain. We therefore include three transfer settings. The first changes the purification front end while keeping the protected waveform fixed. The second changes the cloning backend after purification. The third changes the speaker verifier used to score the output. These tests measure whether \method overfits to the surrogate purifier or optimization encoders.
+To distinguish robustness against a fixed diffusion purifier from robustness against an adaptive attack chain, we include three transfer settings. The first changes the diffusion purifier while keeping the protected waveform fixed. 
+The second changes the cloning backend after purification. The third changes the speaker verifier used to score the output. These tests measure whether \method overfits to the surrogate purifier or optimization encoders.
 
-We also evaluate stochastic purification by varying random seeds and reporting either mean performance with dispersion or worst-case performance across seeds. This is necessary because a defense may look successful under one denoising sample while failing under another. Finally, we include the purified-clean control for every purifier. If a purifier damages clean speech identity, then poor cloning after purification cannot be credited to the protection method.
+We also evaluate stochastic purification by varying random seeds and reporting either mean performance with dispersion or worst-case performance across seeds. This is necessary because a defense may look successful under one denoising sample while failing under another. 
+Finally, we include the purified-clean control for every purifier. If a purifier damages clean speech identity, then poor cloning after purification cannot be credited to the protection method.
 
 \subsection{Ablations and Robustness Analyses}
 
@@ -155,10 +182,12 @@ The core ablation compares three variants: \textbf{Speaker-only}, which removes 
 A second ablation varies $\alpha$ and $\beta$ to measure the trade-off between direct identity disruption and purification resistance. 
 A third ablation varies the reverse timestep and capture stride to test whether robustness depends on a narrow diffusion schedule.
 
-Because diffusion purification is stochastic, each result should be averaged over repeated purification samples or reported with a worst-case statistic over seeds \cite{kang2024diffbreak}. 
-Quality--robustness analysis should pair identity metrics with SNR, PESQ, and STOI so that improvements cannot be attributed merely to excessive audible distortion. 
+Because DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, we report repeated purification samples or worst-case statistics over seeds \cite{kang2024diffbreak}. 
+We pair identity metrics with SNR, PESQ, and STOI so that improvements cannot be attributed merely to excessive audible distortion. 
 Together, these experiments test the main claim of \method: once purification becomes part of the attack chain, robust voice protection should be optimized against the purifier itself.
 
 \subsection{Artifact and Reproducibility Plan}
 
-For reproducibility, the artifact should release perturbation-generation code, purifier wrappers, evaluation scripts, threshold-calibration code, configuration files, random seeds, and metadata for all generated protected samples. The artifact should also separate protected audio, purified audio, and cloned outputs so that reviewers can audit which stage causes identity loss. Because the work involves voice identity and impersonation risk, any released audio should follow dataset licenses and avoid examples that identify private speakers.
+For reproducibility, we release perturbation-generation code, purifier wrappers, evaluation scripts, threshold-calibration code, configuration files, random seeds, and metadata for all generated protected samples. 
+The artifact separates protected audio, purified audio, and cloned outputs so that each stage can be audited for identity loss. 
+Because the work involves voice identity and impersonation risk, released audio follows dataset licenses and avoids examples that identify private speakers.

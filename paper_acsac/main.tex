@@ -3,6 +3,7 @@
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
+\usepackage{amssymb}
 \usepackage{graphicx}
 \graphicspath{{figures/}}
 \usepackage{xcolor}
@@ -10,6 +11,8 @@
 \usepackage{booktabs}
 \usepackage{array}
 \usepackage{colortbl}
+\usepackage{algorithm}
+\usepackage{algorithmic}
 \usepackage{cite}
 \usepackage{url}
 
@@ -41,13 +44,20 @@ voice cloning, protective perturbations, diffusion purification, adversarial rob
 \input{sections/conclusion}
 
 \section{Limitations}
-\method currently studies a white-box, purifier-aware defender that can differentiate through a surrogate diffusion purifier. This is an intentionally strong stress test for protective perturbation, but it does not fully cover unknown black-box purifiers, learned purifier ensembles, or attackers who jointly adapt purification and synthesis. The current implementation also focuses on waveform-domain perturbations with bounded amplitude; future work should add psychoacoustic masking, over-the-air transformations, and human listening studies. Finally, the large-scale benchmark must be populated with repeated stochastic purification trials before making final claims about superiority across all purifiers and cloning backends.
+\method currently studies surrogate-based purification-aware optimization and evaluates whether the resulting protection transfers to black-box target purifiers. 
+This captures the practical case where the defender can train against a local purifier but does not know the attacker's deployed purifier; it does not fully cover no-surrogate defenders, learned purifier ensembles, or attackers who jointly adapt purification and synthesis. 
+The current implementation also focuses on waveform-domain perturbations with bounded amplitude; future work should add psychoacoustic masking, over-the-air transformations, and human listening studies. 
+We plan to extend the benchmark with broader stochastic purification trials before drawing claims across all purifiers and cloning backends.
 
 \section{Ethical Considerations}
-This work studies defenses against unauthorized voice cloning and therefore involves dual-use capabilities. The intended use of \method is to help speakers publish audio with reduced risk of impersonation after purification-based removal attacks. The evaluation should use public or consented speech datasets, report aggregate metrics, and avoid releasing cloned examples that could be misused for impersonation. We do not claim that perturbation-based protection replaces policy, watermarking, authentication, or platform-side abuse detection; rather, it provides a data-source defense that can be combined with these safeguards.
+This work studies defenses against unauthorized voice cloning and therefore involves dual-use capabilities. The intended use of \method is to help speakers publish audio with reduced risk of impersonation after purification-based removal attacks. 
+The evaluation should use public or consented speech datasets, report aggregate metrics, and avoid releasing cloned examples that could be misused for impersonation. 
+We do not claim that perturbation-based protection replaces policy, watermarking, authentication, or platform-side abuse detection; 
+rather, it provides a data-source defense that can be combined with these safeguards.
 
 \section{LLM Usage Statement}
-Large language models were used as writing assistants for organization, editing, and wording suggestions. All technical claims, citations, experiments, and final text remain the responsibility of the authors.
+Large language models were used as writing assistants for organization, editing, and wording suggestions. 
+All technical claims, citations, experiments, and final text remain the responsibility of the authors.
 
 \bibliographystyle{IEEEtran}
 \bibliography{custom}
