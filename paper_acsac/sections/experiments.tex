@@ -26,7 +26,7 @@ These purifiers differ in representation, diffusion design, and reconstruction a
 \paragraph{Cloning backends and evaluators.}
 After purification, the attacker uses the recovered reference in representative synthesis backends: CosyVoice, F5-TTS, and Chatterbox. 
 Speaker similarity is measured by independent evaluators, including ECAPA-TDNN \cite{desplanques2020ecapa}, x-vector, and Resemblyzer/d-vector style encoders. 
-This design separates the encoder used to optimize \method from the encoders used to evaluate protection.
+This design separates the encoder used to optimize \method{} from the encoders used to evaluate protection.
 
 \subsection{Metrics and Controls}
 
@@ -171,7 +171,7 @@ Results are to be populated from experiment logs for the protection methods list
 \subsection{Adaptive and Transfer Settings}
 
 To distinguish robustness against a fixed diffusion purifier from robustness against an adaptive attack chain, we include three transfer settings. The first changes the diffusion purifier while keeping the protected waveform fixed. 
-The second changes the cloning backend after purification. The third changes the speaker verifier used to score the output. These tests measure whether \method overfits to the surrogate purifier or optimization encoders.
+The second changes the cloning backend after purification. The third changes the speaker verifier used to score the output. These tests measure whether \method{} overfits to the surrogate purifier or optimization encoders.
 
 We also evaluate stochastic purification by varying random seeds and reporting either mean performance with dispersion or worst-case performance across seeds. This is necessary because a defense may look successful under one denoising sample while failing under another. 
 Finally, we include the purified-clean control for every purifier. If a purifier damages clean speech identity, then poor cloning after purification cannot be credited to the protection method.

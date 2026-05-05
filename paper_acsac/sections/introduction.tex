@@ -37,7 +37,7 @@ Voice anti-cloning is different: the target is a continuous speaker identity rep
 We propose \method, a purification-aware framework for protective perturbation generation. Figure~\ref{fig:overview} summarizes the pipeline.
 The key idea is simple: if the attacker depends on a purifier to recover speaker identity, 
 then the defender should optimize the perturbation against the purifier, not only against the final cloning model. 
-\method combines a speaker-disruption objective, which reduces similarity between the source speaker and the purified protected speech, 
+\method{} combines a speaker-disruption objective, which reduces similarity between the source speaker and the purified protected speech, 
 with a trajectory-deviation objective, which pushes the reverse diffusion path away from its paired forward noising states. 
 This makes purification resistance a training objective rather than an after-the-fact stress test.
 
