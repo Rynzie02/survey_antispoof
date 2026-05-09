@@ -57,18 +57,21 @@ def run_experiment(config, attack_type="dual"):
         model_type=getattr(config, "speaker_model_type", "ecapa"),
         device=config.device,
         input_sr=config.sample_rate,
+        campp_model_path=getattr(config, "campp_model_path", None),
     )
     eval_speaker_model = load_speaker_model(
         model_path=getattr(config, "eval_speaker_model_path", config.speaker_model_path),
         model_type=getattr(config, "eval_speaker_model_type", "ecapa"),
         device=config.device,
         input_sr=config.sample_rate,
+        campp_model_path=getattr(config, "campp_model_path", None),
     )
     xvector_model = load_speaker_model(
         model_path=getattr(config, "xvector_model_path", None),
         model_type=getattr(config, "xvector_model_type", "xvector"),
         device=config.device,
         input_sr=config.sample_rate,
+        campp_model_path=getattr(config, "campp_model_path", None),
     )
 
     purification_model = load_purification_model(
@@ -164,7 +167,10 @@ def run_experiment(config, attack_type="dual"):
 
         # Save audio samples
         if getattr(config, "save_audio", True):
-            audio_base = os.path.join(config.audio_output_dir, f"{attack_type}_{run_ts}")
+            if getattr(config, "audio_output_include_run_ts", True):
+                audio_base = os.path.join(config.audio_output_dir, f"{attack_type}_{run_ts}")
+            else:
+                audio_base = config.audio_output_dir
             adv_dir = os.path.join(audio_base, "adv")
             purified_dir = os.path.join(audio_base, "purified")
             os.makedirs(adv_dir, exist_ok=True)

@@ -218,11 +218,15 @@ class DiffAttackPGD:
             x_adv = torch.clamp(x_adv, -1.0, 1.0).detach()
 
             mse_avg = mse_total / max(n_mse, 1)
-            mse_str = "skipped" if b == 0.0 else f"{mse_avg:.4f}"
-            print(
-                f"  diffattack iter {i:02d}: "
-                f"emb={emb_loss.item():.4f}  mse={mse_str}"
-            )
+            if i % 10 == 0 or i == self.num_iterations - 1:
+                mse_str = "skipped" if b == 0.0 else f"{mse_avg:.4f}"
+                grad_max = grad_x_adv.abs().max().item()
+                print(
+                    f"  diffattack iter {i:02d}: "
+                    f"emb={emb_loss.item():.4f}  mse={mse_str}  "
+                    f"grad_max={grad_max:.6f}",
+                    flush=True,
+                )
 
             if return_trajectory and i % 10 == 0:
                 trajectory["emb_loss"].append(emb_loss.item())

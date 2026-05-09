@@ -98,3 +98,9 @@ desktop.ini
 GEMINI.md
 .agents/*
 paper_acsac/build_check/*
+
+scripts/Antifake/*
+scripts/De-AntiFake/*
+scripts/purguard_speaker_similarity/*
+scripts/SafeSpeech/*
+scripts/E2E-VGuard/*

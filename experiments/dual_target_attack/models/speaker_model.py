@@ -13,6 +13,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
+import torchaudio.compliance.kaldi as kaldi
 
 VITS_DIR = os.path.join(os.path.dirname(__file__), "vits")
 VITS_CKPT = os.path.join(VITS_DIR, "pretrained_ljs.pth")
@@ -43,6 +44,46 @@ def _resolve_tortoise_ckpt(model_path=None) -> str:
     tts_related_root = _find_tts_related_root(models_dir)
     candidate = tts_related_root / "AntiFake" / "tortoise" / "autoregressive.pth"
     return str(candidate)
+
+
+def _resolve_campp_onnx(model_path=None) -> str:
+    if model_path:
+        return str(model_path)
+
+    override = os.environ.get("DUAL_ATTACK_CAMPP_MODEL_PATH")
+    if override:
+        return override
+
+    models_dir = Path(__file__).resolve().parent
+    tts_related_root = _find_tts_related_root(models_dir)
+    candidates = [
+        tts_related_root
+        / "E2E-VGuard"
+        / "checkpoints"
+        / "CosyVoice"
+        / "base_models"
+        / "CosyVoice-300M"
+        / "campplus.onnx",
+        models_dir / "campp" / "campplus.onnx",
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return str(candidates[0])
+
+
+def _patch_onnx2torch_campp():
+    # CosyVoice CAM++ uses dynamic ONNX shapes that onnx2torch can rank-infer
+    # as -2 for some 1D temporal layers.
+    import onnx2torch.node_converters.average_pool as onnx2torch_average_pool
+    import onnx2torch.node_converters.batch_norm as onnx2torch_batch_norm
+
+    onnx2torch_average_pool._AVGPOOL_CLASS_FROM_SPATIAL_RANK.setdefault(
+        -2, torch.nn.AvgPool1d
+    )
+    onnx2torch_batch_norm._BN_CLASS_FROM_SPATIAL_RANK.setdefault(
+        -2, torch.nn.BatchNorm1d
+    )
 
 
 class _SpeechBrainSpeakerEncoder(nn.Module):
@@ -313,6 +354,76 @@ class WavLMSpeakerEncoder(nn.Module):
         return self.get_embedding(x)
 
 
+class CAMPlusSpeakerEncoder(nn.Module):
+    """
+    CosyVoice CAM++ speaker encoder converted from campplus.onnx.
+    Input: (B, T) waveform
+    Output: (B, 192) L2-normalized speaker embedding
+    """
+
+    def __init__(self, model_path=None, device="cuda", input_sr=16000):
+        super().__init__()
+        from onnx2torch import convert
+
+        _patch_onnx2torch_campp()
+
+        onnx_path = Path(_resolve_campp_onnx(model_path))
+        if not onnx_path.exists():
+            raise FileNotFoundError(f"Missing CAM++ ONNX model: {onnx_path}")
+
+        self._model = convert(str(onnx_path))
+        self._model.requires_grad_(False)
+        self._model.eval()
+        self._model.to(device)
+
+        self._device = torch.device(device)
+        self._input_sr = input_sr
+        self._target_sr = 16000
+        self.embedding_dim = 192
+
+    def get_embedding(self, x: torch.Tensor) -> torch.Tensor:
+        if x.ndim != 2:
+            raise ValueError(f"Expected (batch, samples), got {tuple(x.shape)}")
+
+        if self._input_sr != self._target_sr:
+            x = torchaudio.functional.resample(x, self._input_sr, self._target_sr)
+        x = x.to(self._device)
+
+        features = []
+        for i in range(x.shape[0]):
+            feature = kaldi.fbank(
+                x[i].unsqueeze(0),
+                num_mel_bins=80,
+                dither=0,
+                sample_frequency=self._target_sr,
+            )
+            feature = feature - feature.mean(dim=0, keepdim=True)
+            features.append(feature)
+
+        max_frames = max(feature.shape[0] for feature in features)
+        batch_feature = torch.zeros(
+            len(features),
+            max_frames,
+            80,
+            device=x.device,
+            dtype=features[0].dtype,
+        )
+        for i, feature in enumerate(features):
+            batch_feature[i, : feature.shape[0]] = feature
+
+        emb = self._model(batch_feature)
+        if isinstance(emb, (tuple, list)):
+            emb = emb[0]
+        if emb.ndim == 3 and emb.shape[1] == 1:
+            emb = emb.squeeze(1)
+        elif emb.ndim > 2:
+            emb = emb.reshape(emb.shape[0], -1)
+        return F.normalize(emb, p=2, dim=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.get_embedding(x)
+
+
 class EnsembleSpeakerEncoder(nn.Module):
     """
     Ensemble of speaker encoders with potentially different embedding dims.
@@ -361,9 +472,23 @@ def _build_ecapa_fallback(model_path=None, device="cuda", reason=""):
     return ECAPASpeakerEncoder(model_path=fallback_path, device=device)
 
 
-def load_speaker_model(model_path=None, model_type=None, num_speakers=None, device="cuda", input_sr=16000):
+def load_speaker_model(
+    model_path=None,
+    model_type=None,
+    num_speakers=None,
+    device="cuda",
+    input_sr=16000,
+    campp_model_path=None,
+):
     mtype = model_type or "ecapa"
-    if mtype in ("vits+tortoise", "vits+tortoise+ecapa", "vits+tortoise+ecapa+wavlm", "vits+tortoise+wavlm", "vits+tortoise+wavlm+ecapa"):
+    if mtype in (
+        "vits+tortoise",
+        "vits+tortoise+ecapa",
+        "vits+tortoise+ecapa+wavlm",
+        "vits+tortoise+wavlm",
+        "vits+tortoise+wavlm+ecapa",
+        "vits+tortoise+wavlm+campp",
+    ):
         encoders = []
 
         if os.path.exists(VITS_CKPT):
@@ -395,7 +520,11 @@ def load_speaker_model(model_path=None, model_type=None, num_speakers=None, devi
                 tortoise_ckpt,
             )
 
-        if mtype == "vits+tortoise+wavlm":
+        if mtype in (
+            "vits+tortoise+wavlm",
+            "vits+tortoise+wavlm+ecapa",
+            "vits+tortoise+wavlm+campp",
+        ):
             try:
                 encoders.append(WavLMSpeakerEncoder(device=device, input_sr=input_sr))
             except Exception as exc:
@@ -403,13 +532,21 @@ def load_speaker_model(model_path=None, model_type=None, num_speakers=None, devi
 
         if mtype == "vits+tortoise+wavlm+ecapa":
             try:
-                encoders.append(WavLMSpeakerEncoder(device=device, input_sr=input_sr))
-            except Exception as exc:
-                LOGGER.warning("Skipping WavLM speaker encoder: %s", exc)
-            try:
                 encoders.append(ECAPASpeakerEncoder(model_path=model_path, device=device))
             except Exception as exc:
                 LOGGER.warning("Skipping ECAPA speaker encoder: %s", exc)
+
+        if mtype == "vits+tortoise+wavlm+campp":
+            try:
+                encoders.append(
+                    CAMPlusSpeakerEncoder(
+                        model_path=campp_model_path,
+                        device=device,
+                        input_sr=input_sr,
+                    )
+                )
+            except Exception as exc:
+                LOGGER.warning("Skipping CAM++ speaker encoder: %s", exc)
 
         if mtype == "vits+tortoise+ecapa":
             try:
@@ -481,6 +618,18 @@ def load_speaker_model(model_path=None, model_type=None, num_speakers=None, devi
             model = _build_ecapa_fallback(
                 device=device,
                 reason=f"WavLM speaker encoder could not be loaded ({exc})",
+            )
+    elif mtype == "campp":
+        try:
+            model = CAMPlusSpeakerEncoder(
+                model_path=campp_model_path,
+                device=device,
+                input_sr=input_sr,
+            )
+        except Exception as exc:
+            model = _build_ecapa_fallback(
+                device=device,
+                reason=f"CAM++ speaker encoder could not be loaded ({exc})",
             )
     elif mtype == "xvector":
         model = XVectorSpeakerEncoder(model_path=model_path, device=device)
