@@ -104,3 +104,6 @@ scripts/De-AntiFake/*
 scripts/purguard_speaker_similarity/*
 scripts/SafeSpeech/*
 scripts/E2E-VGuard/*
+
+eval/*
+baseline/*

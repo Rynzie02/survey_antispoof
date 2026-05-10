@@ -24,6 +24,9 @@ adv and each purified output.
 Common environment overrides:
   GPUS=0,1,2,3                         GPUs for run_exp.sh
   DEFAULT_PURIFY_GPU=0                  Default single GPU for all purifiers
+  FULL_STAGE_GPUS=0,1,2,3               GPUs assigned round-robin to purify/clone methods
+  PARALLEL_PURIFY=auto                  Run purifiers in parallel when multiple stage GPUs exist
+  PARALLEL_CLONE=auto                   Run TTS clone engines in parallel when multiple stage GPUs exist
   CUDA_DEVICE_ORDER=PCI_BUS_ID          Keep CUDA GPU indexes aligned to PCI/nvidia-smi order
   STRICT_COUNT_CHECK=1                  Require every generated stage count to match adv
   RUN_ID=20260508_025528                Stable run id
@@ -143,6 +146,105 @@ join_csv_from_values() {
       printf ',%s' "$item"
     fi
   done
+}
+
+stage_gpu_at() {
+  local index="$1"
+  if [[ "${#full_stage_gpus[@]}" -eq 0 ]]; then
+    printf '%s\n' "$DEFAULT_PURIFY_GPU"
+    return 0
+  fi
+  printf '%s\n' "${full_stage_gpus[$((index % ${#full_stage_gpus[@]}))]}"
+}
+
+resolve_parallel_flag() {
+  local setting="$1"
+  local label="$2"
+
+  case "$setting" in
+    auto|AUTO)
+      if [[ "${#full_stage_gpus[@]}" -gt 1 ]]; then
+        printf '1\n'
+      else
+        printf '0\n'
+      fi
+      ;;
+    1|true|TRUE|yes|YES|on|ON)
+      printf '1\n'
+      ;;
+    0|false|FALSE|no|NO|off|OFF)
+      printf '0\n'
+      ;;
+    *)
+      echo "[full] ERROR: $label must be auto, 1, or 0." >&2
+      exit 1
+      ;;
+  esac
+}
+
+validate_parallel_jobs() {
+  local value="$1"
+  local label="$2"
+  local gpu_count="${#full_stage_gpus[@]}"
+
+  if ! [[ "$value" =~ ^[1-9][0-9]*$ ]]; then
+    echo "[full] ERROR: $label must be a positive integer." >&2
+    exit 1
+  fi
+  if [[ "$gpu_count" -gt 0 && "$value" -gt "$gpu_count" ]]; then
+    echo "[full] ERROR: $label=$value is greater than available FULL_STAGE_GPUS count $gpu_count." >&2
+    echo "[full] This would schedule more than one default method on the same GPU at once." >&2
+    exit 1
+  fi
+}
+
+parallel_pids=()
+parallel_labels=()
+parallel_max_jobs=1
+
+reset_parallel_jobs() {
+  parallel_pids=()
+  parallel_labels=()
+}
+
+wait_parallel_jobs() {
+  local status=0 i
+  for i in "${!parallel_pids[@]}"; do
+    if wait "${parallel_pids[$i]}"; then
+      echo "[full] completed ${parallel_labels[$i]}"
+    else
+      echo "[full] ERROR: ${parallel_labels[$i]} failed." >&2
+      status=1
+    fi
+  done
+  reset_parallel_jobs
+  return "$status"
+}
+
+start_parallel_job() {
+  local label="$1"
+  shift
+
+  echo "[full] starting $label"
+  ( "$@" ) &
+  parallel_pids+=("$!")
+  parallel_labels+=("$label")
+  if [[ "${#parallel_pids[@]}" -ge "$parallel_max_jobs" ]]; then
+    wait_parallel_jobs
+  fi
+}
+
+run_stage_job() {
+  local parallel_enabled="$1"
+  local label="$2"
+  shift 2
+
+  if is_truthy "$parallel_enabled"; then
+    start_parallel_job "$label" "$@"
+  else
+    echo "[full] running $label"
+    "$@"
+  fi
 }
 
 count_audio_files() {
@@ -481,6 +583,23 @@ AUDIO_OUTPUT_DIR="${AUDIO_OUTPUT_DIR:-$RUN_OUTPUT_DIR/protected}"
 AUDIO_OUTPUT_INCLUDE_RUN_TS="${AUDIO_OUTPUT_INCLUDE_RUN_TS:-0}"
 SAVE_AUDIO="${SAVE_AUDIO:-1}"
 DEFAULT_PURIFY_GPU="${DEFAULT_PURIFY_GPU:-$(first_csv_or_space_item "${GPUS:-${CUDA_VISIBLE_DEVICES:-0}}")}"
+FULL_STAGE_GPUS="${FULL_STAGE_GPUS:-${GPUS:-${CUDA_VISIBLE_DEVICES:-$DEFAULT_PURIFY_GPU}}}"
+full_stage_gpus=()
+mapfile -t full_stage_gpus < <(split_csv_or_space "$FULL_STAGE_GPUS")
+if [[ "${#full_stage_gpus[@]}" -eq 0 ]]; then
+  full_stage_gpus=("$DEFAULT_PURIFY_GPU")
+fi
+FULL_STAGE_GPUS_CSV="$(join_csv_from_values "${full_stage_gpus[@]}")"
+PARALLEL_PURIFY="${PARALLEL_PURIFY:-auto}"
+PARALLEL_CLONE="${PARALLEL_CLONE:-auto}"
+PURIFY_PARALLEL_ENABLED="$(resolve_parallel_flag "$PARALLEL_PURIFY" "PARALLEL_PURIFY")"
+CLONE_PARALLEL_ENABLED="$(resolve_parallel_flag "$PARALLEL_CLONE" "PARALLEL_CLONE")"
+FULL_STAGE_MAX_PARALLEL="${FULL_STAGE_MAX_PARALLEL:-${#full_stage_gpus[@]}}"
+PURIFY_MAX_JOBS="${PURIFY_MAX_JOBS:-$FULL_STAGE_MAX_PARALLEL}"
+CLONE_MAX_JOBS="${CLONE_MAX_JOBS:-$FULL_STAGE_MAX_PARALLEL}"
+validate_parallel_jobs "$FULL_STAGE_MAX_PARALLEL" "FULL_STAGE_MAX_PARALLEL"
+validate_parallel_jobs "$PURIFY_MAX_JOBS" "PURIFY_MAX_JOBS"
+validate_parallel_jobs "$CLONE_MAX_JOBS" "CLONE_MAX_JOBS"
 
 export RUN_ID OUTPUT_ROOT ATTACK_TYPE RUN_NAME RUN_OUTPUT_DIR
 export AUDIO_OUTPUT_DIR AUDIO_OUTPUT_INCLUDE_RUN_TS SAVE_AUDIO
@@ -491,6 +610,9 @@ echo "[full] run_output_dir=$RUN_OUTPUT_DIR"
 echo "[full] attack_audio_output_dir=$AUDIO_OUTPUT_DIR"
 echo "[full] cuda_device_order=$CUDA_DEVICE_ORDER"
 echo "[full] default_purify_gpu=$DEFAULT_PURIFY_GPU"
+echo "[full] full_stage_gpus=$FULL_STAGE_GPUS_CSV"
+echo "[full] parallel_purify=$PURIFY_PARALLEL_ENABLED max_jobs=$PURIFY_MAX_JOBS"
+echo "[full] parallel_clone=$CLONE_PARALLEL_ENABLED max_jobs=$CLONE_MAX_JOBS"
 echo "[full] strict_count_check=${STRICT_COUNT_CHECK:-1}"
 
 if is_truthy "${SKIP_RUN:-0}"; then
@@ -516,7 +638,7 @@ PURIFY_PROTECTED_DIR="$(resolve_adv_parent "$PURIFY_PROTECTED_DIR" "$PURIFY_ADV_
 PURIFY_ADV_DIR="$PURIFY_PROTECTED_DIR/$PURIFY_ADV_SUBDIR"
 PURIFY_OUTPUT_DIR="${PURIFY_OUTPUT_DIR:-$RUN_OUTPUT_DIR/purify/audiopure}"
 PURIFY_DEVICE="${PURIFY_DEVICE:-auto}"
-PURIFY_GPUS="${PURIFY_GPUS:-$DEFAULT_PURIFY_GPU}"
+PURIFY_GPUS="${PURIFY_GPUS:-$(stage_gpu_at 0)}"
 PURIFY_EXTENSIONS="${PURIFY_EXTENSIONS:-.wav}"
 PURIFY_T="${PURIFY_T:-3}"
 PURIFY_SEGMENT_LENGTH="${PURIFY_SEGMENT_LENGTH:-16000}"
@@ -603,30 +725,27 @@ if is_truthy "${PURIFY_DRY_RUN:-0}"; then
   purify_args+=(--dry-run)
 fi
 
-if is_truthy "${SKIP_AUDIOPURE:-0}"; then
-  echo "[full] SKIP_AUDIOPURE=1; skipping AudioPure purification."
-elif command -v uv >/dev/null 2>&1; then
-  echo "[full] running AudioPure with uv in $AUDIOPURE_ROOT"
-  (
-    cd "$AUDIOPURE_ROOT"
-    UV_PROJECT_ENVIRONMENT="$AUDIOPURE_VENV" uv run python "${purify_args[@]}"
-  )
-elif [[ -x "$AUDIOPURE_VENV/bin/python" ]]; then
-  echo "[full] uv not found; using $AUDIOPURE_VENV/bin/python"
-  (
-    cd "$AUDIOPURE_ROOT"
-    "$AUDIOPURE_VENV/bin/python" "${purify_args[@]}"
-  )
-else
-  echo "[full] ERROR: could not find uv or $AUDIOPURE_VENV/bin/python." >&2
-  exit 1
-fi
-if ! is_truthy "${SKIP_AUDIOPURE:-0}" && ! is_truthy "${PURIFY_DRY_RUN:-0}"; then
-  assert_audio_count_matches_base "audiopure" "$PURIFY_OUTPUT_DIR" "${PURIFY_OUTPUT_RECURSIVE:-0}" "$PURIFY_EXTENSIONS"
-fi
+run_audiopure_purify() {
+  if command -v uv >/dev/null 2>&1; then
+    echo "[full] running AudioPure with uv in $AUDIOPURE_ROOT"
+    (
+      cd "$AUDIOPURE_ROOT"
+      UV_PROJECT_ENVIRONMENT="$AUDIOPURE_VENV" uv run python "${purify_args[@]}"
+    )
+  elif [[ -x "$AUDIOPURE_VENV/bin/python" ]]; then
+    echo "[full] uv not found; using $AUDIOPURE_VENV/bin/python"
+    (
+      cd "$AUDIOPURE_ROOT"
+      "$AUDIOPURE_VENV/bin/python" "${purify_args[@]}"
+    )
+  else
+    echo "[full] ERROR: could not find uv or $AUDIOPURE_VENV/bin/python." >&2
+    return 1
+  fi
+}
 
 DUALPURE_OUTPUT_DIR="${DUALPURE_OUTPUT_DIR:-$RUN_OUTPUT_DIR/purify/DualPure}"
-DUALPURE_GPUS="${DUALPURE_GPUS:-$DEFAULT_PURIFY_GPU}"
+DUALPURE_GPUS="${DUALPURE_GPUS:-$(stage_gpu_at 1)}"
 DUALPURE_EXTENSIONS="${DUALPURE_EXTENSIONS:-$PURIFY_EXTENSIONS}"
 DUALPURE_EXPECTED_COUNT="${DUALPURE_EXPECTED_COUNT:-$PURIFY_EXPECTED_AUDIO_COUNT}"
 if [[ "$DUALPURE_EXPECTED_COUNT" == "auto" ]]; then
@@ -711,18 +830,13 @@ echo "[full] dualpure_input=$PURIFY_ADV_DIR"
 echo "[full] dualpure_expected_count=$DUALPURE_EXPECTED_COUNT"
 echo "[full] dualpure_output_dir=$DUALPURE_OUTPUT_DIR"
 
-if is_truthy "${SKIP_DUALPURE:-0}"; then
-  echo "[full] SKIP_DUALPURE=1; skipping DualPure purification."
-else
+run_dualpure_purify() {
   echo "[full] running DualPure with $DUALPURE_SCRIPT"
   "$DUALPURE_SCRIPT" "${dualpure_args[@]}"
-fi
-if ! is_truthy "${SKIP_DUALPURE:-0}" && ! is_truthy "${DUALPURE_DRY_RUN:-0}"; then
-  assert_audio_count_matches_base "dualpure" "$DUALPURE_OUTPUT_DIR" "${DUALPURE_OUTPUT_RECURSIVE:-0}" "$DUALPURE_EXTENSIONS"
-fi
+}
 
 WAVEPURIFIER_OUTPUT_DIR="${WAVEPURIFIER_OUTPUT_DIR:-$RUN_OUTPUT_DIR/purify/wavepurifier}"
-WAVEPURIFIER_GPUS="${WAVEPURIFIER_GPUS:-$DEFAULT_PURIFY_GPU}"
+WAVEPURIFIER_GPUS="${WAVEPURIFIER_GPUS:-$(stage_gpu_at 2)}"
 WAVEPURIFIER_EXTENSIONS="${WAVEPURIFIER_EXTENSIONS:-$PURIFY_EXTENSIONS}"
 WAVEPURIFIER_EXPECTED_COUNT="${WAVEPURIFIER_EXPECTED_COUNT:-$PURIFY_EXPECTED_AUDIO_COUNT}"
 WAVEPURIFIER_CONFIG="${WAVEPURIFIER_CONFIG:-_256.yml}"
@@ -808,18 +922,13 @@ echo "[full] wavepurifier_input_count=$wavepurifier_count"
 echo "[full] wavepurifier_expected_count=$WAVEPURIFIER_EXPECTED_COUNT"
 echo "[full] wavepurifier_output_dir=$WAVEPURIFIER_OUTPUT_DIR"
 
-if is_truthy "${SKIP_WAVEPURIFIER:-0}"; then
-  echo "[full] SKIP_WAVEPURIFIER=1; skipping WavePurifier purification."
-else
+run_wavepurifier_purify() {
   echo "[full] running WavePurifier with $WAVEPURIFIER_SCRIPT"
   "$WAVEPURIFIER_SCRIPT" "${wavepurifier_args[@]}"
-fi
-if ! is_truthy "${SKIP_WAVEPURIFIER:-0}" && ! is_truthy "${WAVEPURIFIER_DRY_RUN:-0}"; then
-  assert_audio_count_matches_base "wavepurifier" "$WAVEPURIFIER_OUTPUT_DIR" "${WAVEPURIFIER_OUTPUT_RECURSIVE:-0}" "$WAVEPURIFIER_EXTENSIONS"
-fi
+}
 
 PHONEPURE_OUTPUT_DIR="${PHONEPURE_OUTPUT_DIR:-$RUN_OUTPUT_DIR/purify/phonepure}"
-PHONEPURE_GPUS="${PHONEPURE_GPUS:-$DEFAULT_PURIFY_GPU}"
+PHONEPURE_GPUS="${PHONEPURE_GPUS:-$(stage_gpu_at 3)}"
 PHONEPURE_EXPECTED_COUNT="${PHONEPURE_EXPECTED_COUNT:-$PURIFY_EXPECTED_AUDIO_COUNT}"
 PHONEPURE_T="${PHONEPURE_T:-3}"
 PHONEPURE_SAMPLE_STEP="${PHONEPURE_SAMPLE_STEP:-1}"
@@ -906,9 +1015,7 @@ echo "[full] phonepure_input_count=$phonepure_count"
 echo "[full] phonepure_expected_count=$PHONEPURE_EXPECTED_COUNT"
 echo "[full] phonepure_output_dir=$PHONEPURE_OUTPUT_DIR"
 
-if is_truthy "${SKIP_PHONEPURE:-0}"; then
-  echo "[full] SKIP_PHONEPURE=1; skipping De-AntiFake PhonePuRe purification."
-else
+run_phonepure_purify() {
   if command -v uv >/dev/null 2>&1; then
     echo "[full] running De-AntiFake PhonePuRe with uv in $DEANTIFAKE_ROOT"
     (
@@ -921,13 +1028,55 @@ else
     echo "[full] uv not found; running De-AntiFake PhonePuRe with $DEANTIFAKE_VENV/bin/python"
     PYTHON_BIN="$DEANTIFAKE_VENV/bin/python" "$DEANTIFAKE_SCRIPT" "${phonepure_args[@]}"
   fi
+}
+
+echo "[full] purify_parallel=$PURIFY_PARALLEL_ENABLED"
+echo "[full] audiopure_gpus=$(join_csv_from_values "${purify_gpus[@]}")"
+echo "[full] dualpure_gpus=$DUALPURE_GPUS_CSV"
+echo "[full] wavepurifier_gpus=$(join_csv_from_values "${wavepurifier_gpus[@]}")"
+echo "[full] phonepure_gpus=$PHONEPURE_GPUS_CSV"
+
+parallel_max_jobs="$PURIFY_MAX_JOBS"
+reset_parallel_jobs
+if is_truthy "${SKIP_AUDIOPURE:-0}"; then
+  echo "[full] SKIP_AUDIOPURE=1; skipping AudioPure purification."
+else
+  run_stage_job "$PURIFY_PARALLEL_ENABLED" "audiopure" run_audiopure_purify
+fi
+if is_truthy "${SKIP_DUALPURE:-0}"; then
+  echo "[full] SKIP_DUALPURE=1; skipping DualPure purification."
+else
+  run_stage_job "$PURIFY_PARALLEL_ENABLED" "dualpure" run_dualpure_purify
+fi
+if is_truthy "${SKIP_WAVEPURIFIER:-0}"; then
+  echo "[full] SKIP_WAVEPURIFIER=1; skipping WavePurifier purification."
+else
+  run_stage_job "$PURIFY_PARALLEL_ENABLED" "wavepurifier" run_wavepurifier_purify
+fi
+if is_truthy "${SKIP_PHONEPURE:-0}"; then
+  echo "[full] SKIP_PHONEPURE=1; skipping De-AntiFake PhonePuRe purification."
+else
+  run_stage_job "$PURIFY_PARALLEL_ENABLED" "phonepure" run_phonepure_purify
+fi
+if is_truthy "$PURIFY_PARALLEL_ENABLED"; then
+  wait_parallel_jobs
+fi
+
+if ! is_truthy "${SKIP_AUDIOPURE:-0}" && ! is_truthy "${PURIFY_DRY_RUN:-0}"; then
+  assert_audio_count_matches_base "audiopure" "$PURIFY_OUTPUT_DIR" "${PURIFY_OUTPUT_RECURSIVE:-0}" "$PURIFY_EXTENSIONS"
+fi
+if ! is_truthy "${SKIP_DUALPURE:-0}" && ! is_truthy "${DUALPURE_DRY_RUN:-0}"; then
+  assert_audio_count_matches_base "dualpure" "$DUALPURE_OUTPUT_DIR" "${DUALPURE_OUTPUT_RECURSIVE:-0}" "$DUALPURE_EXTENSIONS"
+fi
+if ! is_truthy "${SKIP_WAVEPURIFIER:-0}" && ! is_truthy "${WAVEPURIFIER_DRY_RUN:-0}"; then
+  assert_audio_count_matches_base "wavepurifier" "$WAVEPURIFIER_OUTPUT_DIR" "${WAVEPURIFIER_OUTPUT_RECURSIVE:-0}" "$WAVEPURIFIER_EXTENSIONS"
 fi
 if ! is_truthy "${SKIP_PHONEPURE:-0}" && ! is_truthy "${PHONEPURE_DRY_RUN:-0}"; then
   assert_audio_count_matches_base "phonepure" "$PHONEPURE_OUTPUT_DIR" "${PHONEPURE_OUTPUT_RECURSIVE:-0}" ".wav"
 fi
 
 CHATTERBOX_OUTPUT_ROOT="${CHATTERBOX_OUTPUT_ROOT:-$RUN_OUTPUT_DIR/clone/chatterbox}"
-CHATTERBOX_GPU="${CHATTERBOX_GPU:-$DEFAULT_PURIFY_GPU}"
+CHATTERBOX_GPU="${CHATTERBOX_GPU:-$(stage_gpu_at 0)}"
 CHATTERBOX_DEVICE="${CHATTERBOX_DEVICE:-cuda}"
 CHATTERBOX_LIMIT="${CHATTERBOX_LIMIT:-1000000000}"
 CHATTERBOX_TEXT_MODE="${CHATTERBOX_TEXT_MODE:-cycle}"
@@ -985,9 +1134,7 @@ echo "[full] chatterbox_output_root=$CHATTERBOX_OUTPUT_ROOT"
 echo "[full] chatterbox_gpu=$CHATTERBOX_GPU"
 echo "[full] chatterbox_recursive=$CHATTERBOX_RECURSIVE"
 
-if is_truthy "${SKIP_CHATTERBOX:-0}"; then
-  echo "[full] SKIP_CHATTERBOX=1; skipping Chatterbox cloning."
-else
+run_chatterbox_clone() {
   for clone_item in "${clone_inputs[@]}"; do
     clone_name="${clone_item%%:*}"
     clone_input="${clone_item#*:}"
@@ -1025,10 +1172,10 @@ else
     )
     assert_audio_count_matches_base "chatterbox_${clone_name}" "$clone_output" "$CHATTERBOX_RECURSIVE" ".wav"
   done
-fi
+}
 
 F5TTS_OUTPUT_ROOT="${F5TTS_OUTPUT_ROOT:-$RUN_OUTPUT_DIR/clone/f5-tts}"
-F5TTS_GPU="${F5TTS_GPU:-$DEFAULT_PURIFY_GPU}"
+F5TTS_GPU="${F5TTS_GPU:-$(stage_gpu_at 1)}"
 F5TTS_DEVICE="${F5TTS_DEVICE:-cuda}"
 F5TTS_LIMIT="${F5TTS_LIMIT:-0}"
 F5TTS_EXPECTED_COUNT="${F5TTS_EXPECTED_COUNT:-$PURIFY_EXPECTED_AUDIO_COUNT}"
@@ -1094,9 +1241,7 @@ echo "[full] f5tts_gpu=$F5TTS_GPU"
 echo "[full] f5tts_recursive=$F5TTS_RECURSIVE"
 echo "[full] f5tts_text_dir=${F5TTS_TEXT_DIR:-}"
 
-if is_truthy "${SKIP_F5TTS:-0}"; then
-  echo "[full] SKIP_F5TTS=1; skipping F5-TTS cloning."
-else
+run_f5tts_clone() {
   for clone_item in "${clone_inputs[@]}"; do
     clone_name="${clone_item%%:*}"
     clone_input="${clone_item#*:}"
@@ -1134,13 +1279,13 @@ else
     )
     assert_audio_count_matches_base "f5tts_${clone_name}" "$clone_output" "$F5TTS_RECURSIVE" ".wav"
   done
-fi
+}
 
 COSYVOICE_OUTPUT_ROOT="${COSYVOICE_OUTPUT_ROOT:-$RUN_OUTPUT_DIR/clone/cosyvoice}"
 if [[ -n "${COSYVOICE_PCI_BUS_ID:-}" ]]; then
   COSYVOICE_GPU="${COSYVOICE_GPU:-}"
 else
-  COSYVOICE_GPU="${COSYVOICE_GPU:-$DEFAULT_PURIFY_GPU}"
+  COSYVOICE_GPU="${COSYVOICE_GPU:-$(stage_gpu_at 2)}"
 fi
 COSYVOICE_EXPECTED_COUNT="${COSYVOICE_EXPECTED_COUNT:-$PURIFY_EXPECTED_AUDIO_COUNT}"
 COSYVOICE_EXTENSIONS="${COSYVOICE_EXTENSIONS:-.wav,.flac,.mp3,.m4a,.ogg}"
@@ -1206,9 +1351,7 @@ echo "[full] cosyvoice_output_root=$COSYVOICE_OUTPUT_ROOT"
 echo "[full] cosyvoice_gpu=$COSYVOICE_GPU_LABEL"
 echo "[full] cosyvoice_input_staging_root=$COSYVOICE_INPUT_STAGING_ROOT"
 
-if is_truthy "${SKIP_COSYVOICE:-0}"; then
-  echo "[full] SKIP_COSYVOICE=1; skipping CosyVoice cloning."
-else
+run_cosyvoice_clone() {
   for clone_item in "${clone_inputs[@]}"; do
     clone_name="${clone_item%%:*}"
     clone_input="${clone_item#*:}"
@@ -1263,10 +1406,10 @@ else
       assert_audio_count_matches_base "cosyvoice_${clone_name}" "$clone_output" 0 ".wav"
     fi
   done
-fi
+}
 
 QWEN3TTS_OUTPUT_ROOT="${QWEN3TTS_OUTPUT_ROOT:-$RUN_OUTPUT_DIR/clone/qwen3-tts}"
-QWEN3TTS_GPU="${QWEN3TTS_GPU:-$DEFAULT_PURIFY_GPU}"
+QWEN3TTS_GPU="${QWEN3TTS_GPU:-$(stage_gpu_at 3)}"
 QWEN3TTS_DEVICE="${QWEN3TTS_DEVICE:-cuda:0}"
 QWEN3TTS_EXPECTED_COUNT="${QWEN3TTS_EXPECTED_COUNT:-$PURIFY_EXPECTED_AUDIO_COUNT}"
 QWEN3TTS_EXTENSIONS="${QWEN3TTS_EXTENSIONS:-.wav,.flac,.mp3,.m4a,.ogg,.opus}"
@@ -1335,9 +1478,7 @@ echo "[full] qwen3tts_gpu=$QWEN3TTS_GPU"
 echo "[full] qwen3tts_device=$QWEN3TTS_DEVICE"
 echo "[full] qwen3tts_input_staging_root=$QWEN3TTS_INPUT_STAGING_ROOT"
 
-if is_truthy "${SKIP_QWEN3TTS:-0}"; then
-  echo "[full] SKIP_QWEN3TTS=1; skipping Qwen3-TTS cloning."
-else
+run_qwen3tts_clone() {
   for clone_item in "${clone_inputs[@]}"; do
     clone_name="${clone_item%%:*}"
     clone_input="${clone_item#*:}"
@@ -1390,6 +1531,34 @@ else
       assert_audio_count_matches_base "qwen3tts_${clone_name}" "$clone_output" 0 ".wav"
     fi
   done
+}
+
+echo "[full] clone_parallel=$CLONE_PARALLEL_ENABLED"
+
+parallel_max_jobs="$CLONE_MAX_JOBS"
+reset_parallel_jobs
+if is_truthy "${SKIP_CHATTERBOX:-0}"; then
+  echo "[full] SKIP_CHATTERBOX=1; skipping Chatterbox cloning."
+else
+  run_stage_job "$CLONE_PARALLEL_ENABLED" "chatterbox" run_chatterbox_clone
+fi
+if is_truthy "${SKIP_F5TTS:-0}"; then
+  echo "[full] SKIP_F5TTS=1; skipping F5-TTS cloning."
+else
+  run_stage_job "$CLONE_PARALLEL_ENABLED" "f5-tts" run_f5tts_clone
+fi
+if is_truthy "${SKIP_COSYVOICE:-0}"; then
+  echo "[full] SKIP_COSYVOICE=1; skipping CosyVoice cloning."
+else
+  run_stage_job "$CLONE_PARALLEL_ENABLED" "cosyvoice" run_cosyvoice_clone
+fi
+if is_truthy "${SKIP_QWEN3TTS:-0}"; then
+  echo "[full] SKIP_QWEN3TTS=1; skipping Qwen3-TTS cloning."
+else
+  run_stage_job "$CLONE_PARALLEL_ENABLED" "qwen3-tts" run_qwen3tts_clone
+fi
+if is_truthy "$CLONE_PARALLEL_ENABLED"; then
+  wait_parallel_jobs
 fi
 
 SIMILARITY_CLEAN_DIR="${SIMILARITY_CLEAN_DIR:-/mnt/wht/exp/test_900}"

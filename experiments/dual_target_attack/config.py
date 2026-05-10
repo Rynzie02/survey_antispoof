@@ -44,14 +44,26 @@ class Config:
     # Data
     # Set your dataset path here. `run_diffattack.sh` will use this value directly.
     # data_root = "/mnt/wht/tts_related/antipurify/voxceleb1/samples_1000"
-    data_root = "/mnt/data/wht/voxceleb1/test_800"
+    # data_root = "/mnt/data/wht/voxceleb1/test_800"
+    data_root = "/mnt/wht/exp/test_900"
     num_samples = 64  # Number of test samples
     sample_rate = 16000
     audio_length = 3.0  # seconds 
 
     # Speaker Model for attack optimization: "ecapa" or "tortoise"
-    speaker_model_type = "vits+tortoise+wavlm+ecapa"
+    speaker_model_type = "vits+tortoise+wavlm+campp"
     speaker_model_path = str(_base_dir / "models" / "ecapa_tdnn_pretrained")
+    campp_model_path = _resolve_path(
+        "DUAL_ATTACK_CAMPP_MODEL_PATH",
+        _tts_related_root
+        / "E2E-VGuard"
+        / "checkpoints"
+        / "CosyVoice"
+        / "base_models"
+        / "CosyVoice-300M"
+        / "campplus.onnx",
+        _base_dir / "models" / "campp" / "campplus.onnx",
+    )
     embedding_dim = 192  # 192 for ecapa, 1024 for tortoise
 
     # Speaker Model for evaluation metrics
@@ -76,32 +88,35 @@ class Config:
 
     # Attack Parameters
     attack_type = "diffattack"
-    epsilon = 0.04  # Perturbation budget (relative to audio amplitude)
-    num_iterations = 200
+    epsilon = 0.03  # Perturbation budget (relative to audio amplitude)
+    num_iterations = 300
     step_size = None  # Will be set to epsilon / num_iterations * 2
 
     # Loss weights
-    alpha = 0.1  # Weight for speaker recognition loss
-    beta = 0.9  # Weight for purification robustness loss
+    alpha = 0.2  # Weight for speaker recognition loss
+    beta = 0.8  # Weight for purification robustness loss
     weight_strategy = "staged"  # 'fixed', 'adaptive', or 'staged'
-    staged_direct_ratio = 0.7  # staged: first 75% iters direct-only, last 25% add purification
+    staged_direct_ratio = 0.65  # staged: first 75% iters direct-only, last 25% add purification
 
     # Evaluation
     target_asr = 0.90  # Target attack success rate
     target_ppr = 0.50  # Target post-purification robustness
     ppr_threshold = 0.5  # source_sim below this -> attack survived purification
     
-    #    === Calibration Results ===
-    #ECAPA:       EER=0.0037  threshold=0.3195
-    #XVector:     EER=0.0600  threshold=0.9472
-    #Resemblyzer: EER=0.0425  threshold=0.7235
-
-    ecapa_sva_threshold = 0.3195
-    xvector_sva_threshold = 0.9472
-    resemblyzer_sva_threshold = 0.7235
+    # === CMU-100 tail-20 calibration results ===
+    # Raw-cosine EER thresholds:
+    # ECAPA:       EER=0.0002  threshold=0.4962
+    # XVector:     EER=0.0391  threshold=0.9545
+    # Resemblyzer: EER=0.0123  threshold=0.7651
+    #
+    # ECAPA/x-vector metrics use (cosine + 1) / 2, so keep thresholds on
+    # the same score scale as the values being compared.
+    ecapa_sva_threshold = 0.7481
+    xvector_sva_threshold = 0.9772
+    resemblyzer_sva_threshold = 0.7651
 
     # Training/Experiment
-    batch_size = 2
+    batch_size = 4
     use_targeted = (
         False  # True: pull toward target speaker; False: push away from source
     )
@@ -115,6 +130,7 @@ class Config:
     checkpoint_dir = str(_base_dir / "results" / "checkpoints")
     figure_dir = str(_base_dir / "results" / "figures")
     audio_output_dir = "/mnt/data/wht/antispoof/audio_fulltrace"
+    audio_output_include_run_ts = True
     log_interval = 4
 
     def __init__(self):

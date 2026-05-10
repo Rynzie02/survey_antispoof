@@ -29,10 +29,16 @@ DEFAULT_OUTPUT_DIR = DEFAULT_GEN_ROOT / "speaker_metrics"
 DEFAULT_ECAPA_PATH = DUAL_ATTACK_DIR / "models" / "ecapa_tdnn_pretrained"
 DEFAULT_XVECTOR_PATH = DUAL_ATTACK_DIR / "models" / "xvector_tdnn_pretrained"
 AUDIO_EXTENSIONS = {".wav", ".flac", ".mp3", ".ogg", ".m4a", ".aac"}
+CALIBRATED_COSINE_THRESHOLDS = {
+    # CMU-100 tail-20 EER thresholds.
+    "ecapa": 0.4962,
+    "xvector": 0.9545,
+    "dvector": 0.7651,
+}
 DEFAULT_THRESHOLDS = {
-    "ecapa": 0.3195,
-    "xvector": 0.9472,
-    "dvector": 0.7235,
+    "ecapa": (CALIBRATED_COSINE_THRESHOLDS["ecapa"] + 1.0) / 2.0,
+    "xvector": (CALIBRATED_COSINE_THRESHOLDS["xvector"] + 1.0) / 2.0,
+    "dvector": CALIBRATED_COSINE_THRESHOLDS["dvector"],
 }
 torch = None
 F = None
