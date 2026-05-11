@@ -8,7 +8,7 @@ Let $x \in [-1,1]^T$ be a clean waveform from a protected speaker. The defender 
     x_p = \mathrm{clip}_{[-1,1]}(x + \delta), \qquad \|\delta\|_{\infty} \leq \epsilon,
 \end{equation}
 where the perturbation budget keeps $x_p$ close to the original audio. The attacker wants to use the released audio as a reference for voice cloning, 
-but first applies a diffusion purifier $\purifier$ to remove protective perturbations. The effective attack chain is therefore
+but first applies a purification front end $\purifier$ to remove protective perturbations. The effective attack chain is therefore
 \begin{equation}
     x_p \rightarrow \hat{x}=\purifier(x_p) \rightarrow \mathcal{C}(\hat{x}),
 \end{equation}
@@ -19,13 +19,14 @@ We call this property \emph{purification-resilient protection}: the purified pro
 while the protected waveform remains intelligible to human listeners.
 
 We study a black-box target-purifier setting. The defender does not know which purifier the attacker will deploy at test time and cannot query or differentiate through the attacker's target purifier during perturbation generation. 
-To construct the perturbation, the defender uses a local surrogate purifier and differentiates through its denoising process. 
+To construct the perturbation, the defender uses a local diffusion surrogate purifier and differentiates through its denoising process. 
 The security question is therefore not whether \method{} overfits to a known purifier, but whether purification-aware perturbations learned from a surrogate transfer to unseen target purifiers used by the attacker.
 
 In practice, the defender may not know which purifier the attacker will use. We address this in two ways. 
-First, we evaluate transfer to held-out target purifiers (AudioPure, DualPure, WavePurifier) that were not used during optimization, measuring how much protection degrades when the surrogate does not match the attacker's purifier. 
+First, we evaluate transfer to held-out diffusion purifiers (AudioPure, DualPure, WavePurifier) and non-diffusion signal-processing front ends that were not used during optimization, measuring how much protection degrades when the surrogate does not match the attacker's purifier. 
 Second, the trajectory-deviation objective targets the structural behavior of diffusion reverse processes rather than the specific weights of one model, 
 which we hypothesize improves cross-purifier transfer compared to output-only optimization. 
+For non-diffusion front ends, there is no reverse trajectory to supervise; we therefore treat them as black-box removal transformations in evaluation rather than as optimization surrogates. 
 The remaining open problem is a no-surrogate setting, where the defender has no local purifier at all during optimization; we discuss this limitation in Section~\ref{sec:conclusion}.
 
 \subsection{Design Rationale}
@@ -51,6 +52,7 @@ These requirements lead to two complementary objectives: post-purification ident
     \label{eq:overall_objective}
 \end{equation}
 where $\encoder=\{f_k\}_{k=1}^{K}$ is an ensemble of differentiable speaker encoders. The weights $\alpha$ and $\beta$ control the balance between identity disruption and purification resistance. 
+Both terms are maximized: larger $\mathcal{L}_{\text{id}}$ means lower source-speaker similarity after purification, and larger $\mathcal{L}_{\text{traj}}$ means stronger deviation between paired reverse and forward diffusion states.
 Eq.~\eqref{eq:overall_objective} is the central methodological choice: purification is modeled as part of the adversary, not as a post-hoc evaluation step.
 
 \subsection{Post-Purification Identity Disruption}
@@ -78,7 +80,7 @@ multiple denoising steps, and a speaker encoder. More importantly, a final-outpu
 
 The rationale follows a key observation from adaptive attacks on diffusion purification. 
 DiffAttack shows that diffusion purifiers are vulnerable when an input can make the reverse trajectory reconstruct states that disagree with the corresponding forward diffusion states; 
-this deviated reconstruction induces inaccurate density-gradient estimates and causes the sampler to leave the intended clean-data reconstruction path \cite{kang2024diffattack}. 
+this deviated reconstruction induces inaccurate density-gradient estimates and causes the sampler to leave the intended clean-data reconstruction path \cite{kang2023diffattack}. 
 We use the same mechanism from the defender's side. A successful purifier should convert a protected reference into a clean, speaker-preserving reference by treating the protection signal as removable noise. 
 If the perturbation instead changes the purifier's reverse trajectory, the purifier no longer behaves as a benign denoiser for speaker identity: its intermediate states become inconsistent with the identity-preserving path, 
 and the final purified waveform can remain intelligible while losing speaker cues needed for cloning.
@@ -148,7 +150,7 @@ Applying the reverse triangle inequality gives
     \|x_t^{-}-x_t^{+}\|_2-\|x_t^{+}-x_t^{0,+}\|_2,
 \end{equation}
 which proves Eq.~\eqref{eq:traj_lower_bound}. Squaring the nonnegative part of the right-hand side and averaging over $\mathcal{T}$ proves Eq.~\eqref{eq:traj_lower_bound_avg}. 
-DiffAttack gives a complementary density-estimation interpretation of the same mechanism: deviating reverse states from their paired forward states induces inaccurate score or density-gradient estimates in diffusion purification \cite{kang2024diffattack}. 
+DiffAttack gives a complementary density-estimation interpretation of the same mechanism: deviating reverse states from their paired forward states induces inaccurate score or density-gradient estimates in diffusion purification \cite{kang2023diffattack}. 
 In \method, Eq.~\eqref{eq:traj_loss} supplies this trajectory-level pressure, while Eq.~\eqref{eq:identity_loss} aligns the pressure with the speaker-identity property we need to disrupt.
 
 The role of Eq.~\eqref{eq:traj_loss} is not to make the released waveform noisy. Its role is to make the purifier's intermediate reconstruction states disagree with the protected input's paired noising path. 
@@ -185,16 +187,16 @@ The second stage switches on the full purification-aware objective: it maximizes
 \STATE Precompute source embeddings $e_k=f_k(x)$ for all $f_k\in\encoder$
 \FOR{$i=0$ to $N-1$}
     \IF{$i<N_1$}
-        \STATE $\mathcal{L}\leftarrow\mathcal{L}_{\text{dir}}(x_p^{(i)};\encoder)$
+        \STATE $\mathcal{J}\leftarrow\mathcal{L}_{\text{dir}}(x_p^{(i)};\encoder)$
     \ELSE
         \STATE Sample fresh diffusion noise $z$ and reverse randomness
         \STATE Build paired forward states $x_t^{+}$ and reverse states $x_t^{-}$ for $t\in\mathcal{T}$
         \STATE $\hat{x}\leftarrow\purifier(x_p^{(i)})$
         \STATE $\mathcal{L}_{\text{id}}\leftarrow-\frac{1}{K}\sum_{k=1}^{K}\cos(f_k(\hat{x}),e_k)$
         \STATE $\mathcal{L}_{\text{traj}}\leftarrow\frac{1}{|\mathcal{T}|}\sum_{t\in\mathcal{T}}\|x_t^{-}-x_t^{+}\|_2^2$
-        \STATE $\mathcal{L}\leftarrow\alpha\mathcal{L}_{\text{id}}+\beta\mathcal{L}_{\text{traj}}$
+        \STATE $\mathcal{J}\leftarrow\alpha\mathcal{L}_{\text{id}}+\beta\mathcal{L}_{\text{traj}}$
     \ENDIF
-    \STATE $\tilde{x}\leftarrow\mathrm{clip}_{[-1,1]}\!\left(x_p^{(i)}+\eta\,\mathrm{sign}(\nabla_{x_p}\mathcal{L})\right)$
+    \STATE $\tilde{x}\leftarrow\mathrm{clip}_{[-1,1]}\!\left(x_p^{(i)}+\eta\,\mathrm{sign}(\nabla_{x_p}\mathcal{J})\right)$
     \STATE $x_p^{(i+1)}\leftarrow\Pi_{x,\epsilon}(\tilde{x})$
 \ENDFOR
 \STATE \textbf{return} $x_p^{(N)}$
@@ -207,18 +209,19 @@ The switch from the warm-start stage to the purification-aware stage is fixed by
     \tilde{x}_p^{(i+1)}
     &=
     \mathrm{clip}_{[-1,1]}
-    \left(x_p^{(i)}+\eta\,\mathrm{sign}(\nabla_{x_p}\mathcal{L})\right),\\
+    \left(x_p^{(i)}+\eta\,\mathrm{sign}(\nabla_{x_p}\mathcal{J})\right),\\
     x_p^{(i+1)}
     &=\Pi_{x,\epsilon}\left(\tilde{x}_p^{(i+1)}\right),
     \end{aligned}
 \end{equation}
 where $\Pi_{x,\epsilon}$ projects to the $\ell_{\infty}$ ball around $x$.
+Here $\mathcal{J}$ denotes the maximized objective in the current stage: $\mathcal{L}_{\text{dir}}$ during warm start and $\alpha\mathcal{L}_{\text{id}}+\beta\mathcal{L}_{\text{traj}}$ during purification-aware optimization.
 
 The implementation differentiates through reverse steps separately and accumulates gradients, 
 which avoids storing the full diffusion graph. We implement EOT by drawing fresh diffusion noise and reverse-process randomness during iterative optimization; 
 the resulting gradient is a Monte Carlo estimate of the purification-aware objective. 
 We use a fixed warm-start budget $N_1$ followed by purification-aware updates for the remaining iterations, with exact hyperparameters reported in the evaluation configuration. 
-The surrogate purifier is instantiated with De-AntiFake's first-stage DiffWave model \cite{fan2024deantifake}.
+The surrogate purifier is instantiated with De-AntiFake's first-stage DiffWave model \cite{fan2025deantifake}.
 
 \subsection{Adaptive Adversary Discussion}
 

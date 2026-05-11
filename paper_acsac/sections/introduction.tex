@@ -1,4 +1,4 @@
-﻿\section{Introduction}
+\section{Introduction}
 
 Modern speech synthesis systems can clone a speaker from only a small amount of reference audio. 
 This capability enables useful applications such as dubbing, accessibility, and personalization, 
@@ -23,15 +23,16 @@ This line of work has advanced quickly: early methods attacked voice conversion 
 Under a direct-cloning protocol, these defenses can make synthesized speech less similar to the source speaker.
 
 The direct-cloning protocol, however, is no longer sufficient. 
-We call the stronger threat a \emph{purification-removal attack}: after obtaining a protected public recording, the attacker first applies a diffusion purifier to remove protective perturbations and then feeds the recovered reference to a cloning backend. 
-De-AntiFake and VocalBridge show that this purification stage can be inserted before cloning, 
-using diffusion or bridge-diffusion models to remove protective perturbations and recover speaker-discriminative cues \cite{fan2024deantifake,abbasihafshejani2026vocalbridge}. 
+We call the stronger threat a \emph{purification-removal attack}: after obtaining a protected public recording, the attacker first applies a purification front end to remove protective perturbations and then feeds the recovered reference to a cloning backend. 
+The strongest learned instances use diffusion purifiers: De-AntiFake and VocalBridge show that this purification stage can be inserted before cloning, 
+using diffusion or bridge-diffusion models to remove protective perturbations and recover speaker-discriminative cues \cite{fan2025deantifake,abbasihafshejani2026vocalbridge}. 
+The same evaluation must also cover lightweight non-diffusion transformations such as resampling, quantization, filtering, and denoising, because an attacker may try these transformations before paying the cost of a learned purifier.
 In this attack chain, the attacker does not ask whether the protected waveform is immediately cloneable; the attacker first asks whether purification can convert it back into a useful reference. 
 A defense that is optimized only for the unpurified input may therefore overstate user protection.
 
 This paper studies the defender's side of the same arms race. The central gap is that existing voice protection methods usually treat purification as an external evaluation condition rather than as a differentiable adversary in the optimization loop. 
 Meanwhile, DiffAttack shows that output-only supervision can be weak and proposes intermediate-step supervision over the diffusion trajectory, 
-while DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification \cite{kang2024diffattack,kang2024diffbreak}. 
+while DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification \cite{kang2023diffattack,kassis2025diffbreak}. 
 Voice anti-cloning is different: the target is a continuous speaker identity representation, the perturbation must remain suitable for public release, and the downstream misuse pipeline may contain unknown cloning backends.
 
 We propose \method, a purification-aware framework for protective perturbation generation. Figure~\ref{fig:overview} summarizes the pipeline.
