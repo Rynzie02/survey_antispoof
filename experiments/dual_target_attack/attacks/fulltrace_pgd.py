@@ -19,6 +19,10 @@ class FullTraceDiffAttackPGD:
     def __init__(self, speaker_model, purification_model, config):
         self.speaker_model = speaker_model
         self.purification_model = purification_model
+        self.speaker_model.requires_grad_(False)
+        self.speaker_model.eval()
+        self.purification_model.requires_grad_(False)
+        self.purification_model.eval()
         self.epsilon = config.epsilon
         self.num_iterations = config.num_iterations
         self.step_size = config.step_size

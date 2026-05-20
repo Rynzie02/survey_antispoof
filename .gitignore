@@ -107,3 +107,9 @@ scripts/E2E-VGuard/*
 
 eval/*
 baseline/*
+outputs/*
+test/*
+test_audiopure/*
+aew_origin/*
+aew/*
+aew_text/*
