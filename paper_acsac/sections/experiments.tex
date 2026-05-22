@@ -1,95 +1,120 @@
 \section{Evaluation}
 
-\subsection{Research Questions}
+\subsection{Evaluation Overview}
 
-The evaluation is organized around four questions.
-\textbf{RQ1:} Do existing protective perturbations remain effective when an attacker purifies the released audio before cloning?
-\textbf{RQ2:} Is speaker-only optimization sufficient, or does explicit trajectory supervision improve post-purification protection?
-\textbf{RQ3:} Does protection transfer across diffusion and non-diffusion purifiers and independent speaker evaluators, rather than overfitting to one surrogate encoder?
-\textbf{RQ4:} Does purification resistance come at an unacceptable perceptual-quality cost?
+The evaluation is designed to validate the security claims behind \method{} under a purification-removal attack chain. 
+First, we measure how much existing proactive protection methods degrade when the attacker purifies the released audio before cloning. 
+Second, we isolate the contribution of each component in \method{}: pre-purification speaker displacement, post-purification speaker displacement, and trajectory-level disruption inside the surrogate purifier. 
+Third, we test whether the resulting protection transfers beyond the optimization setting, including held-out diffusion purifiers, non-diffusion signal-processing front ends, independent cloning backends, and independent speaker evaluators. 
+The non-diffusion front ends are included to test a stronger generality claim: \method{} should not rely only on weaknesses of diffusion-based purifiers, but should also retain protection when the attacker uses lightweight signal-processing transformations inspired by WaveGuard and SpeakerGuard. 
+Finally, we measure speech quality and intelligibility so that retained protection cannot be explained merely by excessive audible distortion.
 
 We evaluate on CMU-ARCTIC \cite{kominek2004cmuarctic}, using 18 speakers and sampling 100 utterances per speaker, for 1,800 utterances in total. 
-We use CMU-ARCTIC because the attack chain studies reference-audio reuse for TTS and voice cloning: the corpus provides clean, transcript-aligned, multi-speaker recordings with enough utterances per speaker to support repeated purification and cloning trials under controlled conditions. 
-Larger in-the-wild corpora such as VoxCeleb are complementary for demographic and channel-diversity studies, but they introduce uncontrolled recording conditions that can confound purifier and voice-cloning comparisons in this first benchmark. Following DiffBreak's finding that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, 
+We use CMU-ARCTIC because the attack chain studies reference-audio reuse for TTS and voice cloning: the corpus provides clean, transcript-aligned, 
+multi-speaker recordings with enough utterances per speaker to support repeated purification and cloning trials under controlled conditions. 
+Larger in-the-wild corpora such as VoxCeleb are complementary for demographic and channel-diversity studies, 
+but they introduce uncontrolled recording conditions that can confound purifier and voice-cloning comparisons in this first benchmark. 
+Following DiffBreak's finding that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, 
 all metrics are averaged over three independent purification seeds \cite{kassis2025diffbreak}.
+
+The final evaluation configuration will report the audio preprocessing and optimization fields needed for reproduction: 
+speaker subset, sampling rate and file format, resampling policy, trimming and silence-handling rules, perturbation budget $\epsilon$, 
+total steps $N$, warm-start steps $N_1$, step size $\eta$, weights $\lambda_{\text{pre}}$, $\lambda_{\text{post}}$, and $\lambda_{\text{traj}}$, captured timesteps $\mathcal{T}$, and the diffusion schedule. 
+When a value is implementation-dependent or still being finalized, the paper treats it as a configuration field rather than a result claim.
 
 \subsection{Compared Systems and Attack Chain}
 
 \paragraph{Protection methods.}
-The benchmark is designed to compare \textbf{AttackVC} \cite{huang2021attackvc}, \textbf{VoiceGuard} \cite{li2023voiceguard}, \textbf{AntiFake} \cite{yu2023antifake}, \textbf{SafeSpeech} \cite{zhang2025safespeech}, \textbf{E2E-VGuard} \cite{zhang2025e2evguard}, and \method. 
+The benchmark is designed to compare \textbf{AttackVC} \cite{huang2021attackvc}, \textbf{VoiceGuard} \cite{li2023voiceguard}, \textbf{AntiFake} \cite{yu2023antifake}, 
+\textbf{SafeSpeech} \cite{zhang2025safespeech}, \textbf{E2E-VGuard} \cite{zhang2025e2evguard}, and \method. 
 We treat all of them as proactive protection methods and evaluate how much source-speaker information remains after the attacker purifies and clones the protected reference. 
-Internal variants of \method, including speaker-only, trajectory-only, and staged joint optimization, are used for ablation.
+Internal variants of \method, including pre-purification speaker-only, post-purification speaker-only, identity-only, trajectory-only, and staged joint optimization, are used for ablation.
 
 \paragraph{Purification front ends.}
 The surrogate purifier used for optimization is the first-stage DiffWave model from \textbf{De-AntiFake} \cite{fan2025deantifake}. 
-At evaluation time, we treat the attacker's target purifier as black-box to the defender and test transfer to \textbf{VocalBridge} \cite{abbasihafshejani2026vocalbridge}, \textbf{WavePurifier} \cite{guo2024wavepurifier}, \textbf{AudioPure} \cite{wu2023audiopure}, and \textbf{DualPure} \cite{tan2024dualpure}. 
+At evaluation time, we treat the attacker's target purifier as black-box to the defender and test transfer to \textbf{WavePurifier} \cite{guo2024wavepurifier}, 
+\textbf{DualPure} \cite{tan2024dualpure}, and \textbf{AudioPure} \cite{wu2023audiopure}. 
 These diffusion purifiers differ in representation, diffusion design, and reconstruction assumptions, making them useful black-box transfer tests for purification-aware protection.
+The main table also reports De-AntiFake as a surrogate-matched reference to diagnose whether gains are limited to the optimization purifier.
+\textbf{VocalBridge} \cite{abbasihafshejani2026vocalbridge} is a planned separate robustness target because its bridge-diffusion formulation differs from the four-column grouped template; 
+we do not add a fifth main-table column until its run configuration is fixed.
 To avoid limiting the threat model to diffusion-based removal, we also include non-diffusion signal-processing front ends. 
+These front ends model an attacker who does not train or run a learned purifier, but instead tries to weaken protective perturbations using generic audio transformations such as smoothing, resampling, quantization, filtering, and mel-domain reconstruction. 
 The non-diffusion suite follows transformations studied by SpeakerGuard for speaker-recognition robustness and WaveGuard for audio adversarial-example mitigation \cite{chen2023speakerguard,hussain2021waveguard}. 
-Table~\ref{tab:traditional_purifiers} reports the traditional transformations used to test whether protection survives simpler attacker preprocessing such as smoothing, resampling, quantization, filtering, and mel-domain reconstruction.
+We use these transformations as cross-mechanism stress tests: if \method{} remains effective under both diffusion purifiers and WaveGuard/SpeakerGuard-style processing, then the observed protection is less likely to be an artifact of a single diffusion purification mechanism. 
+Table~\ref{tab:traditional_purifiers} reports these traditional transformations and measures whether protection survives simpler attacker preprocessing as well as learned purification.
 
 \paragraph{Cloning backends and evaluators.}
-After purification, the attacker uses the recovered reference in representative synthesis backends: CosyVoice, F5-TTS, Qwen3-TTS, and Chatterbox. 
-Speaker similarity is measured by independent evaluators, including ECAPA-TDNN \cite{desplanques2020ecapa}, x-vector, and Resemblyzer/d-vector style encoders. 
+After purification, the attacker uses the recovered reference in representative synthesis backends: CosyVoice \cite{du2024cosyvoice}, F5-TTS \cite{chen2025f5tts}, Qwen3-TTS \cite{hu2026qwen3tts}, and Chatterbox. 
+The final evaluation configuration will record whether each backend is used in zero-shot prompting or with speaker-specific fine-tuning, together with checkpoint, prompt/reference length, and inference settings. 
+Chatterbox is treated as an open-source/product backend in this plan; we avoid adding a bibliographic entry until a stable citable release is selected.
+Speaker similarity is measured by independent evaluators, including ECAPA-TDNN \cite{desplanques2020ecapa}, x-vector \cite{snyder2018xvectors}, and Resemblyzer/d-vector-style encoders. 
 This design separates the encoder used to optimize \method{} from the encoders used to evaluate protection.
 
 \subsection{Main Reporting Template}
 
-Table~\ref{tab:main_reporting_template} uses the same grouped layout commonly adopted in purification papers: each protection method is expanded by cloning backend, the \textbf{Protected} columns report the no-purification control, 
-the purification groups report post-purification xSVA/dSVA under four diffusion-based removal attacks, and the rightmost \textbf{Total Avg.} pair is reserved for row-wise summaries. We omit SIM from this grouped template to keep the main comparison compact. Numerical cells are intentionally left as run outputs rather than hand-written claims, so the table can be populated directly from experiment logs.
+Table~\ref{tab:main_reporting_template} uses the same grouped layout commonly adopted in purification papers: 
+each protection method is expanded by cloning backend, the \textbf{Protected} columns report the no-purification control, 
+the purification groups report post-purification speaker-verification acceptance rate (SVA, \%) under one surrogate-matched De-AntiFake reference and three black-box target diffusion purifiers, 
+and the rightmost \textbf{Total Avg.} triplet is reserved for row-wise summaries. 
+We omit SIM from this grouped template to keep the main comparison compact. Numerical cells are intentionally left as run outputs rather than hand-written claims, 
+so the table can be populated directly from experiment logs.
 
 \begin{table*}[t]
 \centering
 \scriptsize
-\setlength{\tabcolsep}{2.1pt}
+\setlength{\tabcolsep}{1.35pt}
 \renewcommand{\arraystretch}{1.08}
 \newcommand{\theadpad}{\rule{0pt}{2.6ex}}
-\newcommand{\metricpairmain}{\cellcolor{metricpink}\textbf{xSVA} & \cellcolor{metricblue}\textbf{dSVA}}
-\newcommand{\mainmetrics}{-- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & --}
-\begin{tabular}{ll*{12}{c}}
+\newcommand{\metrictripletmain}{\cellcolor{metricpink}\textbf{xvec} & \cellcolor{metricsim}\textbf{ecapa} & \cellcolor{metricblue}\textbf{dvec}}
+\newcommand{\mainmetrics}{-- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & --}
+\newcommand{\methodspace}{\addlinespace[0.25ex]}
+\begin{tabular}{llccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc}
 \toprule
 \multirow[b]{3}{*}{\shortstack[c]{Protection\\Method}}
 & \multirow[b]{3}{*}{\shortstack[c]{VC/TTS\\Method}}
-& \multicolumn{2}{c}{\multirow[b]{2}{*}{Protected}}
-& \multicolumn{8}{c}{\theadpad Purification Method}
-& \multicolumn{2}{c}{\theadpad Total} \\
-\cmidrule(lr){5-12}
-\cmidrule(lr){13-14}
-& & \multicolumn{2}{c}{} &
-\multicolumn{2}{c}{\theadpad AudioPure} &
-\multicolumn{2}{c}{\theadpad DualPure} &
-\multicolumn{2}{c}{\theadpad WavePurifier} &
-\multicolumn{2}{c}{\theadpad De-AntiFake} &
-\multicolumn{2}{c}{\theadpad Avg.} \\
-\cmidrule(lr){3-4}
-\cmidrule(lr){5-6}
-\cmidrule(lr){7-8}
-\cmidrule(lr){9-10}
-\cmidrule(lr){11-12}
-\cmidrule(lr){13-14}
+& \multicolumn{3}{c}{\multirow[b]{2}{*}{Protected}}
+& \multicolumn{12}{c}{\theadpad Purification Method}
+& \multicolumn{3}{c}{\theadpad Total} \\
+\cmidrule(lr){6-17}
+\cmidrule(lr){18-20}
+& & \multicolumn{3}{c}{} &
+\multicolumn{3}{c}{\theadpad De-AntiFake$^{\dagger}$} &
+\multicolumn{3}{c}{\theadpad WavePurifier} &
+\multicolumn{3}{c}{\theadpad DualPure} &
+\multicolumn{3}{c}{\theadpad AudioPure} &
+\multicolumn{3}{c}{\theadpad Avg.} \\
+\cmidrule(lr){3-5}
+\cmidrule(lr){6-8}
+\cmidrule(lr){9-11}
+\cmidrule(lr){12-14}
+\cmidrule(lr){15-17}
+\cmidrule(lr){18-20}
 & &
-\theadpad\metricpairmain &
-\metricpairmain &
-\metricpairmain &
-\metricpairmain &
-\metricpairmain &
-\metricpairmain \\
+\theadpad\metrictripletmain &
+\metrictripletmain &
+\metrictripletmain &
+\metrictripletmain &
+\metrictripletmain &
+\metrictripletmain \\
 \midrule
 \multirow{5}{*}{AntiFake}
-& CosyVoice   & 0.00 & 10.00 & 0.00 & 16.78 & 0.00 & 0.33 & 0.00 & 0.11 & 0.00 & 19.56 & 0.00 & 9.36 \\
-& F5-TTS      & 0.00 & 6.21 & 0.00 & 6.13 & 0.00 & 0.23 & 0.00 & 0.00 & 0.00 & 4.92 & 0.00 & 3.50 \\
-& Qwen3-TTS   & 0.00 & 5.11 & 0.00 & 10.67 & 0.00 & 0.00 & 0.00 & 0.00 & 0.11 & 17.00 & 0.02 & 6.56 \\
-& Chatterbox  & 0.00 & 5.33 & 0.00 & 12.00 & 0.00 & 0.11 & 0.00 & 0.11 & 0.11 & 19.67 & 0.02 & 7.44 \\
+& CosyVoice   & \mainmetrics \\
+& F5-TTS      & \mainmetrics \\
+& Qwen3-TTS   & \mainmetrics \\
+& Chatterbox  & \mainmetrics \\
 \rowcolor{avggray}
-& \textbf{Avg.} & 0.00 & 6.66 & 0.00 & 11.39 & 0.00 & 0.17 & 0.00 & 0.06 & 0.06 & 15.29 & 0.01 & 6.71 \\
+& \textbf{Avg.} & \mainmetrics \\
+\methodspace
 \midrule
 \multirow{5}{*}{SafeSpeech}
-& CosyVoice   & 0.00 & 13.89 & 0.00 & 14.00 & 0.00 & 0.00 & 0.00 & 0.11 & 0.00 & 20.00 & 0.00 & 9.60 \\
-& F5-TTS      & 0.00 & 3.12 & 0.00 & 9.30 & 0.00 & 0.11 & 0.00 & 0.00 & 0.00 & 8.04 & 0.00 & 4.12 \\
-& Qwen3-TTS   & 0.00 & 8.33 & 0.00 & 10.22 & 0.00 & 0.22 & 0.00 & 0.11 & 0.22 & 18.44 & 0.04 & 7.47 \\
-& Chatterbox  & 0.00 & 7.67 & 0.00 & 8.00 & 0.00 & 0.00 & 0.00 & 0.22 & 0.33 & 19.69 & 0.07 & 7.12 \\
+& CosyVoice   & \mainmetrics \\
+& F5-TTS      & \mainmetrics \\
+& Qwen3-TTS   & \mainmetrics \\
+& Chatterbox  & \mainmetrics \\
 \rowcolor{avggray}
-& \textbf{Avg.} & 0.00 & 8.25 & 0.00 & 10.38 & 0.00 & 0.08 & 0.00 & 0.11 & 0.14 & 16.54 & 0.03 & 7.07 \\
+& \textbf{Avg.} & \mainmetrics \\
+\methodspace
 \midrule
 \multirow{5}{*}{E2E-VGuard}
 & CosyVoice   & \mainmetrics \\
@@ -98,6 +123,7 @@ the purification groups report post-purification xSVA/dSVA under four diffusion-
 & Chatterbox  & \mainmetrics \\
 \rowcolor{avggray}
 & \textbf{Avg.} & \mainmetrics \\
+\methodspace
 \midrule
 \multirow{5}{*}{AttackVC}
 & CosyVoice   & \mainmetrics \\
@@ -106,6 +132,7 @@ the purification groups report post-purification xSVA/dSVA under four diffusion-
 & Chatterbox  & \mainmetrics \\
 \rowcolor{avggray}
 & \textbf{Avg.} & \mainmetrics \\
+\methodspace
 \midrule
 \multirow{5}{*}{VoiceGuard}
 & CosyVoice   & \mainmetrics \\
@@ -114,19 +141,26 @@ the purification groups report post-purification xSVA/dSVA under four diffusion-
 & Chatterbox  & \mainmetrics \\
 \rowcolor{avggray}
 & \textbf{Avg.} & \mainmetrics \\
+\methodspace
 \midrule
 \multirow{5}{*}{\method}
-& CosyVoice   & \mainmetrics \\
-& F5-TTS      & \mainmetrics \\
-& Qwen3-TTS   & \mainmetrics \\
-& Chatterbox  & \mainmetrics \\
+& CosyVoice   & 0.0 & 0.0 & 0.0 & 58.0 & 0.0 & 92.0 & 0.0 & 0.0 & 0.0 & -- & -- & -- & 0.0 & 0.0 & 4.0 & 14.5 & 0.0 & 24.0 \\
+& F5-TTS      & 0.0 & 0.0 & 8.0 & 4.0 & 0.0 & 54.0 & 2.0 & 0.0 & 2.0 & -- & -- & -- & 0.0 & 0.0 & 16.0 & 1.5 & 0.0 & 20.0 \\
+& Qwen3-TTS   & 12.0 & 0.0 & 26.0 & 44.0 & 2.0 & 88.0 & 2.0 & 0.0 & 2.0 & -- & -- & -- & 6.0 & 0.0 & 30.0 & 16.0 & 0.5 & 36.5 \\
+& Chatterbox  & 0.0 & 0.0 & 2.0 & 38.0 & 0.0 & 54.0 & 0.0 & 0.0 & 0.0 & -- & -- & -- & 0.0 & 0.0 & 2.0 & 9.5 & 0.0 & 14.5 \\
 \rowcolor{avggray}
-& \textbf{Avg.} & \mainmetrics \\
+& \textbf{Avg.} & 3.0 & 0.0 & 9.0 & 36.0 & 0.5 & 72.0 & 1.0 & 0.0 & 1.0 & -- & -- & -- & 1.5 & 0.0 & 13.0 & 10.4 & 0.1 & 23.8 \\
 \midrule
 \bottomrule
 \end{tabular}
-\caption{Main purification-aware benchmark in the grouped format used by prior purification work. Each metric pair reports xSVA/dSVA after cloning from the protected reference or the purified protected reference, and the rightmost Total Avg. pair is reserved for row-wise summaries. SIM is omitted here to keep the main table compact. Lower values indicate stronger retained protection from the defender's perspective. 
-Results are to be populated from experiment logs for the protection methods listed at left, including \method.}
+\caption{Main purification-aware benchmark in the grouped format used by prior purification work. 
+Each metric triplet reports speaker-verification acceptance rate (SVA, \%) after cloning from the protected reference or the purified protected reference, measured by x-vector, ECAPA-TDNN, and d-vector-style verifiers. The rightmost Total Avg. 
+triplet is reserved for row-wise summaries. SIM is omitted here to keep the main table compact. 
+Lower SVA values indicate stronger retained protection from the defender's perspective. 
+$^{\dagger}$De-AntiFake is the surrogate-matched purifier used during optimization, not black-box transfer evidence. 
+The Avg. triplet averages the reported settings in each row; DualPure results are pending and are not included in the current averages. 
+Chatterbox is included as an uncited open-source/product backend pending a stable citable release. 
+Filled \method{} cells report SVA percentages from 50 matched samples per setting.}
 \label{tab:main_reporting_template}
 \end{table*}
 
@@ -138,7 +172,8 @@ The primary continuous metric is source-to-output speaker similarity:
     =
     \cos\!\left(g(x), g(\mathcal{C}_m(\purifier(x_p)))\right),
 \end{equation}
-where lower values indicate stronger retained protection. We also report speaker verification acceptance (SVA), attack success rate (ASR), post-purification protection rate (PPR), and quality metrics including SNR, PESQ, and STOI. 
+where lower values indicate stronger retained protection. The main benchmark reports speaker-verification acceptance rate (SVA, \%), 
+and quality metrics including signal-to-noise ratio (SNR), perceptual evaluation of speech quality (PESQ), short-time objective intelligibility (STOI), DNSMOS \cite{reddy2021dnsmos}, and NISQA \cite{mittag2021nisqa}. 
 Following De-AntiFake \cite{fan2025deantifake}, SVA is the average binary speaker-verification acceptance rate over cloned outputs:
 \begin{equation}
     \mathrm{SVA}_{g,m,p}
@@ -150,16 +185,62 @@ Following De-AntiFake \cite{fan2025deantifake}, SVA is the average binary speake
     \right],
 \end{equation}
 where $g$ is the verification evaluator, $m$ is the cloning backend, $p$ is the purification setting, and $\tau_g$ is the calibrated acceptance threshold. 
+For post-purification settings, post-purification protection rate (PPR) is the complementary non-acceptance rate:
+\begin{equation}
+    \mathrm{PPR}_{g,m,p}=1-\mathrm{SVA}_{g,m,p}.
+\end{equation}
+Equivalently, PPR averages threshold non-acceptance of cloned outputs produced from purified protected references. Thus, lower SVA and higher PPR indicate stronger retained protection after purification.
 In the full evaluation pipeline, \textbf{SIM} denotes the continuous source-to-output similarity under the primary ECAPA-TDNN evaluator. 
-We report \textbf{xSVA} when $g$ is an x-vector verifier and \textbf{dSVA} when $g$ is a d-vector-style verifier; the main benchmark table omits SIM for compactness. 
-Higher SIM, xSVA, or dSVA means the attacker more often recovers source-speaker identity; lower values mean stronger retained protection.
+The main benchmark table reports SVA rates separately for three verifiers: \textbf{xvec} for the x-vector verifier, \textbf{ecapa} for the ECAPA-TDNN verifier, and \textbf{dvec} for the d-vector-style verifier. The table omits continuous SIM for compactness. 
+Higher SIM or SVA means the attacker more often recovers source-speaker identity; lower values mean stronger retained protection.
+For non-diffusion transformations, Table~\ref{tab:traditional_purifiers} reports continuous SIM together with \textbf{WER}, the word error rate between the recognized transcript and the reference transcript. 
+These measurements test a complementary removal setting: after an attacker applies WaveGuard/SpeakerGuard-style signal processing to the protected reference, low SIM indicates that source-speaker identity is still suppressed, while low WER indicates that the transformed audio remains intelligible enough to be a plausible reference signal. 
+This separates identity protection from content preservation for lightweight signal-processing front ends. 
+We use thresholded SVA rates in the grouped diffusion table because that table combines purifier, backend, and verifier outcomes into compact speaker-verification acceptance rates; 
+we use continuous SIM/WER in the non-diffusion table because those transformations are evaluated as front-end signal changes rather than full diffusion-and-cloning groups.
 The most important controls are: clean reference, protected reference without purification, purified clean reference, and purified protected reference. 
 The purified-clean control is essential because it verifies that a purifier preserves identity for benign inputs.
 
+Table~\ref{tab:perceptual_quality} reports no-reference perceptual quality metrics for the released and transformed audio. 
+DNSMOS and NISQA complement PESQ and STOI because they do not require a clean reference and provide model-based estimates of perceived speech quality. 
+We use them as utility checks rather than security metrics: a successful protection method should lower speaker identity similarity without causing a large drop in perceived speech naturalness.
+
+\begin{table*}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{lcccccc}
+\toprule
+\multirow[b]{2}{*}{Protection Method}
+& \multicolumn{2}{c}{Protected Reference}
+& \multicolumn{2}{c}{Diffusion-Purified Reference}
+& \multicolumn{2}{c}{Non-Diffusion Transformed Reference} \\
+\cmidrule(lr){2-3}
+\cmidrule(lr){4-5}
+\cmidrule(lr){6-7}
+& DNSMOS & NISQA & DNSMOS & NISQA & DNSMOS & NISQA \\
+\midrule
+Clean & -- & -- & -- & -- & -- & -- \\
+AntiFake & -- & -- & -- & -- & -- & -- \\
+SafeSpeech & -- & -- & -- & -- & -- & -- \\
+E2E-VGuard & -- & -- & -- & -- & -- & -- \\
+AttackVC & -- & -- & -- & -- & -- & -- \\
+VoiceGuard & -- & -- & -- & -- & -- & -- \\
+\method{} & -- & -- & -- & -- & -- & -- \\
+\bottomrule
+\end{tabular}
+\caption{No-reference perceptual quality reporting template. 
+DNSMOS and NISQA estimate perceived speech quality for the released protected reference, the reference after diffusion-based purification, and the reference after WaveGuard/SpeakerGuard-style non-diffusion transformations. 
+Higher values indicate better perceived quality. 
+These metrics test whether retained protection is achieved without making the released or transformed reference audibly unnatural; they are reported alongside PESQ, STOI, SNR, and WER rather than replacing them.}
+\label{tab:perceptual_quality}
+\end{table*}
+
 \subsection{Threshold Calibration}
 
-The implementation includes calibrated decision thresholds for the independent speaker evaluators. 
-Table~\ref{tab:thresholds} records the current calibration values used by the evaluation code. 
+The implementation will include calibrated decision thresholds for the independent speaker evaluators. 
+Table~\ref{tab:thresholds} records the calibration fields that will be reported by the final evaluation code. 
 These thresholds convert continuous cosine similarity into verification-style acceptance and rejection rates.
 
 \begin{table}[t]
@@ -169,20 +250,29 @@ These thresholds convert continuous cosine similarity into verification-style ac
 \toprule
 Evaluator & EER & Threshold \\
 \midrule
-ECAPA-TDNN & 0.0037 & 0.3195 \\
-x-vector & 0.0600 & 0.9472 \\
-Resemblyzer & 0.0425 & 0.7235 \\
+ECAPA-TDNN & -- & -- \\
+x-vector & -- & -- \\
+Resemblyzer & -- & -- \\
 \bottomrule
 \end{tabular}
-\caption{Speaker-verification threshold calibration used by the current evaluation implementation. 
-Thresholds are applied per evaluator when computing SVA and PPR.}
+\caption{Speaker-verification threshold calibration reporting template. 
+Thresholds are applied per evaluator when computing SVA and PPR after calibration is finalized.}
 \label{tab:thresholds}
 \end{table}
 
 \subsection{Adaptive and Transfer Settings}
 
-To distinguish robustness against a fixed diffusion purifier from robustness against an adaptive attack chain, we include three transfer settings. The first changes the purification front end while keeping the protected waveform fixed, covering both diffusion purifiers and non-diffusion transformations in Table~\ref{tab:traditional_purifiers}. 
-The second changes the cloning backend after purification. The third changes the speaker verifier used to score the output. These tests measure whether \method{} overfits to the surrogate purifier or optimization encoders.
+To distinguish robustness against a fixed diffusion purifier from robustness against an adaptive attack chain, we include three transfer settings. 
+The first changes the purification front end while keeping the protected waveform fixed, covering both diffusion purifiers and non-diffusion transformations in Table~\ref{tab:traditional_purifiers}. 
+This setting separates two questions: whether \method{} transfers across diffusion purifiers, and whether its protection persists under non-diffusion removal mechanisms such as WaveGuard/SpeakerGuard-style signal processing. 
+The second changes the cloning backend after purification. The third changes the speaker verifier used to score the output. 
+These tests measure whether \method{} overfits to the surrogate purifier or optimization encoders.
+They are a bounded proxy for adaptive pressure rather than a full adaptive-retraining study: 
+adversarially training a purifier on \method-generated examples requires an iterative attack-defense retraining loop, which we defer to future work.
+
+The non-diffusion setting is not intended to claim that WaveGuard or SpeakerGuard are voice-cloning attacks by themselves. 
+Instead, we reuse their signal-processing transformations as attacker-side removal operators: an attacker may try these inexpensive transformations before running a learned purifier or cloning backend. 
+This setting therefore tests whether \method{} depends narrowly on diffusion-specific behavior, or whether its speaker-identity disruption persists under qualitatively different perturbation-removal mechanisms.
 
 \begin{table*}[t]
 \centering
@@ -201,10 +291,10 @@ The second changes the cloning backend after purification. The third changes the
 & \multicolumn{2}{c}{Mel}
 & \multicolumn{2}{c}{QD}
 & \multicolumn{2}{c}{FL}
-& \multicolumn{2}{c}{RS}
 & \multicolumn{2}{c}{LPC}
-& \multicolumn{2}{c}{QD}
-& \multicolumn{2}{c}{NR} \\
+& \multicolumn{2}{c}{\shortstack{Mel\\Heur.}}
+& \multicolumn{2}{c}{\shortstack{Filter\\Power}}
+& \multicolumn{2}{c}{Quant} \\
 \cmidrule(lr){2-3}
 \cmidrule(lr){4-5}
 \cmidrule(lr){6-7}
@@ -231,26 +321,33 @@ VoiceGuard & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & --
 \bottomrule
 \end{tabular}
 \caption{Non-diffusion purification-front-end reporting template. 
-SpeakerGuard transformations cover randomized smoothing (RS), mel-spectrogram reconstruction (Mel), quantization--dequantization (QD), and filtering (FL); WaveGuard transformations cover resampling (RS), linear predictive coding (LPC), quantization--dequantization (QD), and noise reduction (NR). 
-Each setting reports speaker similarity (SIM) and word error rate (WER), testing whether lightweight signal-processing transformations weaken protection without a learned diffusion purifier.}
+SpeakerGuard transformations cover randomized smoothing (RS), mel-spectrogram reconstruction (Mel), quantization--dequantization (QD), and filtering (FL); 
+WaveGuard transformations cover linear predictive coding (\texttt{lpc}), mel-domain heuristic reconstruction (\texttt{mel\_heuristic}), power filtering (\texttt{filter\_power}), and quantization (\texttt{quant}). 
+Each setting reports speaker similarity (SIM) and word error rate (WER), testing whether \method{} remains effective beyond diffusion-based purification when the attacker uses lightweight signal-processing transformations instead of a learned diffusion purifier.}
 \label{tab:traditional_purifiers}
 \end{table*}
 
-We also evaluate stochastic purification by varying random seeds and reporting either mean performance with dispersion or worst-case performance across seeds. This is necessary because a defense may look successful under one denoising sample while failing under another. 
+We also evaluate stochastic purification by varying random seeds and reporting either mean performance with dispersion or worst-case performance across seeds. 
+This is necessary because a defense may look successful under one denoising sample while failing under another. 
 Finally, we include the purified-clean control for every purifier. If a purifier damages clean speech identity, then poor cloning after purification cannot be credited to the protection method.
 
 \subsection{Ablations and Robustness Analyses}
 
-The core ablation compares three variants: \textbf{Speaker-only}, which removes $\mathcal{L}_{\text{traj}}$; \textbf{Trajectory-only}, which removes the post-purification identity term; and \textbf{\method{}}, which uses both terms.
-A second ablation varies $\alpha$ and $\beta$ to measure the trade-off between direct identity disruption and purification resistance. 
-A third ablation varies the reverse timestep and capture stride to test whether robustness depends on a narrow diffusion schedule.
+The ablation plan compares five variants: \textbf{Pre-only}, which optimizes only $\mathcal{L}_{\text{pre}}$; \textbf{Post-only}, which optimizes only $\mathcal{L}_{\text{post}}$; 
+\textbf{Identity-only}, which combines $\mathcal{L}_{\text{pre}}$ and $\mathcal{L}_{\text{post}}$ but removes $\mathcal{L}_{\text{traj}}$; \textbf{Trajectory-only}, which removes the speaker-displacement terms; 
+and \textbf{\method{}}, which uses all three terms.
+A second planned ablation varies $\lambda_{\text{pre}}$, $\lambda_{\text{post}}$, and $\lambda_{\text{traj}}$ to measure the trade-off among direct identity disruption, post-purification identity disruption, and purification-process damage. 
+A third planned ablation varies the reverse timestep and capture stride to test whether robustness depends on a narrow diffusion schedule.
 
-Because DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, we report repeated purification samples or worst-case statistics over seeds \cite{kassis2025diffbreak}. 
-We pair identity metrics with SNR, PESQ, and STOI so that improvements cannot be attributed merely to excessive audible distortion. 
-Together, these experiments test the main claim of \method{}: once purification becomes part of the attack chain, robust voice protection should be optimized against the purifier itself.
+Because DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, 
+we report repeated purification samples or worst-case statistics over seeds \cite{kassis2025diffbreak}. 
+We pair identity metrics with SNR, PESQ, STOI, DNSMOS, and NISQA so that any observed protection gain cannot be attributed merely to excessive audible distortion. 
+Together, these analyses are designed to test the hypothesis behind \method{}: once purification becomes part of the attack chain, 
+robust voice protection may need to optimize against the purifier itself rather than only against the cloning backend.
 
 \subsection{Artifact and Reproducibility Plan}
 
-For reproducibility, we release perturbation-generation code, purifier wrappers, evaluation scripts, threshold-calibration code, configuration files, random seeds, and metadata for all generated protected samples. 
-The artifact separates protected audio, purified audio, and cloned outputs so that each stage can be audited for identity loss. 
-Because the work involves voice identity and impersonation risk, released audio follows dataset licenses and avoids examples that identify private speakers.
+For reproducibility, we plan to provide an anonymized review artifact containing perturbation-generation code, purifier wrappers, evaluation scripts, 
+threshold-calibration code, configuration files, random seeds, and metadata for all generated protected samples. 
+The artifact will separate protected audio, purified audio, and cloned outputs so that each stage can be audited for identity loss. 
+Because the work involves voice identity and impersonation risk, any released audio will follow dataset licenses and avoid examples that identify private speakers.

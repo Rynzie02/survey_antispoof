@@ -1,12 +1,13 @@
 ﻿\begin{abstract}
 Protective perturbations are a promising proactive defense against unauthorized voice cloning, 
-yet attacks using diffusion purifiers can remove these perturbations before cloning, 
-bypassing existing defenses. This gap arises because most protection methods optimize against the cloning model directly, treating purification only as an evaluation condition. 
-We propose \method, a purification-aware voice protection framework that incorporates the attacker's diffusion purifier into the optimization loop. 
-\method{} jointly maximizes post-purification speaker-identity disruption and trajectory deviation inside the reverse diffusion process, 
-making protected waveforms resistant to purification-based recovery.
+yet attacks using diffusion purifiers can remove these perturbations before cloning, bypassing existing defenses. 
+This gap arises because most protection methods optimize against the cloning model directly, treating purification only as an evaluation condition. 
+We propose \method, a purification-aware voice protection framework that incorporates a surrogate diffusion purifier into the optimization loop. 
+\method{} jointly maximizes pre-purification speaker-identity disruption, post-purification speaker-identity disruption, and trajectory deviation inside the reverse diffusion process, 
+with the goal of keeping protected waveforms non-cloneable after purification-based recovery.
 We operationalize the framework with purifier-in-the-loop optimization and ensemble-based speaker-identity objectives, 
 and define a benchmark protocol covering direct protection, post-purification robustness, clean-purification controls, and perceptual quality. 
+The completed evaluation will report post-purification SVA rates and speech-quality changes across [X] speakers, [Y] cloning backends, and [Z] target purifiers.
 Our formulation reframes robust voice anti-cloning as an adaptive problem against the attacker's purification path,
 rather than optimizing directly against the cloning backend alone.
 \end{abstract}

@@ -12,7 +12,7 @@ proactive protection at the data source is an important line of defense.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{Overview.png}
-\caption{High-level attack chain for purification-aware voice protection: the defender releases protected speech, while the attacker applies a diffusion purifier before voice cloning.}
+\caption{High-level attack chain for purification-aware voice protection: the defender releases protected speech optimized with a local surrogate purifier, while the attacker applies an unseen target purifier before voice cloning.}
 \label{fig:overview}
 \end{figure}
 
@@ -31,28 +31,30 @@ In this attack chain, the attacker does not ask whether the protected waveform i
 A defense that is optimized only for the unpurified input may therefore overstate user protection.
 
 This paper studies the defender's side of the same arms race. The central gap is that existing voice protection methods usually treat purification as an external evaluation condition rather than as a differentiable adversary in the optimization loop. 
-Meanwhile, DiffAttack shows that output-only supervision can be weak and proposes intermediate-step supervision over the diffusion trajectory, 
+Meanwhile, DiffAttack suggests that output-only supervision may miss important behavior inside diffusion purification and proposes intermediate-step supervision over the diffusion trajectory, 
 while DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification \cite{kang2023diffattack,kassis2025diffbreak}. 
 Voice anti-cloning is different: the target is a continuous speaker identity representation, the perturbation must remain suitable for public release, and the downstream misuse pipeline may contain unknown cloning backends.
 
 We propose \method, a purification-aware framework for protective perturbation generation. Figure~\ref{fig:overview} summarizes the pipeline.
 The key idea is simple: if the attacker depends on a purifier to recover speaker identity, 
 then the defender should optimize the perturbation against the purifier, not only against the final cloning model. 
-\method{} combines a speaker-disruption objective, which reduces similarity between the source speaker and the purified protected speech, 
-with a trajectory-deviation objective, which pushes the reverse diffusion path away from its paired forward noising states. 
+\method{} combines a direct speaker-disruption objective on the released waveform, a post-purification speaker-disruption objective on the recovered reference, 
+and a trajectory-deviation objective that pushes the reverse diffusion path away from its paired forward noising states. 
 This makes purification resistance a training objective rather than an after-the-fact stress test.
 
 Our implementation instantiates this idea with the first-stage DiffWave purifier from De-AntiFake, 
-a differentiable ensemble of VITS, Tortoise, WavLM, and ECAPA-style speaker encoders when available, 
+a differentiable optimization ensemble composed of VITS \cite{kim2021vits}, Tortoise \cite{betker2023tortoise}, WavLM \cite{chen2022wavlm}, and CAM++ from the CosyVoice speaker stack \cite{du2024cosyvoice}, 
 and independent ECAPA, x-vector, and Resemblyzer evaluators. 
 We also define a purification-aware evaluation protocol with clean-purification controls, 
 post-purification speaker similarity, thresholded speaker-verification acceptance, and quality metrics. 
-The protocol is designed to answer the security question that matters in practice: whether protected speech remains non-cloneable after the attacker attempts to purify it.
+The protocol is designed to answer the security question that matters in practice: whether perturbations optimized against a surrogate purifier transfer to black-box target purifiers and keep protected speech non-cloneable after purification.
 
 Our contributions are:
 \begin{itemize}
     \item We formulate \emph{purification-aware voice protection}, in which the defender must preserve speaker disruption even after an attacker applies diffusion-based perturbation removal.
-    \item We introduce \method, a dual-objective optimization framework that jointly maximizes post-purification speaker-identity disruption and trajectory deviation inside the attacker's reverse diffusion process.
+    \item We introduce \method, a three-part optimization framework designed to combine pre-purification speaker disruption, post-purification speaker disruption, and trajectory deviation inside a surrogate reverse diffusion process.
     \item We define a purification-aware evaluation protocol with clean-purification controls, calibrated speaker-verification thresholds, and repeated stochastic purification trials, 
     enabling fair comparison across protection methods and diffusion purifiers.
+    \item We evaluate \method{} under purification-removal attack chains spanning multiple cloning backends, diffusion purifiers, and independent speaker-verification evaluators,
+    measuring whether protection transfers beyond the surrogate purifier used during optimization while preserving speech quality and intelligibility.
 \end{itemize}

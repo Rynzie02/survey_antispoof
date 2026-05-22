@@ -30,17 +30,18 @@ it generates perturbations that are optimized to resist purification, closing th
 \begin{figure*}[!t]
 \centering
 \includegraphics[width=\textwidth]{purguard-framework.png}
-\caption{\method{} framework. The defender optimizes a bounded protective perturbation through a surrogate diffusion purifier, 
-combining post-purification speaker-identity disruption with reverse-trajectory deviation so that purified protected speech remains unreliable for downstream cloning.}
+\caption{\method{} framework and trust boundary. The defender optimizes a bounded protective perturbation through a local surrogate diffusion purifier and encoder ensemble; 
+the attacker's target purifier and cloning backend are unseen during optimization and are used only for transfer evaluation.}
 \label{fig:purguard-framework}
 \end{figure*}
 
 \subsection{Adaptive Attacks on Diffusion Purification}
 
 The conceptual foundation of \method{} is related to adaptive attacks on diffusion purification. 
-DiffAttack shows that output-only supervision can be weak and proposes intermediate-step supervision over the diffusion trajectory \cite{kang2023diffattack}. 
+DiffAttack suggests that output-only supervision can miss behavior inside the diffusion trajectory and proposes intermediate-step supervision \cite{kang2023diffattack}. 
 DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification \cite{kassis2025diffbreak}. 
 These studies suggest two lessons for voice protection: the purifier's internal trajectory is an attack surface, and single-pass output evaluation can misrepresent robustness.
 
 The most closely related work is AntiPure, which studies protective perturbations against diffusion purifiers for image customization \cite{yang2025antipure}. 
-\method{} borrows the trajectory-aware view from this line of work, but applies it to a different security objective: protecting released speech from post-purification voice cloning under perceptual audio-quality constraints and continuous speaker-identity metrics.
+\method{} borrows the trajectory-aware view from this line of work, but applies it to a different security objective: 
+protecting released speech from post-purification voice cloning under perceptual audio-quality constraints and continuous speaker-identity metrics.

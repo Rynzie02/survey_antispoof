@@ -42,17 +42,21 @@ voice cloning, protective perturbations, diffusion purification, adversarial rob
 \input{sections/related_work}
 \input{sections/methodology}
 \input{sections/experiments}
-\input{sections/conclusion}
 
 \section{Limitations}
+\label{sec:limitations}
 \method{} currently studies surrogate-based purification-aware optimization and evaluates whether the resulting protection transfers to black-box target purifiers. 
 This captures the practical case where the defender can train against a local purifier but does not know the attacker's deployed purifier; it does not fully cover no-surrogate defenders, learned purifier ensembles, or attackers who jointly adapt purification and synthesis. 
 The current implementation also focuses on waveform-domain perturbations with bounded amplitude; future work should add psychoacoustic masking, over-the-air transformations, and human listening studies. 
+We do not adversarially train a new purifier on \method-generated samples; the current held-out purifier, seed, backend, and verifier transfer tests are a bounded proxy for adaptive attackers, not a full solution to iterative attack-defense retraining.
 We plan to extend the benchmark with broader stochastic purification trials before drawing claims across all purifiers and cloning backends.
+
+\input{sections/conclusion}
 
 \section{Ethical Considerations}
 This work studies defenses against unauthorized voice cloning and therefore involves dual-use capabilities. The intended use of \method{} is to help speakers publish audio with reduced risk of impersonation after purification-based removal attacks. 
-The evaluation should use public or consented speech datasets, report aggregate metrics, and avoid releasing cloned examples that could be misused for impersonation. 
+The evaluation uses CMU-ARCTIC, a public speech corpus, and reports aggregate metrics rather than speaker-identifying examples. 
+Released artifacts will exclude cloned outputs that could be reused for impersonation or provide them only through controlled review channels with clear use restrictions. 
 We do not claim that perturbation-based protection replaces policy, watermarking, authentication, or platform-side abuse detection; 
 rather, it provides a data-source defense that can be combined with these safeguards.
 
