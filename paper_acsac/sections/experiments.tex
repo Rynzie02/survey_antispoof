@@ -9,7 +9,9 @@ Third, we test whether the resulting protection transfers beyond the optimizatio
 The non-diffusion front ends are included to test a stronger generality claim: \method{} should not rely only on weaknesses of diffusion-based purifiers, but should also retain protection when the attacker uses lightweight signal-processing transformations inspired by WaveGuard and SpeakerGuard. 
 Finally, we measure speech quality and intelligibility so that retained protection cannot be explained merely by excessive audible distortion.
 
-We evaluate on CMU-ARCTIC \cite{kominek2004cmuarctic}, using 18 speakers and sampling 100 utterances per speaker, for 1,800 utterances in total. 
+We evaluate on CMU-ARCTIC \cite{kominek2004cmuarctic}, using 18 speakers and sampling 70 utterances per speaker, for 1,260 utterances in total. 
+For each speaker, 20 utterances are reserved for speaker enrollment and verifier calibration, yielding 360 enrollment/calibration utterances. 
+The remaining 50 utterances per speaker, 900 utterances in total, are used for protected-audio generation and purification-removal evaluation. 
 We use CMU-ARCTIC because the attack chain studies reference-audio reuse for TTS and voice cloning: the corpus provides clean, transcript-aligned, 
 multi-speaker recordings with enough utterances per speaker to support repeated purification and cloning trials under controlled conditions. 
 Larger in-the-wild corpora such as VoxCeleb are complementary for demographic and channel-diversity studies, 
@@ -17,27 +19,27 @@ but they introduce uncontrolled recording conditions that can confound purifier 
 Following DiffBreak's finding that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, 
 all metrics are averaged over three independent purification seeds \cite{kassis2025diffbreak}.
 
-The final evaluation configuration will report the audio preprocessing and optimization fields needed for reproduction: 
-speaker subset, sampling rate and file format, resampling policy, trimming and silence-handling rules, perturbation budget $\epsilon$, 
+The evaluation configuration reports the audio preprocessing and optimization fields needed for reproduction: 
+the fixed 18-speaker CMU-ARCTIC subset, the 20/50 utterance split per speaker, sampling rate and file format, resampling policy, trimming and silence-handling rules, perturbation budget $\epsilon$, 
 total steps $N$, warm-start steps $N_1$, step size $\eta$, weights $\lambda_{\text{pre}}$, $\lambda_{\text{post}}$, and $\lambda_{\text{traj}}$, captured timesteps $\mathcal{T}$, and the diffusion schedule. 
 When a value is implementation-dependent or still being finalized, the paper treats it as a configuration field rather than a result claim.
 
 \subsection{Compared Systems and Attack Chain}
 
 \paragraph{Protection methods.}
-The benchmark is designed to compare \textbf{AttackVC} \cite{huang2021attackvc}, \textbf{VoiceGuard} \cite{li2023voiceguard}, \textbf{AntiFake} \cite{yu2023antifake}, 
+The benchmark is designed to compare \textbf{AttackVC} \cite{huang2021attackvc}, \textbf{AntiFake} \cite{yu2023antifake}, 
 \textbf{SafeSpeech} \cite{zhang2025safespeech}, \textbf{E2E-VGuard} \cite{zhang2025e2evguard}, and \method. 
 We treat all of them as proactive protection methods and evaluate how much source-speaker information remains after the attacker purifies and clones the protected reference. 
 Internal variants of \method, including pre-purification speaker-only, post-purification speaker-only, identity-only, trajectory-only, and staged joint optimization, are used for ablation.
 
 \paragraph{Purification front ends.}
 The surrogate purifier used for optimization is the first-stage DiffWave model from \textbf{De-AntiFake} \cite{fan2025deantifake}. 
-At evaluation time, we treat the attacker's target purifier as black-box to the defender and test transfer to \textbf{WavePurifier} \cite{guo2024wavepurifier}, 
-\textbf{DualPure} \cite{tan2024dualpure}, and \textbf{AudioPure} \cite{wu2023audiopure}. 
+At evaluation time, we treat the attacker's target purifier as black-box to the defender and test transfer to \textbf{WavePurifier} \cite{guo2024wavepurifier} 
+and \textbf{AudioPure} \cite{wu2023audiopure}. 
 These diffusion purifiers differ in representation, diffusion design, and reconstruction assumptions, making them useful black-box transfer tests for purification-aware protection.
 The main table also reports De-AntiFake as a surrogate-matched reference to diagnose whether gains are limited to the optimization purifier.
-\textbf{VocalBridge} \cite{abbasihafshejani2026vocalbridge} is a planned separate robustness target because its bridge-diffusion formulation differs from the four-column grouped template; 
-we do not add a fifth main-table column until its run configuration is fixed.
+\textbf{VocalBridge} \cite{abbasihafshejani2026vocalbridge} is a planned separate robustness target because its bridge-diffusion formulation differs from the grouped template; 
+we do not add an extra main-table column until its run configuration is fixed.
 To avoid limiting the threat model to diffusion-based removal, we also include non-diffusion signal-processing front ends. 
 These front ends model an attacker who does not train or run a learned purifier, but instead tries to weaken protective perturbations using generic audio transformations such as smoothing, resampling, quantization, filtering, and mel-domain reconstruction. 
 The non-diffusion suite follows transformations studied by SpeakerGuard for speaker-recognition robustness and WaveGuard for audio adversarial-example mitigation \cite{chen2023speakerguard,hussain2021waveguard}. 
@@ -55,7 +57,7 @@ This design separates the encoder used to optimize \method{} from the encoders u
 
 Table~\ref{tab:main_reporting_template} uses the same grouped layout commonly adopted in purification papers: 
 each protection method is expanded by cloning backend, the \textbf{Protected} columns report the no-purification control, 
-the purification groups report post-purification speaker-verification acceptance rate (SVA, \%) under one surrogate-matched De-AntiFake reference and three black-box target diffusion purifiers, 
+the purification groups report post-purification speaker-verification acceptance rate (SVA, \%) under one surrogate-matched De-AntiFake reference and two black-box target diffusion purifiers, 
 and the rightmost \textbf{Total Avg.} triplet is reserved for row-wise summaries. 
 We omit SIM from this grouped template to keep the main comparison compact. Numerical cells are intentionally left as run outputs rather than hand-written claims, 
 so the table can be populated directly from experiment logs.
@@ -67,21 +69,20 @@ so the table can be populated directly from experiment logs.
 \renewcommand{\arraystretch}{1.08}
 \newcommand{\theadpad}{\rule{0pt}{2.6ex}}
 \newcommand{\metrictripletmain}{\cellcolor{metricpink}\textbf{xvec} & \cellcolor{metricsim}\textbf{ecapa} & \cellcolor{metricblue}\textbf{dvec}}
-\newcommand{\mainmetrics}{-- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & --}
+\newcommand{\mainmetrics}{-- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & --}
 \newcommand{\methodspace}{\addlinespace[0.25ex]}
-\begin{tabular}{llccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc}
+\begin{tabular}{llccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc@{\hspace{4pt}}ccc}
 \toprule
 \multirow[b]{3}{*}{\shortstack[c]{Protection\\Method}}
 & \multirow[b]{3}{*}{\shortstack[c]{VC/TTS\\Method}}
 & \multicolumn{3}{c}{\multirow[b]{2}{*}{Protected}}
-& \multicolumn{12}{c}{\theadpad Purification Method}
+& \multicolumn{9}{c}{\theadpad Purification Method}
 & \multicolumn{3}{c}{\theadpad Total} \\
-\cmidrule(lr){6-17}
-\cmidrule(lr){18-20}
+\cmidrule(lr){6-14}
+\cmidrule(lr){15-17}
 & & \multicolumn{3}{c}{} &
 \multicolumn{3}{c}{\theadpad De-AntiFake$^{\dagger}$} &
 \multicolumn{3}{c}{\theadpad WavePurifier} &
-\multicolumn{3}{c}{\theadpad DualPure} &
 \multicolumn{3}{c}{\theadpad AudioPure} &
 \multicolumn{3}{c}{\theadpad Avg.} \\
 \cmidrule(lr){3-5}
@@ -89,40 +90,38 @@ so the table can be populated directly from experiment logs.
 \cmidrule(lr){9-11}
 \cmidrule(lr){12-14}
 \cmidrule(lr){15-17}
-\cmidrule(lr){18-20}
 & &
 \theadpad\metrictripletmain &
-\metrictripletmain &
 \metrictripletmain &
 \metrictripletmain &
 \metrictripletmain &
 \metrictripletmain \\
 \midrule
 \multirow{5}{*}{AntiFake}
-& CosyVoice   & \mainmetrics \\
-& F5-TTS      & \mainmetrics \\
-& Qwen3-TTS   & \mainmetrics \\
-& Chatterbox  & \mainmetrics \\
+& CosyVoice   & 26.9 & 5.8 & 66.9 & 66.4 & 15.6 & 86.2 & 1.7 & 1.6 & 9.4 & 48.6 & 9.2 & 83.1 & 35.9 & 8.1 & 61.4 \\
+& F5-TTS      & 21.0 & 22.1 & 81.4 & 39.9 & 40.1 & 91.1 & 0.4 & 4.6 & 17.9 & 24.1 & 34.2 & 91.1 & 21.4 & 25.3 & 70.4 \\
+& Qwen3-TTS   & 38.1 & 6.8 & 55.0 & 72.2 & 22.1 & 88.6 & 9.7 & 1.8 & 8.1 & 68.4 & 20.4 & 78.6 & 47.1 & 12.8 & 57.6 \\
+& Chatterbox  & 35.0 & 6.0 & 64.1 & 76.6 & 27.1 & 90.1 & 2.1 & 2.0 & 10.6 & 58.4 & 17.2 & 82.6 & 43.0 & 13.1 & 61.8 \\
 \rowcolor{avggray}
-& \textbf{Avg.} & \mainmetrics \\
+& \textbf{Avg.} & 30.3 & 10.2 & 66.9 & 63.8 & 26.2 & 89.0 & 3.5 & 2.5 & 11.5 & 49.9 & 20.3 & 83.8 & 36.9 & 14.8 & 62.8 \\
 \methodspace
 \midrule
 \multirow{5}{*}{SafeSpeech}
-& CosyVoice   & \mainmetrics \\
-& F5-TTS      & \mainmetrics \\
-& Qwen3-TTS   & \mainmetrics \\
-& Chatterbox  & \mainmetrics \\
+& CosyVoice   & 46.6 & 18.8 & 78.6 & 68.0 & 19.1 & 85.3 & 2.4 & 1.3 & 18.0 & 42.2 & 11.2 & 64.1 & 39.8 & 12.6 & 61.5 \\
+& F5-TTS      & 17.0 & 33.2 & 82.2 & 35.3 & 49.9 & 90.4 & 1.2 & 6.7 & 15.1 & 17.3 & 37.9 & 82.8 & 17.7 & 31.9 & 67.6 \\
+& Qwen3-TTS   & 49.3 & 15.4 & 48.6 & 77.0 & 28.3 & 86.2 & 10.0 & 1.2 & 8.4 & 59.0 & 20.9 & 54.2 & 48.8 & 16.5 & 49.4 \\
+& Chatterbox  & 49.6 & 25.7 & 65.6 & 74.9 & 38.1 & 87.1 & 2.2 & 2.3 & 17.3 & 52.0 & 21.9 & 56.8 & 44.7 & 22.0 & 56.7 \\
 \rowcolor{avggray}
-& \textbf{Avg.} & \mainmetrics \\
+& \textbf{Avg.} & 40.6 & 23.3 & 68.7 & 63.8 & 33.9 & 87.3 & 4.0 & 2.9 & 14.7 & 42.6 & 23.0 & 64.5 & 37.8 & 20.8 & 58.8 \\
 \methodspace
 \midrule
 \multirow{5}{*}{E2E-VGuard}
-& CosyVoice   & \mainmetrics \\
-& F5-TTS      & \mainmetrics \\
-& Qwen3-TTS   & \mainmetrics \\
-& Chatterbox  & \mainmetrics \\
+& CosyVoice   & 0.4 & 0.1 & 3.4 & 58.4 & 9.7 & 84.3 & 0.3 & 0.1 & 9.8 & 37.9 & 7.8 & 87.2 & 24.3 & 4.4 & 46.2 \\
+& F5-TTS      & 8.9 & 9.3 & 85.7 & 26.0 & 32.3 & 89.0 & 0.2 & 2.1 & 21.9 & 18.2 & 34.4 & 92.9 & 13.3 & 19.5 & 72.4 \\
+& Qwen3-TTS   & 25.1 & 2.4 & 52.8 & 69.2 & 17.6 & 83.0 & 2.7 & 1.2 & 8.2 & 67.6 & 20.1 & 84.2 & 41.2 & 10.3 & 57.0 \\
+& Chatterbox  & 1.8 & 0.1 & 6.4 & 68.1 & 20.2 & 84.2 & 0.3 & 0.8 & 12.3 & 44.9 & 17.7 & 84.4 & 28.8 & 9.7 & 46.8 \\
 \rowcolor{avggray}
-& \textbf{Avg.} & \mainmetrics \\
+& \textbf{Avg.} & 9.1 & 3.0 & 37.1 & 55.4 & 19.9 & 85.1 & 0.9 & 1.1 & 13.1 & 42.1 & 20.0 & 87.2 & 26.9 & 11.0 & 55.6 \\
 \methodspace
 \midrule
 \multirow{5}{*}{AttackVC}
@@ -134,22 +133,13 @@ so the table can be populated directly from experiment logs.
 & \textbf{Avg.} & \mainmetrics \\
 \methodspace
 \midrule
-\multirow{5}{*}{VoiceGuard}
-& CosyVoice   & \mainmetrics \\
-& F5-TTS      & \mainmetrics \\
-& Qwen3-TTS   & \mainmetrics \\
-& Chatterbox  & \mainmetrics \\
-\rowcolor{avggray}
-& \textbf{Avg.} & \mainmetrics \\
-\methodspace
-\midrule
 \multirow{5}{*}{\method}
-& CosyVoice   & 0.0 & 0.0 & 0.0 & 58.0 & 0.0 & 92.0 & 0.0 & 0.0 & 0.0 & -- & -- & -- & 0.0 & 0.0 & 4.0 & 14.5 & 0.0 & 24.0 \\
-& F5-TTS      & 0.0 & 0.0 & 8.0 & 4.0 & 0.0 & 54.0 & 2.0 & 0.0 & 2.0 & -- & -- & -- & 0.0 & 0.0 & 16.0 & 1.5 & 0.0 & 20.0 \\
-& Qwen3-TTS   & 12.0 & 0.0 & 26.0 & 44.0 & 2.0 & 88.0 & 2.0 & 0.0 & 2.0 & -- & -- & -- & 6.0 & 0.0 & 30.0 & 16.0 & 0.5 & 36.5 \\
-& Chatterbox  & 0.0 & 0.0 & 2.0 & 38.0 & 0.0 & 54.0 & 0.0 & 0.0 & 0.0 & -- & -- & -- & 0.0 & 0.0 & 2.0 & 9.5 & 0.0 & 14.5 \\
+& CosyVoice   & 0.0 & 0.0 & 0.2 & 32.1 & 0.6 & 53.3 & 0.0 & 0.0 & 0.1 & 0.2 & 0.0 & 1.6 & 8.1 & 0.1 & 13.8 \\
+& F5-TTS      & 0.0 & 0.0 & 5.0 & 1.9 & 1.0 & 38.0 & 0.1 & 0.0 & 1.3 & 0.0 & 0.0 & 9.6 & 0.5 & 0.3 & 13.5 \\
+& Qwen3-TTS   & 7.2 & 0.3 & 16.2 & 29.3 & 2.7 & 50.2 & 2.4 & 0.4 & 1.6 & 8.0 & 0.8 & 17.8 & 11.7 & 1.1 & 21.4 \\
+& Chatterbox  & 0.0 & 0.0 & 0.1 & 22.8 & 0.4 & 38.8 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.1 & 5.7 & 0.1 & 9.7 \\
 \rowcolor{avggray}
-& \textbf{Avg.} & 3.0 & 0.0 & 9.0 & 36.0 & 0.5 & 72.0 & 1.0 & 0.0 & 1.0 & -- & -- & -- & 1.5 & 0.0 & 13.0 & 10.4 & 0.1 & 23.8 \\
+& \textbf{Avg.} & 1.8 & 0.1 & 5.4 & 21.5 & 1.2 & 45.1 & 0.6 & 0.1 & 0.8 & 2.1 & 0.2 & 7.3 & 6.5 & 0.4 & 14.6 \\
 \midrule
 \bottomrule
 \end{tabular}
@@ -158,9 +148,9 @@ Each metric triplet reports speaker-verification acceptance rate (SVA, \%) after
 triplet is reserved for row-wise summaries. SIM is omitted here to keep the main table compact. 
 Lower SVA values indicate stronger retained protection from the defender's perspective. 
 $^{\dagger}$De-AntiFake is the surrogate-matched purifier used during optimization, not black-box transfer evidence. 
-The Avg. triplet averages the reported settings in each row; DualPure results are pending and are not included in the current averages. 
+The Avg. triplet averages the reported settings in each row; missing measurements are shown as ``--'' and excluded from averages. 
 Chatterbox is included as an uncited open-source/product backend pending a stable citable release. 
-Filled \method{} cells report SVA percentages from 50 matched samples per setting.}
+Filled cells report SVA percentages from 900 matched samples per setting.}
 \label{tab:main_reporting_template}
 \end{table*}
 
@@ -226,7 +216,6 @@ AntiFake & -- & -- & -- & -- & -- & -- \\
 SafeSpeech & -- & -- & -- & -- & -- & -- \\
 E2E-VGuard & -- & -- & -- & -- & -- & -- \\
 AttackVC & -- & -- & -- & -- & -- & -- \\
-VoiceGuard & -- & -- & -- & -- & -- & -- \\
 \method{} & -- & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
@@ -239,8 +228,8 @@ These metrics test whether retained protection is achieved without making the re
 
 \subsection{Threshold Calibration}
 
-The implementation will include calibrated decision thresholds for the independent speaker evaluators. 
-Table~\ref{tab:thresholds} records the calibration fields that will be reported by the final evaluation code. 
+The implementation uses calibrated decision thresholds for the independent speaker evaluators. 
+Table~\ref{tab:thresholds} records the calibration fields reported by the evaluation code. 
 These thresholds convert continuous cosine similarity into verification-style acceptance and rejection rates.
 
 \begin{table}[t]
@@ -248,16 +237,38 @@ These thresholds convert continuous cosine similarity into verification-style ac
 \small
 \begin{tabular}{lcc}
 \toprule
-Evaluator & EER & Threshold \\
+Evaluator & EER & Cosine threshold \\
 \midrule
-ECAPA-TDNN & -- & -- \\
-x-vector & -- & -- \\
-Resemblyzer & -- & -- \\
+ECAPA-TDNN & 0.0007 & 0.5065 \\
+x-vector & 0.0562 & 0.9402 \\
+Resemblyzer & 0.0222 & 0.7431 \\
 \bottomrule
 \end{tabular}
-\caption{Speaker-verification threshold calibration reporting template. 
+\caption{Speaker-verification threshold calibration. 
 Thresholds are applied per evaluator when computing SVA and PPR after calibration is finalized.}
 \label{tab:thresholds}
+\end{table}
+
+After finalizing the verifier thresholds, we first check that the same cloning and evaluation pipeline accepts clean references before protection is applied. 
+Table~\ref{tab:clean_sva} reports this clean-reference SVA baseline.
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lccc}
+\toprule
+TTS backend & xvec & ecapa & dvec \\
+\midrule
+CosyVoice & 95.3 & 97.6 & 99.2 \\
+F5-TTS & 72.6 & 97.8 & 98.2 \\
+Qwen3-TTS & 91.2 & 96.3 & 98.7 \\
+Chatterbox & 95.0 & 94.1 & 98.0 \\
+\bottomrule
+\end{tabular}
+\caption{Clean-reference cloning baseline. 
+Cells report SVA (\%) when each cloning backend uses the unprotected clean reference audio, measured over 900 clean-reference trials with x-vector, ECAPA-TDNN, and d-vector-style verifiers.}
+\label{tab:clean_sva}
 \end{table}
 
 \subsection{Adaptive and Transfer Settings}
@@ -316,7 +327,6 @@ AntiFake & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- &
 SafeSpeech & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 E2E-VGuard & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 AttackVC & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
-VoiceGuard & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 \method{} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
