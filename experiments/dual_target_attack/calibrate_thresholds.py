@@ -186,14 +186,24 @@ def main():
     ecapa_eer, ecapa_thresh = compute_eer(ecapa_scores, ecapa_labels)
     xvec_eer, xvec_thresh = compute_eer(xvec_scores, xvec_labels)
     resem_eer, resem_thresh = compute_eer(resem_scores, resem_labels)
+    ecapa_score_thresh = (ecapa_thresh + 1.0) / 2.0
+    xvec_score_thresh = (xvec_thresh + 1.0) / 2.0
 
     print("\n=== Calibration Results ===")
-    print(f"ECAPA:       EER={ecapa_eer:.4f}  threshold={ecapa_thresh:.4f}")
-    print(f"XVector:     EER={xvec_eer:.4f}  threshold={xvec_thresh:.4f}")
+    print(
+        f"ECAPA:       EER={ecapa_eer:.4f}  "
+        f"cosine_threshold={ecapa_thresh:.4f}  "
+        f"score_threshold={ecapa_score_thresh:.4f}"
+    )
+    print(
+        f"XVector:     EER={xvec_eer:.4f}  "
+        f"cosine_threshold={xvec_thresh:.4f}  "
+        f"score_threshold={xvec_score_thresh:.4f}"
+    )
     print(f"Resemblyzer: EER={resem_eer:.4f}  threshold={resem_thresh:.4f}")
-    print("\nAdd to config.py:")
-    print(f"    ecapa_sva_threshold = {ecapa_thresh:.4f}")
-    print(f"    xvector_sva_threshold = {xvec_thresh:.4f}")
+    print("\nAdd to config.py when metrics use (cosine + 1) / 2 for ECAPA/x-vector:")
+    print(f"    ecapa_sva_threshold = {ecapa_score_thresh:.4f}")
+    print(f"    xvector_sva_threshold = {xvec_score_thresh:.4f}")
     print(f"    resemblyzer_sva_threshold = {resem_thresh:.4f}")
 
 
