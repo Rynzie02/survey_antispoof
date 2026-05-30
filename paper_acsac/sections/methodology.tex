@@ -135,7 +135,7 @@ The final security property is enforced only by combining this process-level pre
 The speaker losses prevent trajectory deviation from becoming arbitrary signal damage, while the trajectory loss prevents the identity objective from depending only on the final purified waveform.
 
 This distinction is important for speech. Increasing trajectory MSE alone could degrade intelligibility or introduce audible artifacts, which would not be an acceptable proactive defense. 
-\method{} therefore treats Eq.~\eqref{eq:traj_loss} as a mechanism for resisting purification, and evaluates speech quality separately with SNR, PESQ, STOI, DNSMOS, and NISQA. 
+\method{} therefore treats Eq.~\eqref{eq:traj_loss} as a mechanism for resisting purification, and evaluates speech quality separately with SNR, PESQ, STOI, DNSMOS Pro, and NISQA. 
 In the ablation study, the \textbf{Identity-only} variant tests whether pre- and post-purification speaker losses are sufficient without trajectory guidance, while the \textbf{Trajectory-only} variant tests whether trajectory deviation alone provides targeted speaker protection.
 
 Because the diffusion reverse process is stochastic, we optimize this trajectory objective under expectation over transformation (EOT), rather than against a fixed noising path. 

@@ -41,7 +41,7 @@ The main table also reports De-AntiFake as a surrogate-matched reference to diag
 \textbf{VocalBridge} \cite{abbasihafshejani2026vocalbridge} is a planned separate robustness target because its bridge-diffusion formulation differs from the grouped template; 
 we do not add an extra main-table column until its run configuration is fixed.
 To avoid limiting the threat model to diffusion-based removal, we also include non-diffusion signal-processing front ends. 
-These front ends model an attacker who does not train or run a learned purifier, but instead tries to weaken protective perturbations using generic audio transformations such as smoothing, resampling, quantization, filtering, and mel-domain reconstruction. 
+These front ends model an attacker who does not train or run a learned purifier, but instead tries to weaken protective perturbations using generic audio transformations such as additive noise, median smoothing, low-pass filtering, quantization, and mel-domain reconstruction. 
 The non-diffusion suite follows transformations studied by SpeakerGuard for speaker-recognition robustness and WaveGuard for audio adversarial-example mitigation \cite{chen2023speakerguard,hussain2021waveguard}. 
 We use these transformations as cross-mechanism stress tests: if \method{} remains effective under both diffusion purifiers and WaveGuard/SpeakerGuard-style processing, then the observed protection is less likely to be an artifact of a single diffusion purification mechanism. 
 Table~\ref{tab:traditional_purifiers} reports these traditional transformations and measures whether protection survives simpler attacker preprocessing as well as learned purification.
@@ -140,6 +140,15 @@ so the table can be populated directly from experiment logs.
 & Chatterbox  & 0.0 & 0.0 & 0.1 & 22.8 & 0.4 & 38.8 & 0.0 & 0.0 & 0.0 & 0.0 & 0.0 & 0.1 & 5.7 & 0.1 & 9.7 \\
 \rowcolor{avggray}
 & \textbf{Avg.} & 1.8 & 0.1 & 5.4 & 21.5 & 1.2 & 45.1 & 0.6 & 0.1 & 0.8 & 2.1 & 0.2 & 7.3 & 6.5 & 0.4 & 14.6 \\
+\methodspace
+\midrule
+\multirow{5}{*}{\method{}(8/255)}
+& CosyVoice   & 0.0 & 0.0 & 0.3 & 37.4 & 0.9 & 64.7 & 0.0 & 0.0 & 0.2 & 0.4 & 0.0 & 7.2 & 9.5 & 0.2 & 18.1 \\
+& F5-TTS      & 0.0 & 0.0 & 12.8 & 17.0 & 8.4 & 72.1 & 0.0 & 0.0 & 2.3 & 0.2 & 0.3 & 26.1 & 4.3 & 2.2 & 28.3 \\
+& Qwen3-TTS   & 2.4 & 0.0 & 7.9 & 39.4 & 3.9 & 61.3 & 0.0 & 0.0 & 0.4 & 4.1 & 0.0 & 11.8 & 11.5 & 1.0 & 20.4 \\
+& Chatterbox  & 0.0 & 0.0 & 0.4 & 43.4 & 2.9 & 66.3 & 0.0 & 0.0 & 0.7 & 0.4 & 0.0 & 6.2 & 11.0 & 0.7 & 18.4 \\
+\rowcolor{avggray}
+& \textbf{Avg.} & 0.6 & 0.0 & 5.4 & 34.3 & 4.0 & 66.1 & 0.0 & 0.0 & 0.9 & 1.3 & 0.1 & 12.8 & 9.1 & 1.0 & 21.3 \\
 \midrule
 \bottomrule
 \end{tabular}
@@ -163,7 +172,7 @@ The primary continuous metric is source-to-output speaker similarity:
     \cos\!\left(g(x), g(\mathcal{C}_m(\purifier(x_p)))\right),
 \end{equation}
 where lower values indicate stronger retained protection. The main benchmark reports speaker-verification acceptance rate (SVA, \%), 
-and quality metrics including signal-to-noise ratio (SNR), perceptual evaluation of speech quality (PESQ), short-time objective intelligibility (STOI), DNSMOS \cite{reddy2021dnsmos}, and NISQA \cite{mittag2021nisqa}. 
+and quality metrics including signal-to-noise ratio (SNR), perceptual evaluation of speech quality (PESQ), short-time objective intelligibility (STOI), DNSMOS Pro \cite{cumlin24_interspeech}, and NISQA \cite{mittag2021nisqa}. 
 Following De-AntiFake \cite{fan2025deantifake}, SVA is the average binary speaker-verification acceptance rate over cloned outputs:
 \begin{equation}
     \mathrm{SVA}_{g,m,p}
@@ -191,40 +200,36 @@ we use continuous SIM/WER in the non-diffusion table because those transformatio
 The most important controls are: clean reference, protected reference without purification, purified clean reference, and purified protected reference. 
 The purified-clean control is essential because it verifies that a purifier preserves identity for benign inputs.
 
-Table~\ref{tab:perceptual_quality} reports no-reference perceptual quality metrics for the released and transformed audio. 
-DNSMOS and NISQA complement PESQ and STOI because they do not require a clean reference and provide model-based estimates of perceived speech quality. 
-We use them as utility checks rather than security metrics: a successful protection method should lower speaker identity similarity without causing a large drop in perceived speech naturalness.
+Table~\ref{tab:perceptual_quality} reports audio-quality metrics for the released protected reference. 
+SNR, PESQ, and STOI measure signal fidelity and intelligibility against the clean reference, while DNSMOS Pro and NISQA provide no-reference estimates of perceived speech quality. 
+We use these metrics as utility checks rather than security metrics: a successful protection method should lower speaker identity similarity without causing a large drop in speech fidelity, intelligibility, or perceived naturalness.
 
-\begin{table*}[t]
+\begin{table}[t]
 \centering
-\small
-\setlength{\tabcolsep}{4.5pt}
+\footnotesize
+\setlength{\tabcolsep}{2.4pt}
 \renewcommand{\arraystretch}{1.08}
-\begin{tabular}{lcccccc}
+\begin{tabular*}{\columnwidth}{@{\extracolsep{\fill}}lccccc@{}}
 \toprule
-\multirow[b]{2}{*}{Protection Method}
-& \multicolumn{2}{c}{Protected Reference}
-& \multicolumn{2}{c}{Diffusion-Purified Reference}
-& \multicolumn{2}{c}{Non-Diffusion Transformed Reference} \\
-\cmidrule(lr){2-3}
-\cmidrule(lr){4-5}
-\cmidrule(lr){6-7}
-& DNSMOS & NISQA & DNSMOS & NISQA & DNSMOS & NISQA \\
+\multirow[b]{2}{*}{\shortstack[c]{Protection\\Method}}
+& \multicolumn{5}{c}{Protected Reference} \\
+\cmidrule(lr){2-6}
+& SNR & PESQ & STOI & \mbox{DNSMOS Pro} & NISQA \\
 \midrule
-Clean & -- & -- & -- & -- & -- & -- \\
-AntiFake & -- & -- & -- & -- & -- & -- \\
-SafeSpeech & -- & -- & -- & -- & -- & -- \\
-E2E-VGuard & -- & -- & -- & -- & -- & -- \\
-AttackVC & -- & -- & -- & -- & -- & -- \\
-\method{} & -- & -- & -- & -- & -- & -- \\
+Clean & -- & -- & -- & 2.887 & 3.599 \\
+AntiFake & 1.487 & 1.276 & 0.393 & 1.912 & 3.230 \\
+SafeSpeech & 14.892 & 1.188 & 0.885 & 1.874 & 2.493 \\
+E2E-VGuard & 19.963 & 1.436 & 0.940 & 1.942 & 3.194 \\
+AttackVC & 13.764 & 1.141 & 0.897 & 1.881 & 3.265 \\
+\method{} & 13.785 & 1.122 & 0.883 & 1.790 & 3.043 \\
 \bottomrule
-\end{tabular}
-\caption{No-reference perceptual quality reporting template. 
-DNSMOS and NISQA estimate perceived speech quality for the released protected reference, the reference after diffusion-based purification, and the reference after WaveGuard/SpeakerGuard-style non-diffusion transformations. 
-Higher values indicate better perceived quality. 
-These metrics test whether retained protection is achieved without making the released or transformed reference audibly unnatural; they are reported alongside PESQ, STOI, SNR, and WER rather than replacing them.}
+\end{tabular*}
+\caption{Protected-reference audio-quality results. 
+SNR, PESQ, STOI, DNSMOS Pro, and NISQA measure whether each released protected reference preserves signal fidelity, intelligibility, and perceived speech naturalness. 
+Higher values indicate better audio quality. 
+Each row averages 900 utterances; dashes mark reference-based metrics that are not applicable to the clean reference.}
 \label{tab:perceptual_quality}
-\end{table*}
+\end{table}
 
 \subsection{Threshold Calibration}
 
@@ -291,17 +296,16 @@ This setting therefore tests whether \method{} depends narrowly on diffusion-spe
 \setlength{\tabcolsep}{2.8pt}
 \renewcommand{\arraystretch}{1.08}
 \newcommand{\metricpair}{\cellcolor{metricpink}\textbf{SIM} & \cellcolor{metricblue}\textbf{WER}}
-\begin{tabular}{lcccccccccccccccc}
+\begin{tabular}{lcccccccccccccc}
 \toprule
 \multirow[b]{3}{*}{\shortstack[c]{Protection\\Method}}
-& \multicolumn{8}{c}{SpeakerGuard~\cite{chen2023speakerguard}}
+& \multicolumn{6}{c}{SpeakerGuard~\cite{chen2023speakerguard}}
 & \multicolumn{8}{c}{WaveGuard~\cite{hussain2021waveguard}} \\
-\cmidrule(lr){2-9}
-\cmidrule(lr){10-17}
-& \multicolumn{2}{c}{RS}
-& \multicolumn{2}{c}{Mel}
-& \multicolumn{2}{c}{QD}
-& \multicolumn{2}{c}{FL}
+\cmidrule(lr){2-7}
+\cmidrule(lr){8-15}
+& \multicolumn{2}{c}{AT}
+& \multicolumn{2}{c}{MS}
+& \multicolumn{2}{c}{LPF}
 & \multicolumn{2}{c}{LPC}
 & \multicolumn{2}{c}{\shortstack{Mel\\Heur.}}
 & \multicolumn{2}{c}{\shortstack{Filter\\Power}}
@@ -313,8 +317,6 @@ This setting therefore tests whether \method{} depends narrowly on diffusion-spe
 \cmidrule(lr){10-11}
 \cmidrule(lr){12-13}
 \cmidrule(lr){14-15}
-\cmidrule(lr){16-17}
-& \metricpair
 & \metricpair
 & \metricpair
 & \metricpair
@@ -323,15 +325,15 @@ This setting therefore tests whether \method{} depends narrowly on diffusion-spe
 & \metricpair
 & \metricpair \\
 \midrule
-AntiFake & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
-SafeSpeech & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
-E2E-VGuard & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
-AttackVC & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
-\method{} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+AntiFake & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+SafeSpeech & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+E2E-VGuard & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+AttackVC & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
+\method{} & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- & -- \\
 \bottomrule
 \end{tabular}
 \caption{Non-diffusion purification-front-end reporting template. 
-SpeakerGuard transformations cover randomized smoothing (RS), mel-spectrogram reconstruction (Mel), quantization--dequantization (QD), and filtering (FL); 
+SpeakerGuard transformations cover additive noise (AT), median smoothing (MS), and low-pass filtering (LPF); 
 WaveGuard transformations cover linear predictive coding (\texttt{lpc}), mel-domain heuristic reconstruction (\texttt{mel\_heuristic}), power filtering (\texttt{filter\_power}), and quantization (\texttt{quant}). 
 Each setting reports speaker similarity (SIM) and word error rate (WER), testing whether \method{} remains effective beyond diffusion-based purification when the attacker uses lightweight signal-processing transformations instead of a learned diffusion purifier.}
 \label{tab:traditional_purifiers}
@@ -351,7 +353,7 @@ A third planned ablation varies the reverse timestep and capture stride to test 
 
 Because DiffBreak shows that stochastic and adaptive evaluation can overturn apparent robustness claims for diffusion purification, 
 we report repeated purification samples or worst-case statistics over seeds \cite{kassis2025diffbreak}. 
-We pair identity metrics with SNR, PESQ, STOI, DNSMOS, and NISQA so that any observed protection gain cannot be attributed merely to excessive audible distortion. 
+We pair identity metrics with SNR, PESQ, STOI, DNSMOS Pro, and NISQA so that any observed protection gain cannot be attributed merely to excessive audible distortion. 
 Together, these analyses are designed to test the hypothesis behind \method{}: once purification becomes part of the attack chain, 
 robust voice protection may need to optimize against the purifier itself rather than only against the cloning backend.
 
